@@ -44,12 +44,12 @@ export default function Landing() {
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
               <Shield className="text-on-primary w-6 h-6" />
             </div>
-            <span className="font-headline font-black text-2xl tracking-tighter text-primary">SafeCallr</span>
+            <span className="font-headline font-black text-xl md:text-2xl tracking-tighter text-primary hidden min-[400px]:block">SafeCallr</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-bold uppercase tracking-widest text-slate-400">
             <a href="#problem" className="hover:text-primary transition-colors">Problème</a>
@@ -57,14 +57,14 @@ export default function Landing() {
             <a href="#for-whom" className="hover:text-primary transition-colors">Pour qui</a>
             <a href="#differentiation" className="hover:text-primary transition-colors">Différence</a>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
             {/* Connexion Dropdown */}
             <div className="relative" ref={loginRef}>
               <button 
                 onClick={() => { setIsLoginOpen(!isLoginOpen); setIsRegisterOpen(false); }}
-                className="text-sm font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors flex items-center gap-1"
+                className="text-[10px] sm:text-sm font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors flex items-center gap-1 whitespace-nowrap"
               >
-                Connexion <ChevronDown className={`w-4 h-4 transition-transform ${isLoginOpen ? 'rotate-180' : ''}`} />
+                Connexion <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isLoginOpen ? 'rotate-180' : ''}`} />
               </button>
               
               <AnimatePresence>
@@ -102,9 +102,9 @@ export default function Landing() {
             <div className="relative" ref={registerRef}>
               <button 
                 onClick={() => { setIsRegisterOpen(!isRegisterOpen); setIsLoginOpen(false); }}
-                className="bg-primary text-on-primary px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1"
+                className="bg-primary text-on-primary px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-bold text-[10px] sm:text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1 whitespace-nowrap"
               >
-                S'inscrire <ChevronDown className={`w-4 h-4 transition-transform ${isRegisterOpen ? 'rotate-180' : ''}`} />
+                S'inscrire <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isRegisterOpen ? 'rotate-180' : ''}`} />
               </button>
 
               <AnimatePresence>
@@ -179,13 +179,13 @@ export default function Landing() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 px-4"
           >
-            <Link to="/auth" className="w-full sm:w-auto bg-primary text-on-primary px-10 py-6 rounded-2xl font-headline font-black text-xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+            <Link to="/auth" className="w-full sm:w-auto bg-primary text-on-primary px-6 md:px-10 py-5 md:py-6 rounded-2xl font-headline font-black text-lg md:text-xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
               Particulier : S'inscrire & Télécharger
-              <ArrowRight className="w-6 h-6" />
+              <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
             </Link>
-            <Link to="/pro/register" className="w-full sm:w-auto bg-surface-container-low border border-white/10 text-on-surface px-10 py-6 rounded-2xl font-headline font-black text-xl hover:bg-surface-container transition-all flex items-center justify-center gap-3">
+            <Link to="/pro/register" className="w-full sm:w-auto bg-surface-container-low border border-white/10 text-on-surface px-6 md:px-10 py-5 md:py-6 rounded-2xl font-headline font-black text-lg md:text-xl hover:bg-surface-container transition-all flex items-center justify-center gap-3">
               Vous êtes un Pro ?
             </Link>
           </motion.div>
