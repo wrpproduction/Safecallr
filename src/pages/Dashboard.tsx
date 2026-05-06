@@ -10,7 +10,6 @@ export default function Dashboard({ user }: { user: any }) {
   const [personalRequests, setPersonalRequests] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
   const [myContacts, setMyContacts] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"home" | "contacts">("home");
   const [loading, setLoading] = useState(true);
   const [loadingConnections, setLoadingConnections] = useState(true);
   const [showFloatingBanner, setShowFloatingBanner] = useState(true);
@@ -251,7 +250,6 @@ export default function Dashboard({ user }: { user: any }) {
                 <button 
                   onClick={() => {
                     if (pendingAuthRequest) navigate(`/auth-request/${pendingAuthRequest.id}`);
-                    else setActiveTab("home");
                   }}
                   className="bg-on-primary text-primary px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
                 >
@@ -271,7 +269,7 @@ export default function Dashboard({ user }: { user: any }) {
 
       <div className="space-y-8 pb-12">
         {/* URGENT ALERT - Top of page if pending auth */}
-        {activeTab === "home" && pendingAuthRequest && (
+        {pendingAuthRequest && (
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -319,7 +317,7 @@ export default function Dashboard({ user }: { user: any }) {
             <h1 className="font-headline font-extrabold text-2xl tracking-tight text-on-surface">
               Bonjour, <span className="text-primary">{(user.displayName || "Utilisateur").split(" ")[0]}</span>
             </h1>
-            <button onClick={() => signOut(auth)} className="p-2 rounded-xl bg-surface-container-highest text-slate-500 active:scale-90 transition-transform">
+            <button onClick={() => signOut(auth)} className="p-2 rounded-xl bg-surface-container-low text-slate-500 active:scale-90 transition-transform">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -328,42 +326,39 @@ export default function Dashboard({ user }: { user: any }) {
           </p>
         </section>
 
-        {/* Tabs */}
+        {/* Navigation Tabs (Unified with main navigation) */}
         <div className="flex bg-surface-container-low p-1 rounded-2xl border border-white/5">
           <button 
-            onClick={() => setActiveTab("home")}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'home' ? 'bg-primary text-on-primary shadow-lg' : 'text-slate-500'}`}
+            className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-primary text-on-primary shadow-lg"
           >
             Accueil
           </button>
-          <button 
-            onClick={() => setActiveTab("contacts")}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'contacts' ? 'bg-primary text-on-primary shadow-lg' : 'text-slate-500'}`}
+          <Link 
+            to="/contacts"
+            className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-2"
           >
             Mes contacts
             {myContacts.length > 0 && (
-              <span className={`w-2 h-2 rounded-full bg-primary-container ${activeTab === 'contacts' ? 'bg-white' : ''}`} />
+              <span className="w-2 h-2 rounded-full bg-primary-container" />
             )}
-          </button>
+          </Link>
         </div>
 
-        {activeTab === "home" ? (
-        <>
-          {/* Main Action */}
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Link to="/new-request" className="w-full bg-primary-gradient p-8 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl shadow-primary/20 group">
-              <div className="w-16 h-16 rounded-full bg-on-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <PlusCircle className="text-on-primary w-10 h-10" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-headline font-bold text-xl text-on-primary">Demander une vérification</h3>
-                <p className="text-on-primary/80 text-xs font-medium uppercase tracking-widest mt-1">Lancer le protocole sécurisé</p>
-              </div>
-            </Link>
-          </motion.div>
+        {/* Main Action */}
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Link to="/new-request" className="w-full bg-primary-gradient p-8 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl shadow-primary/20 group">
+            <div className="w-16 h-16 rounded-full bg-on-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <PlusCircle className="text-on-primary w-10 h-10" />
+            </div>
+            <div className="text-center">
+              <h3 className="font-headline font-bold text-xl text-on-primary">Demander une vérification</h3>
+              <p className="text-on-primary/80 text-xs font-medium uppercase tracking-widest mt-1">Lancer le protocole sécurisé</p>
+            </div>
+          </Link>
+        </motion.div>
 
           {/* Connection Requests */}
           {(connections.length > 0 || personalRequests.length > 0) && (
@@ -594,66 +589,6 @@ export default function Dashboard({ user }: { user: any }) {
               )}
             </div>
           </section>
-        </>
-      ) : (
-        <section className="space-y-6 animate-in fade-in duration-500">
-          <div className="flex justify-between items-center px-2">
-            <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts professionnels</h3>
-            <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest">
-              {myContacts.length} contact{myContacts.length > 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {myContacts.length === 0 ? (
-            <div className="text-center py-20 bg-surface-container-low rounded-3xl border border-dashed border-white/10 space-y-4">
-              <Users className="w-16 h-16 text-slate-700 mx-auto" />
-              <div className="space-y-2">
-                <p className="text-on-surface font-bold">Aucun contact pour le moment</p>
-                <p className="text-slate-500 text-xs max-w-[240px] mx-auto leading-relaxed">
-                  Lorsqu'un professionnel vous ajoutera et que vous accepterez, il apparaîtra ici.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {myContacts.map((contact) => (
-                <div key={contact.id} className="bg-surface-container-low p-6 rounded-3xl border border-white/5 flex items-center gap-4 shadow-xl shadow-black/5">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                    <Building2 className="w-8 h-8" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-headline font-bold text-on-surface text-lg">
-                      {contact.companyName}
-                    </h4>
-                    <p className="text-slate-400 text-xs font-medium">
-                      Contact : {contact.proName}
-                    </p>
-                    {contact.companyCategory && (
-                      <span className="inline-block mt-1 text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
-                        {getCategoryLabel(contact.companyCategory)}
-                      </span>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Connecté</span>
-                    </div>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="p-6 bg-surface-container-highest rounded-3xl border border-white/5">
-            <h4 className="font-headline font-bold text-on-surface text-sm mb-2">Pourquoi ajouter des contacts ?</h4>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              En autorisant un professionnel, vous facilitez les futures vérifications d'identité. Vous recevrez directement ses demandes sur votre application SafeCallr.
-            </p>
-          </div>
-        </section>
-      )}
       </div>
     </div>
   );

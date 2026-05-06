@@ -443,7 +443,54 @@ export default function Contacts({ user }: { user: any }) {
 
       {/* Contacts List */}
       <div className="space-y-8">
-        {/* Professional Contacts */}
+        {/* Verified User Connections (Renamed to Mes contacts vérifiés and moved to top) */}
+        {filteredUserConnections.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts vérifiés</h3>
+              <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-full uppercase tracking-widest">
+                {filteredUserConnections.length}
+              </span>
+            </div>
+            <div className="flex flex-col gap-3">
+              {filteredUserConnections.map((conn) => {
+                const otherName = conn.userAId === user.uid ? conn.userBName : conn.userAName;
+                const otherPhone = conn.userAId === user.uid ? conn.userBPhone : conn.userAPhone;
+                return (
+                  <motion.div 
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key={conn.id} 
+                    className="bg-surface-container-low p-4 rounded-3xl border border-white/5 flex items-center gap-4 hover:border-primary/30 transition-all group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-headline font-bold text-on-surface text-lg leading-tight">
+                        {otherName || "Utilisateur Vérifié"}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Phone size={12} className="text-slate-500" />
+                        <p className="text-slate-400 text-xs font-medium">
+                          {otherPhone}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
+                        Vérifié
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Professional Contacts (Moved to middle) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts professionnels</h3>
@@ -496,54 +543,7 @@ export default function Contacts({ user }: { user: any }) {
           )}
         </section>
 
-        {/* Verified User Connections */}
-      {filteredUserConnections.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="font-headline font-bold text-lg text-on-surface">Contacts Utilisateurs Vérifiés</h3>
-            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase tracking-widest">
-              {filteredUserConnections.length}
-            </span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {filteredUserConnections.map((conn) => {
-              const otherName = conn.userAId === user.uid ? conn.userBName : conn.userAName;
-              const otherPhone = conn.userAId === user.uid ? conn.userBPhone : conn.userAPhone;
-              return (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  key={conn.id} 
-                  className="bg-surface-container-low p-4 rounded-3xl border border-white/5 flex items-center gap-4 hover:border-primary/30 transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    <Shield className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-headline font-bold text-on-surface text-lg leading-tight">
-                      {otherName || "Utilisateur Vérifié"}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Phone size={12} className="text-slate-500" />
-                      <p className="text-slate-400 text-xs font-medium">
-                        {otherPhone}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
-                      Vérifié
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Personal Contacts */}
+        {/* Personal Contacts (Manual - moved to bottom) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts personnels</h3>
