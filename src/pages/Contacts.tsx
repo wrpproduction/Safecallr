@@ -14,7 +14,7 @@ export default function Contacts({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newContact, setNewContact] = useState({ name: "", phone: "", email: "" });
+  const [newContact, setNewContact] = useState({ name: "", phone: "", email: "", description: "" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState("");
@@ -160,33 +160,35 @@ export default function Contacts({ user }: { user: any }) {
         const target = targetUser as any;
         const targetName = target.displayName || (target.firstName ? `${target.firstName} ${target.lastName}` : "Utilisateur SafeCallr");
         
-        await addDoc(collection(db, "personalContactRequests"), {
-          fromUserId: user.uid,
-          fromUserName: user.displayName || "Utilisateur SafeCallr",
-          fromUserPhone: user.phoneNumber || "",
-          toUserId: target.id,
-          toUserName: targetName,
-          toUserPhone: target.phoneNumber || "",
-          toUserEmail: target.email || "",
-          status: "pending",
-          createdAt: serverTimestamp()
-        });
-        setAddSuccess("Demande de validation envoyée à " + newContact.name);
-        setTimeout(() => setShowAddModal(false), 2000);
-      } else {
-        // Person not in base, add as local contact
-        await addDoc(collection(db, "personalContacts"), {
-          ownerId: user.uid,
-          name: newContact.name,
-          phone: newContact.phone,
-          email: newContact.email,
-          createdAt: serverTimestamp()
-        });
+          await addDoc(collection(db, "personalContactRequests"), {
+            fromUserId: user.uid,
+            fromUserName: user.displayName || "Utilisateur SafeCallr",
+            fromUserPhone: user.phoneNumber || "",
+            toUserId: target.id,
+            toUserName: targetName,
+            toUserPhone: target.phoneNumber || "",
+            toUserEmail: target.email || "",
+            status: "pending",
+            description: newContact.description,
+            createdAt: serverTimestamp()
+          });
+          setAddSuccess("Demande de validation envoyée à " + newContact.name);
+          setTimeout(() => setShowAddModal(false), 2000);
+        } else {
+          // Person not in base, add as local contact
+          await addDoc(collection(db, "personalContacts"), {
+            ownerId: user.uid,
+            name: newContact.name,
+            phone: newContact.phone,
+            email: newContact.email,
+            description: newContact.description,
+            createdAt: serverTimestamp()
+          });
         setAddSuccess("Contact ajouté localement (non inscrit sur SafeCallr)");
         setTimeout(() => setShowAddModal(false), 2000);
       }
       
-      setNewContact({ name: "", phone: "", email: "" });
+      setNewContact({ name: "", phone: "", email: "", description: "" });
     } catch (err: any) {
       console.error("Add contact error:", err);
       setAddError("Erreur lors de l'ajout : " + err.message);
@@ -313,10 +315,10 @@ export default function Contacts({ user }: { user: any }) {
     <div className="space-y-8 pb-12">
       <section className="space-y-2">
         <h1 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface">
-          Mes <span className="text-primary">contacts</span>
+          Mes contacts <span className="text-primary">vérifiés</span>
         </h1>
         <p className="text-slate-400 text-sm leading-relaxed">
-          Gérez vos relations avec les professionnels certifiés SafeCallr.
+          Gérez vos relations avec les professionnels et particuliers certifiés SafeCallr.
         </p>
       </section>
 
@@ -397,6 +399,11 @@ export default function Contacts({ user }: { user: any }) {
                     <p className="text-slate-400 text-xs font-medium">
                       Souhaite vous ajouter à ses contacts personnels
                     </p>
+                    {req.description && (
+                      <p className="mt-2 text-[10px] text-slate-500 italic bg-white/5 p-2 rounded-xl border border-white/5">
+                        "{req.description}"
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-3 mt-1">
@@ -443,16 +450,17 @@ export default function Contacts({ user }: { user: any }) {
 
       {/* Contacts List */}
       <div className="space-y-8">
-        {/* Verified User Connections (Renamed to Mes contacts vérifiés and moved to top) */}
-        {filteredUserConnections.length > 0 && (
+        {/* Personal Contacts (Verified + Manual) */}
+        {(filteredUserConnections.length > 0 || filteredPersonal.length > 0) && (
           <section className="space-y-4">
             <div className="flex items-center justify-between px-2">
-              <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts vérifiés</h3>
+              <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts personnels</h3>
               <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-full uppercase tracking-widest">
-                {filteredUserConnections.length}
+                {filteredUserConnections.length + filteredPersonal.length}
               </span>
             </div>
             <div className="flex flex-col gap-3">
+              {/* Verified User Connections */}
               {filteredUserConnections.map((conn) => {
                 const otherName = conn.userAId === user.uid ? conn.userBName : conn.userAName;
                 const otherPhone = conn.userAId === user.uid ? conn.userBPhone : conn.userAPhone;
@@ -486,11 +494,50 @@ export default function Contacts({ user }: { user: any }) {
                   </motion.div>
                 );
               })}
+
+              {/* Manual Personal Contacts */}
+              {filteredPersonal.map((contact) => (
+                <motion.div 
+                  layout
+                  key={contact.id}
+                  className="bg-surface-container-low p-4 rounded-3xl border border-white/5 flex items-center justify-between hover:border-secondary/30 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-secondary">
+                      <User className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-headline font-bold text-on-surface text-lg leading-tight">
+                        {contact.name}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Phone size={12} className="text-slate-500" />
+                        <p className="text-slate-400 text-xs font-medium">
+                          {contact.phone}
+                        </p>
+                      </div>
+                      {contact.description && (
+                        <p className="text-[10px] text-slate-500 mt-1 italic">
+                          {contact.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleDeleteContact(contact.id)}
+                      className="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center text-error hover:bg-error hover:text-on-error transition-all active:scale-90"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </section>
         )}
 
-        {/* Professional Contacts (Moved to middle) */}
+        {/* Professional Contacts */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts professionnels</h3>
@@ -514,10 +561,10 @@ export default function Contacts({ user }: { user: any }) {
                 <motion.div 
                   layout
                   key={conn.id}
-                  className="bg-surface-container-low p-5 rounded-2xl border border-white/5 flex items-center justify-between group"
+                  className="bg-surface-container-low p-5 rounded-3xl border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-all"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+                    <div className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                       <Building2 className="w-6 h-6" />
                     </div>
                     <div>
@@ -536,58 +583,6 @@ export default function Contacts({ user }: { user: any }) {
                   </div>
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <Check size={16} />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Personal Contacts (Manual - moved to bottom) */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts personnels</h3>
-            <span className="text-[10px] font-bold bg-secondary/10 text-secondary px-2 py-1 rounded-full uppercase tracking-widest">
-              {filteredPersonal.length}
-            </span>
-          </div>
-          
-          {loading ? null : filteredPersonal.length === 0 ? (
-            <div className="text-center py-12 bg-surface-container-low rounded-3xl border border-dashed border-white/10">
-              <User className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-500 text-xs">Aucun contact personnel</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {filteredPersonal.map((contact) => (
-                <motion.div 
-                  layout
-                  key={contact.id}
-                  className="bg-surface-container-low p-4 rounded-2xl border border-white/5 flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-secondary">
-                      <User className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-headline font-bold text-on-surface text-sm">
-                        {contact.name}
-                      </h4>
-                      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                        {contact.phone}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-                      <Shield size={16} />
-                    </div>
-                    <button 
-                      onClick={() => handleDeleteContact(contact.id)}
-                      className="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center text-error hover:bg-error hover:text-on-error transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -658,6 +653,17 @@ export default function Contacts({ user }: { user: any }) {
                     value={newContact.email}
                     onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
                     className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">Description / Contexte</label>
+                  <textarea 
+                    placeholder="Ex: Ma soeur, rencontré à la conférence..."
+                    value={newContact.description}
+                    onChange={(e) => setNewContact({ ...newContact, description: e.target.value })}
+                    rows={2}
+                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all resize-none"
                   />
                 </div>
 

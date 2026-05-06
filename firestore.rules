@@ -36,8 +36,21 @@ service cloud.firestore {
     }
 
     function isValidPersonalRequest(data) {
-      return data.keys().hasAll(['fromUserId', 'toUserId', 'status']) &&
-             data.status in ['pending', 'accepted', 'rejected'];
+      return data.keys().hasAll(['fromUserId', 'fromUserName', 'fromUserPhone', 'toUserId', 'toUserName', 'toUserPhone', 'toUserEmail', 'status', 'createdAt']) &&
+             data.fromUserId is string &&
+             data.fromUserName is string &&
+             data.toUserId is string &&
+             data.status in ['pending', 'accepted', 'rejected'] &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500));
+    }
+
+    function isValidPersonalContact(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'phone', 'email', 'createdAt']) &&
+             data.ownerId is string &&
+             data.name is string &&
+             data.phone is string &&
+             data.email is string &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500));
     }
 
     function isValidPro(data) {
@@ -163,8 +176,8 @@ service cloud.firestore {
     // Personal Contacts
     match /personalContacts/{contactId} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.ownerId || isAdmin());
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId;
-      allow update: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId && isValidPersonalContact(request.resource.data);
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.ownerId && isValidPersonalContact(request.resource.data);
       allow delete: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
     }
 

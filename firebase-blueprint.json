@@ -134,6 +134,23 @@
       },
       "required": ["proId", "clientPhone", "status"]
     },
+    "personalContactRequests": {
+      "title": "Demande de contact personnel",
+      "description": "Demande d'ajout entre utilisateurs particuliers.",
+      "type": "object",
+      "properties": {
+        "fromUserId": { "type": "string" },
+        "fromUserName": { "type": "string" },
+        "fromUserPhone": { "type": "string" },
+        "toUserId": { "type": "string" },
+        "toUserName": { "type": "string" },
+        "toUserPhone": { "type": "string" },
+        "toUserEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "personalContacts": {
       "title": "Contact Personnel",
       "description": "Contact ajouté manuellement par l'utilisateur.",
@@ -142,9 +159,11 @@
         "ownerId": { "type": "string" },
         "name": { "type": "string" },
         "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "description": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["ownerId", "name", "phone"]
+      "required": ["ownerId", "name", "phone", "email"]
     }
   },
   "firestore": {
