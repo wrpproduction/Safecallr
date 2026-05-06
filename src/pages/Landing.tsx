@@ -133,7 +133,7 @@ export default function Landing() {
                         <div className="text-[10px] text-slate-500 uppercase tracking-widest">Compte certifié</div>
                       </div>
                     </Link>
-                    <a href="mailto:contact@safecallr.com" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
+                    <Link to="/company-contact" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                         <Banknote className="w-4 h-4 text-primary" />
                       </div>
@@ -141,7 +141,7 @@ export default function Landing() {
                         <div className="text-sm font-bold">Vous êtes une entreprise</div>
                         <div className="text-[10px] text-slate-500 uppercase tracking-widest">Nous contacter</div>
                       </div>
-                    </a>
+                    </Link>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -246,7 +246,7 @@ export default function Landing() {
                 { label: "Fraude en France", value: "+4,5 Mrd €", sub: "Particuliers" },
                 { label: "Victimes / an", value: "+400 000", sub: "En France" },
                 { label: "Manipulation humaine", value: "+80 %", sub: "Des fraudes" },
-                { label: "Europe / an", value: "Milliards €", sub: "Chaque année" }
+                { label: "Europe / an", value: "+25 Mrd €", sub: "Chaque année" }
               ].map((stat, i) => (
                 <div key={i} className="bg-surface-container-low p-8 rounded-3xl border border-white/5 flex flex-col justify-center">
                   <BarChart3 className="text-error w-6 h-6 mb-4 opacity-50" />
@@ -398,9 +398,9 @@ export default function Landing() {
                   <span>Conformité et traçabilité</span>
                 </li>
               </ul>
-              <button className="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-bold text-center hover:bg-white hover:text-background transition-all">
+              <Link to="/company-contact" className="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-bold text-center hover:bg-white hover:text-background transition-all">
                 Contacter un expert
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -509,9 +509,9 @@ export default function Landing() {
             ))}
           </div>
           <p className="text-2xl text-slate-400 mb-12 italic">"SafeCallr devient votre couche de confiance."</p>
-          <button className="bg-white text-background px-12 py-6 rounded-2xl font-headline font-black text-xl hover:bg-primary hover:text-on-primary transition-all">
+          <Link to="/company-contact" className="bg-white text-background px-12 py-6 rounded-2xl font-headline font-black text-xl hover:bg-primary hover:text-on-primary transition-all">
             Nous contacter
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -617,9 +617,9 @@ export default function Landing() {
               <Link to="/pro/register" className="text-sm font-bold uppercase tracking-widest bg-surface-container-low px-8 py-4 rounded-2xl border border-white/5 hover:bg-surface-container transition-all">
                 Accéder à l’espace pro
               </Link>
-              <button className="text-sm font-bold uppercase tracking-widest bg-surface-container-low px-8 py-4 rounded-2xl border border-white/5 hover:bg-surface-container transition-all">
+              <Link to="/company-contact" className="text-sm font-bold uppercase tracking-widest bg-surface-container-low px-8 py-4 rounded-2xl border border-white/5 hover:bg-surface-container transition-all">
                 Contacter un expert
-              </button>
+              </Link>
             </div>
           </div>
 

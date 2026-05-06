@@ -14,6 +14,7 @@ import HowItWorks from "./pages/HowItWorks";
 import CompleteProfile from "./pages/CompleteProfile";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
+import CompanyContact from "./pages/CompanyContact";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
@@ -93,6 +94,7 @@ export default function App() {
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/auth" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Auth />} />
           <Route path="/register" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Register />} />
+          <Route path="/company-contact" element={<CompanyContact />} />
           
           {/* Pro Routes */}
           <Route path="/pro/login" element={<ProLogin />} />

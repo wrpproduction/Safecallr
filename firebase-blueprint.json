@@ -164,6 +164,23 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerId", "name", "phone", "email"]
+    },
+    "companyContactRequests": {
+      "title": "Demande de contact entreprise",
+      "description": "Demande de contact de la part d'une entreprise.",
+      "type": "object",
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "companyName": { "type": "string" },
+        "message": { "type": "string" },
+        "targetEmail": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["firstName", "lastName", "email", "phone", "companyName", "message"]
     }
   },
   "firestore": {
@@ -202,6 +219,10 @@
     "/personalContacts/{contactId}": {
       "schema": "personalContacts",
       "description": "Contacts personnels de l'utilisateur."
+    },
+    "/companyContactRequests/{requestId}": {
+      "schema": "companyContactRequests",
+      "description": "Demandes de contact entreprise."
     }
   }
 }

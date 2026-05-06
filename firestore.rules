@@ -89,6 +89,17 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function isValidCompanyContact(data) {
+      return data.keys().hasAll(['firstName', 'lastName', 'email', 'phone', 'companyName', 'message', 'targetEmail', 'status', 'createdAt']) &&
+             data.firstName is string && data.firstName.size() <= 100 &&
+             data.lastName is string && data.lastName.size() <= 100 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.phone is string && data.phone.size() <= 50 &&
+             data.companyName is string && data.companyName.size() <= 200 &&
+             data.message is string && data.message.size() <= 2000 &&
+             data.targetEmail == "contact@safecallr.com";
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated(); // Allow searching users by email/phone
@@ -220,6 +231,13 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update: if false;
       allow delete: if isAdmin();
+    }
+
+    // Company Contact Requests
+    match /companyContactRequests/{requestId} {
+      allow read: if isAdmin();
+      allow create: if isValidCompanyContact(request.resource.data);
+      allow update, delete: if isAdmin();
     }
   }
 }
