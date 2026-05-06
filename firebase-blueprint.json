@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "users": {
+      "title": "Utilisateur",
+      "description": "Profil utilisateur avec token FCM pour les notifications.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phoneNumber": { "type": "string" },
+        "fcmToken": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "phoneNumber"]
+    },
+    "verification_requests": {
+      "title": "Demande de vérification",
+      "description": "Demande d'identité entre un demandeur et une cible.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requesterId": { "type": "string" },
+        "requesterName": { "type": "string" },
+        "targetPhone": { "type": "string" },
+        "targetId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "refused", "verified", "caution"] },
+        "type": { "type": "string" },
+        "useCode": { "type": "boolean" },
+        "verificationCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["requesterId", "requesterName", "targetPhone", "status", "type"]
+    },
+    "pros": {
+      "title": "Professionnel",
+      "description": "Profil professionnel pouvant initier des demandes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "companyId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending_validation", "active", "suspended", "rejected"] },
+        "verified": { "type": "boolean" },
+        "siretDocUrl": { "type": "string" },
+        "siretVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "companies": {
+      "title": "Entreprise",
+      "description": "Entreprises enregistrées sur la plateforme.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "domain": { "type": "string" },
+        "siret": { "type": "string" },
+        "category": { "type": "string", "enum": ["banque", "notaire", "avocat", "courtier", "agent immobilier", "autres"] },
+        "status": { "type": "string", "enum": ["pending", "verified", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "admins": {
+      "title": "Administrateur",
+      "description": "Accès au backoffice.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "mail": {
+      "title": "Email",
+      "description": "Emails à envoyer via l'extension Firebase Trigger Email.",
+      "type": "object",
+      "properties": {
+        "to": { "type": "string" },
+        "message": {
+          "type": "object",
+          "properties": {
+            "subject": { "type": "string" },
+            "text": { "type": "string" },
+            "html": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "authRequests": {
+      "title": "Demande d'authentification Pro",
+      "description": "Demande d'identité initiée par un professionnel vers un client.",
+      "type": "object",
+      "properties": {
+        "fromProId": { "type": "string" },
+        "fromProName": { "type": "string" },
+        "fromCompanyName": { "type": "string" },
+        "fromCompanyCategory": { "type": "string" },
+        "toUserId": { "type": "string" },
+        "toUserPhone": { "type": "string" },
+        "toUserName": { "type": "string" },
+        "companyId": { "type": "string" },
+        "channel": { "type": "string", "enum": ["phone", "video"] },
+        "status": { "type": "string", "enum": ["pending", "accepted", "validated", "refused"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "proClientConnections": {
+      "title": "Connexion Pro-Client",
+      "description": "Lien entre un professionnel et un client enregistré ou invité.",
+      "type": "object",
+      "properties": {
+        "proId": { "type": "string" },
+        "proName": { "type": "string" },
+        "companyName": { "type": "string" },
+        "companyCategory": { "type": "string" },
+        "userId": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "clientEmail": { "type": "string", "format": "email" },
+        "clientFirstName": { "type": "string" },
+        "clientLastName": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "connected", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["proId", "clientPhone", "status"]
+    },
+    "personalContacts": {
+      "title": "Contact Personnel",
+      "description": "Contact ajouté manuellement par l'utilisateur.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "phone"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Données privées de l'utilisateur."
+    },
+    "/verification_requests/{requestId}": {
+      "schema": "verification_requests",
+      "description": "Demandes de vérification (User to User)."
+    },
+    "/authRequests/{requestId}": {
+      "schema": "authRequests",
+      "description": "Demandes d'authentification (Pro to User)."
+    },
+    "/pros/{proId}": {
+      "schema": "pros",
+      "description": "Données des professionnels."
+    },
+    "/companies/{companyId}": {
+      "schema": "companies",
+      "description": "Données des entreprises."
+    },
+    "/admins/{adminId}": {
+      "schema": "admins",
+      "description": "Données des administrateurs."
+    },
+    "/mail/{mailId}": {
+      "schema": "mail",
+      "description": "Emails à envoyer."
+    },
+    "/proClientConnections/{connectionId}": {
+      "schema": "proClientConnections",
+      "description": "Connexions entre pros et clients."
+    },
+    "/personalContacts/{contactId}": {
+      "schema": "personalContacts",
+      "description": "Contacts personnels de l'utilisateur."
+    }
+  }
+}
