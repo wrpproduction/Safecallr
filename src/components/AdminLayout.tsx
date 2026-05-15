@@ -7,7 +7,8 @@ import {
   History, 
   LogOut, 
   Menu, 
-  X 
+  X,
+  AlertCircle
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -23,6 +24,7 @@ const navItems = [
   { label: "Pros", icon: ShieldCheck, path: "/admin/pros" },
   { label: "Entreprises", icon: Building2, path: "/admin/companies" },
   { label: "Demandes", icon: History, path: "/admin/requests" },
+  { label: "Alertes", icon: AlertCircle, path: "/admin/alerts" },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

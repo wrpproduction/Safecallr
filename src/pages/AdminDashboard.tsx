@@ -230,18 +230,18 @@ export default function AdminDashboard() {
                 <ArrowUpRight size={18} className="text-[#9a9a9f] group-hover:text-[#60a5fa] transition-colors" />
               </Link>
 
-              <button className="w-full p-4 bg-[#111113] border border-[#2e2e34] rounded-xl flex items-center justify-between hover:border-[#f87171] transition-colors group">
+              <Link to="/admin/alerts" className="w-full p-4 bg-[#111113] border border-[#2e2e34] rounded-xl flex items-center justify-between hover:border-[#f87171] transition-colors group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-[#f87171]/10 text-[#f87171] rounded-lg">
                     <AlertCircle size={20} />
                   </div>
                   <div className="text-left">
                     <p className="font-semibold text-sm">Signalements</p>
-                    <p className="text-xs text-[#9a9a9f]">3 alertes de vigilance</p>
+                    <p className="text-xs text-[#9a9a9f]">Activités suspectes</p>
                   </div>
                 </div>
-                <ArrowUpRight size={18} className="text-[#9a9a9f] group-hover:text-[#f87171] transition-colors" />
-              </button>
+                <ArrowUpRight size={18} className="text-[#9a9a9f] group-hover:text-[#4ade80] transition-colors" />
+              </Link>
             </div>
             
             <div className="mt-8 pt-6 border-t border-[#2e2e34]">

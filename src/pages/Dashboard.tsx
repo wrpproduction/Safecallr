@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { db, collection, query, where, onSnapshot, orderBy, auth, signOut, updateDoc, doc, serverTimestamp, getDocs, addDoc } from "../firebase";
-import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, Building2, ShieldQuestion } from "lucide-react";
+import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, User, Building2, ShieldQuestion } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function Dashboard({ user }: { user: any }) {
@@ -315,11 +315,13 @@ export default function Dashboard({ user }: { user: any }) {
         <section className="space-y-4">
           <div className="flex justify-between items-center">
             <h1 className="font-headline font-extrabold text-2xl tracking-tight text-on-surface">
-              Bonjour, <span className="text-primary">{(user.displayName || "Utilisateur").split(" ")[0]}</span>
+              Bonjour, <span className="text-primary truncate">
+                {user.firstName ? `${user.firstName} ${user.lastName || ""}` : (user.displayName || "Utilisateur")}
+              </span>
             </h1>
-            <button onClick={() => signOut(auth)} className="p-2 rounded-xl bg-surface-container-low text-slate-500 active:scale-90 transition-transform">
-              <LogOut className="w-5 h-5" />
-            </button>
+            <Link to="/profile" className="p-2 rounded-xl bg-surface-container-low text-slate-500 active:scale-90 transition-transform border border-white/5">
+              <User className="w-5 h-5" />
+            </Link>
           </div>
           <p className="text-slate-400 text-sm leading-relaxed">
             Protégez vos échanges. Vérifiez l'identité de votre interlocuteur en un clic.

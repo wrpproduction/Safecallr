@@ -48,9 +48,9 @@ export default function Layout({ user }: { user: any }) {
           <span className="font-headline font-black text-xl tracking-tighter text-primary">SafeCallr</span>
         </div>
         {user && (
-          <div className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20">
+          <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">
             <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" />
-          </div>
+          </Link>
         )}
       </header>
 

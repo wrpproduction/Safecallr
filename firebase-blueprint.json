@@ -7,12 +7,30 @@
       "properties": {
         "uid": { "type": "string" },
         "displayName": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "phoneNumber": { "type": "string" },
         "fcmToken": { "type": "string" },
+        "lastSensitiveUpdate": { "type": "string", "format": "date-time" },
+        "sensitiveUpdateCount": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["uid", "displayName", "email", "phoneNumber"]
+      "required": ["uid", "displayName", "firstName", "lastName", "email", "phoneNumber"]
+    },
+    "alerts": {
+      "title": "Alerte de sécurité",
+      "description": "Signalement d'activité suspecte (ex: changement trop fréquent de coordonnées).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "type": { "type": "string", "enum": ["too_many_sensitive_updates", "suspicious_login"] },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["new", "resolved"] }
+      },
+      "required": ["userId", "type", "createdAt", "status"]
     },
     "verification_requests": {
       "title": "Demande de vérification",
@@ -165,6 +183,21 @@
       },
       "required": ["ownerId", "name", "phone", "email"]
     },
+    "userConnections": {
+      "title": "Connexion Utilisateurs",
+      "description": "Lien direct vérifié entre deux utilisateurs particuliers.",
+      "type": "object",
+      "properties": {
+        "userAId": { "type": "string" },
+        "userAName": { "type": "string" },
+        "userAPhone": { "type": "string" },
+        "userBId": { "type": "string" },
+        "userBName": { "type": "string" },
+        "userBPhone": { "type": "string" },
+        "status": { "type": "string", "enum": ["verified", "pending_revalidation"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "companyContactRequests": {
       "title": "Demande de contact entreprise",
       "description": "Demande de contact de la part d'une entreprise.",
@@ -219,6 +252,14 @@
     "/personalContacts/{contactId}": {
       "schema": "personalContacts",
       "description": "Contacts personnels de l'utilisateur."
+    },
+    "/userConnections/{connectionId}": {
+      "schema": "userConnections",
+      "description": "Connexions directes entre utilisateurs."
+    },
+    "/alerts/{alertId}": {
+      "schema": "alerts",
+      "description": "Alertes de sécurité pour l'admin."
     },
     "/companyContactRequests/{requestId}": {
       "schema": "companyContactRequests",

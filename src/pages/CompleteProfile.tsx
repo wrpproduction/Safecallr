@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { db, doc, setDoc, serverTimestamp } from "../firebase";
-import { Shield, Phone, ArrowRight } from "lucide-react";
+import { Shield, Phone, ArrowRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { linkPendingConnections } from "../lib/connections";
 
 export default function CompleteProfile({ user }: { user: any }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState(user.email === "ulrich.vidal@gmail.com" ? "0663558820" : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -12,26 +14,25 @@ export default function CompleteProfile({ user }: { user: any }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phoneNumber.length < 10) {
-      setError("Veuillez saisir un numéro de téléphone valide.");
+    if (!firstName || !lastName || phoneNumber.length < 10) {
+      setError("Veuillez remplir tous les champs correctement.");
       return;
     }
 
     setLoading(true);
     try {
-      // On utilise setDoc avec merge pour s'assurer que le document existe
-      // et contient les champs obligatoires requis par les règles Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        displayName: user.displayName || "Utilisateur SafeCallr",
+        firstName,
+        lastName,
+        displayName: `${firstName} ${lastName}`.trim(),
         email: user.email,
         phoneNumber,
+        createdAt: user.createdAt || serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true });
       
-      // Link pending connections
       await linkPendingConnections(user.uid, phoneNumber, user.email);
-      // On force le rechargement pour que App.tsx récupère les nouvelles données
       window.location.reload();
     } catch (err: any) {
       console.error("Error completing profile:", err);
@@ -48,13 +49,32 @@ export default function CompleteProfile({ user }: { user: any }) {
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20">
             <Shield className="text-on-primary w-10 h-10" />
           </div>
-          <h1 className="font-headline font-black text-3xl tracking-tight text-primary">Finalisation</h1>
+          <h1 className="font-headline font-black text-3xl tracking-tight text-primary">Dernière étape</h1>
           <p className="text-slate-400 text-sm max-w-[280px]">
-            Pour sécuriser vos échanges, nous avons besoin de votre numéro de téléphone.
+            Finalisez votre profil pour rejoindre le réseau de confiance SafeCallr.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+              <input 
+                type="text" placeholder="Prénom" required
+                value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                className="w-full bg-surface-container-highest border-none focus:ring-2 focus:ring-primary rounded-2xl py-4 pl-10 pr-4 text-on-surface font-bold"
+              />
+            </div>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+              <input 
+                type="text" placeholder="Nom" required
+                value={lastName} onChange={(e) => setLastName(e.target.value)}
+                className="w-full bg-surface-container-highest border-none focus:ring-2 focus:ring-primary rounded-2xl py-4 pl-10 pr-4 text-on-surface font-bold"
+              />
+            </div>
+          </div>
+
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
             <input 
@@ -70,7 +90,7 @@ export default function CompleteProfile({ user }: { user: any }) {
             type="submit" disabled={loading}
             className="w-full bg-primary text-on-primary font-headline font-bold text-xl py-5 rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
           >
-            {loading ? "Enregistrement..." : "Continuer"}
+            {loading ? "Enregistrement..." : "Activer mon compte"}
             <ArrowRight className="w-6 h-6" />
           </button>
         </form>

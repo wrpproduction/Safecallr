@@ -14,6 +14,7 @@ import HowItWorks from "./pages/HowItWorks";
 import CompleteProfile from "./pages/CompleteProfile";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
+import Profile from "./pages/Profile";
 import CompanyContact from "./pages/CompanyContact";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -21,6 +22,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminCompanies from "./pages/AdminCompanies";
 import AdminRequests from "./pages/AdminRequests";
 import AdminPros from "./pages/AdminPros";
+import AdminAlerts from "./pages/AdminAlerts";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
 
@@ -141,6 +143,11 @@ export default function App() {
               <AdminPros />
             </AdminProtectedRoute>
           } />
+          <Route path="/admin/alerts" element={
+            <AdminProtectedRoute>
+              <AdminAlerts />
+            </AdminProtectedRoute>
+          } />
   
           <Route element={<Layout user={user} />}>
             <Route path="/dashboard" element={renderProtectedRoute(Dashboard)} />
@@ -149,6 +156,7 @@ export default function App() {
             <Route path="/auth-request/:id" element={renderProtectedRoute(AuthRequestDetails)} />
             <Route path="/history" element={renderProtectedRoute(History)} />
             <Route path="/contacts" element={renderProtectedRoute(Contacts)} />
+            <Route path="/profile" element={renderProtectedRoute(Profile)} />
             <Route path="/how-it-works" element={<HowItWorks />} />
           </Route>
         </Routes>

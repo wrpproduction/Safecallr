@@ -320,7 +320,14 @@ export default function AdminUsers() {
                           </div>
                           <div>
                             <p className="font-semibold text-[#e4e4e8]">{user.firstName} {user.lastName || user.displayName}</p>
-                            <p className="text-xs text-[#9a9a9f]">ID: {user.id.substring(0, 8)}...</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-[#9a9a9f]">ID: {user.id.substring(0, 8)}...</p>
+                              {(user.sensitiveUpdateCount >= 3) && (
+                                <span className="flex items-center gap-1 text-[10px] bg-error/10 text-error border border-error/20 px-2 py-0.5 rounded-full font-black animate-pulse">
+                                  <AlertTriangle size={10} /> SUSPECT
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -495,6 +502,20 @@ export default function AdminUsers() {
                         <p className="text-xs text-[#9a9a9f]">
                           Inscrit le : {selectedUser.createdAt ? format(new Date(selectedUser.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr }) : "N/A"}
                         </p>
+                        {selectedUser.sensitiveUpdateCount > 0 && (
+                          <div className={`p-3 rounded-xl border ${selectedUser.sensitiveUpdateCount >= 3 ? "bg-error/10 border-error/20 text-error" : "bg-warning/10 border-warning/20 text-warning"}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <AlertTriangle size={14} />
+                              <p className="text-[10px] font-black uppercase tracking-widest">Activité sensible</p>
+                            </div>
+                            <p className="text-xs font-bold">{selectedUser.sensitiveUpdateCount} changements de coordonnées</p>
+                            {selectedUser.lastSensitiveUpdate && (
+                              <p className="text-[10px] opacity-70">
+                                Dernier: {format(selectedUser.lastSensitiveUpdate.toDate ? selectedUser.lastSensitiveUpdate.toDate() : new Date(selectedUser.lastSensitiveUpdate), "dd/MM/yyyy HH:mm")}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
