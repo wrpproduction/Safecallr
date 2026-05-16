@@ -8,7 +8,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  AlertCircle
+  AlertCircle,
+  PlusCircle
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -20,6 +21,7 @@ interface AdminLayoutProps {
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+  { label: "Organisations", icon: Building2, path: "/admin/organizations" },
   { label: "Utilisateurs", icon: Users, path: "/admin/users" },
   { label: "Pros", icon: ShieldCheck, path: "/admin/pros" },
   { label: "Entreprises", icon: Building2, path: "/admin/companies" },

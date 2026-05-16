@@ -1,5 +1,6 @@
 {
   "name": "SafeCallr",
-  "description": "Plateforme de vérification d'identité en temps réel pour sécuriser les échanges téléphoniques.",
-  "requestFramePermissions": []
+  "description": "Plateforme d'authentification humaine pour lutter contre la fraude téléphonique professionnelle et le spoofing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

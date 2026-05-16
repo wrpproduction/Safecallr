@@ -28,81 +28,33 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email']) &&
              data.uid is string &&
-             data.email is string &&
-             (!('displayName' in data) || data.displayName is string) &&
-             (!('firstName' in data) || data.firstName is string) &&
-             (!('lastName' in data) || data.lastName is string) &&
-             (!('phoneNumber' in data) || data.phoneNumber is string);
+             data.email is string;
     }
 
     function isValidPersonalRequest(data) {
       return data.keys().hasAll(['fromUserId', 'fromUserName', 'fromUserPhone', 'toUserId', 'toUserName', 'toUserPhone', 'toUserEmail', 'status', 'createdAt']) &&
-             data.fromUserId is string &&
-             data.fromUserName is string &&
-             data.toUserId is string &&
-             data.status in ['pending', 'accepted', 'rejected'] &&
-             (!('description' in data) || (data.description is string && data.description.size() <= 500));
+             data.status in ['pending', 'accepted', 'rejected'];
     }
 
     function isValidPersonalContact(data) {
-      return data.keys().hasAll(['ownerId', 'name', 'phone', 'email', 'createdAt']) &&
-             data.ownerId is string &&
-             data.name is string &&
-             data.phone is string &&
-             data.email is string &&
-             (!('description' in data) || (data.description is string && data.description.size() <= 500));
+      return data.keys().hasAll(['ownerId', 'name', 'phone', 'email', 'createdAt']);
     }
 
-    function isValidPro(data) {
-      return data.keys().hasAll(['id', 'firstName', 'lastName', 'email', 'phone', 'jobTitle', 'companyId', 'status']) &&
-             data.status in ['pending_validation', 'active', 'suspended', 'rejected'];
+    function isOrgMember(orgId) {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)) ||
+        isAdmin()
+      );
     }
 
-    function isValidCompany(data) {
-      return data.keys().hasAll(['id', 'name', 'domain', 'siret', 'status']) &&
-             data.status in ['pending', 'verified', 'rejected'] &&
-             (!('category' in data) || data.category is string);
-    }
-    
-    function isValidRequest(data) {
-      return data.keys().hasAll(['requesterId', 'requesterName', 'targetPhone', 'status', 'type']) &&
-             data.requesterId is string &&
-             data.requesterName is string &&
-             data.targetPhone is string &&
-             data.status in ['pending', 'accepted', 'refused', 'verified', 'caution', 'code_generated', 'validated', 'expired', 'failed'] &&
-             data.type is string &&
-             (!('useCode' in data) || data.useCode is bool) &&
-             (!('verificationCode' in data) || data.verificationCode is string || data.verificationCode == null);
-    }
-
-    function getUserPhone() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return userDoc != null && 'phoneNumber' in userDoc.data ? userDoc.data.phoneNumber : null;
-    }
-
-    function getUserEmail() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return userDoc != null && 'email' in userDoc.data ? userDoc.data.email : null;
-    }
-    
-    function userExists() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    function isValidCompanyContact(data) {
-      return data.keys().hasAll(['firstName', 'lastName', 'email', 'phone', 'companyName', 'message', 'targetEmail', 'status', 'createdAt']) &&
-             data.firstName is string && data.firstName.size() <= 100 &&
-             data.lastName is string && data.lastName.size() <= 100 &&
-             data.email is string && data.email.size() <= 200 &&
-             data.phone is string && data.phone.size() <= 50 &&
-             data.companyName is string && data.companyName.size() <= 200 &&
-             data.message is string && data.message.size() <= 2000 &&
-             data.targetEmail == "contact@safecallr.com";
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
     }
 
     // Users collection
     match /users/{userId} {
-      allow read: if isAuthenticated(); // Allow searching users by email/phone
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
@@ -111,133 +63,102 @@ service cloud.firestore {
     // Pros collection
     match /pros/{proId} {
       allow read: if isAuthenticated() && (request.auth.uid == proId || isAdmin());
-      allow create: if isOwner(proId) && isValidPro(request.resource.data);
-      allow update: if isAdmin() || (isOwner(proId) && request.resource.data.status == resource.data.status);
+      allow create: if isOwner(proId);
+      allow update: if isAdmin() || isOwner(proId);
       allow delete: if isAdmin();
     }
 
     // Companies collection
     match /companies/{companyId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidCompany(request.resource.data);
-      allow update: if (isAdmin() || (isPro() && get(/databases/$(database)/documents/pros/$(request.auth.uid)).data.companyId == companyId)) && isValidCompany(request.resource.data);
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || isPro();
       allow delete: if isAdmin();
     }
 
     // Admins collection
     match /admins/{adminId} {
-      allow read: if isOwner(adminId) || isAdmin();
-      allow create: if false; // Création manuelle ou via script
-      allow update: if isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
     
     // Verification Requests
     match /verification_requests/{requestId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.requesterId || 
-        request.auth.uid == resource.data.targetId ||
-        (userExists() && getUserPhone() == resource.data.targetPhone) ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && isValidRequest(request.resource.data) && request.auth.uid == request.resource.data.requesterId;
-      allow update: if isAuthenticated() && (
-        // Le demandeur peut annuler ou voir les updates
-        (request.auth.uid == resource.data.requesterId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'verificationCode', 'useCode'])) ||
-        // La cible peut accepter/refuser/vérifier
-        (
-          (request.auth.uid == resource.data.targetId || (userExists() && getUserPhone() == resource.data.targetPhone)) && 
-          request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'updatedAt', 'respondedAt', 'verifiedAt', 'targetId'])
-        ) ||
-        isAdmin()
-      );
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.requesterId;
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
-    // Auth Requests (Pro to User)
+    // Auth Requests
     match /authRequests/{requestId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.fromProId || 
-        request.auth.uid == resource.data.toUserId ||
-        (userExists() && getUserPhone() == resource.data.toUserPhone) ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.fromProId;
-      allow update: if isAuthenticated() && (
-        (request.auth.uid == resource.data.fromProId) ||
-        (request.auth.uid == resource.data.toUserId || (userExists() && getUserPhone() == resource.data.toUserPhone)) ||
-        isAdmin()
-      );
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     // Pro Client Connections
     match /proClientConnections/{connectionId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.proId || 
-        request.auth.uid == resource.data.userId ||
-        (userExists() && (getUserPhone() == resource.data.clientPhone || getUserEmail() == resource.data.clientEmail)) ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.proId;
-      allow update: if isAuthenticated() && (
-        (request.auth.uid == resource.data.proId) ||
-        (request.auth.uid == resource.data.userId || (userExists() && (getUserPhone() == resource.data.clientPhone || getUserEmail() == resource.data.clientEmail))) ||
-        isAdmin()
-      );
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     // Personal Contacts
     match /personalContacts/{contactId} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.ownerId || isAdmin());
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId && isValidPersonalContact(request.resource.data);
-      allow update: if isAuthenticated() && request.auth.uid == resource.data.ownerId && isValidPersonalContact(request.resource.data);
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId;
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
       allow delete: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
     }
 
     // User to User Connections
     match /userConnections/{connectionId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.userAId || 
-        request.auth.uid == resource.data.userBId ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && (
-        request.auth.uid == request.resource.data.userAId || 
-        request.auth.uid == request.resource.data.userBId
-      );
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.userAId || 
-        request.auth.uid == resource.data.userBId ||
-        isAdmin()
-      );
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() || isAdmin();
     }
 
     // Personal Contact Requests
     match /personalContactRequests/{requestId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == resource.data.fromUserId || 
-        request.auth.uid == resource.data.toUserId ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && isValidPersonalRequest(request.resource.data) && request.auth.uid == request.resource.data.fromUserId;
-      allow update: if isAuthenticated() && (
-        (request.auth.uid == resource.data.fromUserId && request.resource.data.status == "rejected") ||
-        (request.auth.uid == resource.data.toUserId && isValidPersonalRequest(request.resource.data)) ||
-        isAdmin()
-      );
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
     }
 
-    // Mail collection (Trigger Email extension)
+    // Mail collection
     match /mail/{mailId} {
-      allow read: if isAdmin();
-      allow create: if isAuthenticated();
-      allow update: if false;
-      allow delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // Company Contact Requests
     match /companyContactRequests/{requestId} {
       allow read: if isAdmin();
-      allow create: if isValidCompanyContact(request.resource.data);
+      allow create: if false; 
       allow update, delete: if isAdmin();
+    }
+
+    // Organizations
+    match /organizations/{orgId} {
+      allow read: if isOrgMember(orgId);
+      allow update: if isOrgMember(orgId);
+      allow create, delete: if isAdmin();
+      
+      match /members/{memberId} {
+        allow read: if isOrgMember(orgId);
+        allow write: if isOrgMember(orgId);
+      }
+
+      match /authRequests/{requestId} {
+        allow read, write: if isOrgMember(orgId);
+      }
+
+      match /auditLog/{logId} {
+        allow read: if isOrgMember(orgId);
+        allow write: if isAdmin();
+      }
     }
   }
 }

@@ -214,6 +214,59 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["firstName", "lastName", "email", "phone", "companyName", "message"]
+    },
+    "organizations": {
+      "title": "Organisation",
+      "description": "Institution cliente (Banque, Notaire, etc.)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "siret": { "type": "string" },
+        "streetNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "zipCode": { "type": "string" },
+        "city": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "primaryColor": { "type": "string" },
+        "trustMessage": { "type": "string" },
+        "officialPhones": { "type": "array", "items": { "type": "string" } },
+        "allowedEmailDomains": { "type": "array", "items": { "type": "string" } },
+        "representativeUserId": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["name", "siret", "address", "primaryColor", "trustMessage", "active"]
+    },
+    "members": {
+      "title": "Membre d'Organisation",
+      "description": "Collaborateur ou Représentant d'une institution.",
+      "type": "object",
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["representative", "collaborator"] },
+        "jobTitle": { "type": "string" },
+        "directPhone": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "suspended", "blocked"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["firstName", "lastName", "email", "role", "status"]
+    },
+    "auditLog": {
+      "title": "Journal d'Audit",
+      "description": "Historique des actions administratives majeures.",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "actorUid": { "type": "string" },
+        "actorEmail": { "type": "string" },
+        "details": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -264,6 +317,22 @@
     "/companyContactRequests/{requestId}": {
       "schema": "companyContactRequests",
       "description": "Demandes de contact entreprise."
+    },
+    "/organizations/{orgId}": {
+      "schema": "organizations",
+      "description": "Données des organisations clientes."
+    },
+    "/organizations/{orgId}/members/{memberId}": {
+      "schema": "members",
+      "description": "Membres d'une organisation."
+    },
+    "/organizations/{orgId}/authRequests/{requestId}": {
+      "schema": "authRequests",
+      "description": "Historique des demandes d'authentification."
+    },
+    "/organizations/{orgId}/auditLog/{logId}": {
+      "schema": "auditLog",
+      "description": "Journal d'audit de l'organisation."
     }
   }
 }

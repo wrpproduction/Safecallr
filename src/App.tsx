@@ -23,8 +23,18 @@ import AdminCompanies from "./pages/AdminCompanies";
 import AdminRequests from "./pages/AdminRequests";
 import AdminPros from "./pages/AdminPros";
 import AdminAlerts from "./pages/AdminAlerts";
+import AdminOrganizationsList from "./pages/admin/AdminOrganizationsList";
+import AdminCreateOrganization from "./pages/AdminCreateOrganization";
+import AdminOrganizationDetail from "./pages/AdminOrganizationDetail";
+import RepDashboard from "./pages/RepDashboard";
+import MeDashboard from "./pages/me/MeDashboard";
+import MeHistory from "./pages/me/MeHistory";
+import Unauthorized from "./pages/Unauthorized";
+import OrgAuthRequestDetails from "./pages/OrgAuthRequestDetails";
+import InstitutionErrorPage from "./pages/InstitutionErrorPage";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
+import SEOManager from "./components/seo/SEOManager";
 
 // Pro Pages
 import ProLayout from "./components/pro/ProLayout";
@@ -40,7 +50,39 @@ import ProRequestCode from "./pages/pro/ProRequestCode";
 import ProDashboard from "./pages/pro/ProDashboard";
 import ProRouteGuard from "./components/pro/ProRouteGuard";
 
+import { Toaster } from "sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// JSON-LD Constants
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "SafeCallr",
+  "url": "https://safecallr.com",
+  "logo": "https://safecallr.com/logo.png",
+  "description": "Plateforme d'authentification humaine pour lutter contre la fraude téléphonique professionnelle et le spoofing.",
+  "sameAs": [
+    "https://www.linkedin.com/company/safecallr",
+    "https://twitter.com/safecallr"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "email": "contact@safecallr.com",
+    "contactType": "customer support"
+  }
+};
+
+const WEBSITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "SafeCallr",
+  "url": "https://safecallr.com",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://safecallr.com/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+};
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -54,7 +96,6 @@ export default function App() {
           if (userDoc.exists()) {
             setUser({ ...authUser, ...userDoc.data() });
           } else {
-            // Document non existant (ex: Google login interrompu)
             setUser({ ...authUser });
           }
         } else {
@@ -90,18 +131,107 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <Toaster position="top-right" richColors />
       <Router>
         <Routes>
-          <Route path="/" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Landing />} />
+          <Route path="/" element={
+            <>
+              <SEOManager 
+                title="Authentification Appel & Lutte Fraude Bancaire"
+                description="SafeCallr sécurise vos appels bancaires et professionnels. Luttez contre le spoofing et la fraude au faux conseiller grâce à notre 2FA pour téléphone."
+                jsonLd={[
+                  ORGANIZATION_JSON_LD,
+                  WEBSITE_JSON_LD,
+                  {
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "SafeCallr",
+                    "operatingSystem": "iOS, Android, Web",
+                    "applicationCategory": "SecurityApplication",
+                    "offers": {
+                      "@type": "Offer",
+                      "price": "0",
+                      "priceCurrency": "EUR"
+                    }
+                  }
+                ]}
+              />
+              {user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Landing />}
+            </>
+          } />
+          
+          <Route path="/particuliers" element={
+            <>
+              <SEOManager 
+                title="Protection Particuliers | Stop Fraude Faux Conseiller"
+                description="Protégez vos comptes bancaires et vos données personnelles. SafeCallr permet d'identifier vos interlocuteurs par téléphone gratuitement."
+                jsonLd={[ORGANIZATION_JSON_LD]}
+              />
+              <Landing persona="particuliers" />
+            </>
+          } />
+
+          <Route path="/professionnels" element={
+            <>
+              <SEOManager 
+                title="Espace Professionnel | Authentifiez vos Appels Clients"
+                description="Garantissez votre identité lors de vos appels sortants. Notaires, avocats et cabinets de conseil : éliminez toute suspicion de fraude."
+                jsonLd={[ORGANIZATION_JSON_LD]}
+              />
+              <Landing persona="professionnels" />
+            </>
+          } />
+
+          <Route path="/institutions" element={
+            <>
+              <SEOManager 
+                title="Solution Institutionnelle & API | Sécurité Fraude Bancaire"
+                description="Banques et grandes entreprises : intégrez le protocole SafeCallr pour éradiquer les pertes liées au vishing et à l'ingénierie sociale."
+                jsonLd={[ORGANIZATION_JSON_LD]}
+              />
+              <Landing persona="institutions" />
+            </>
+          } />
+
+          <Route path="/company-contact" element={
+            <>
+              <SEOManager 
+                title="Contactez un expert en sécurité téléphonique"
+                description="Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
+              />
+              <CompanyContact />
+            </>
+          } />
+
+          {/* Legal routes Placeholder mapping to be handled in Landing or specific component if needed */}
+          <Route path="/mentions-legales" element={
+            <>
+              <SEOManager title="Mentions Légales" description="Informations légales relatives à l'utilisation du service SafeCallr." noIndex />
+              <Landing legal="mentions" />
+            </>
+          } />
+          <Route path="/cgu" element={
+            <>
+              <SEOManager title="Conditions Générales d'Utilisation" description="Les CGU encadrent l'accès et l'utilisation de la plateforme SafeCallr." noIndex />
+              <Landing legal="cgu" />
+            </>
+          } />
+          <Route path="/confidentialite" element={
+            <>
+              <SEOManager title="Politique de Confidentialité" description="Découvrez comment SafeCallr protège vos données personnelles et respecte le RGPD." noIndex />
+              <Landing legal="privacy" />
+            </>
+          } />
+
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/auth" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Auth />} />
           <Route path="/register" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Register />} />
-          <Route path="/company-contact" element={<CompanyContact />} />
           
-          {/* Pro Routes */}
           <Route path="/pro/login" element={<ProLogin />} />
           <Route path="/pro/register" element={<ProRegister />} />
           <Route path="/pro/forgot-password" element={<ProForgotPassword />} />
+          
+          {/* zones non indexées (robots.txt les bloquera) */}
           <Route path="/pro" element={
             <ProRouteGuard>
               <ProLayout />
@@ -116,49 +246,36 @@ export default function App() {
             <Route path="profile" element={<ProProfile />} />
           </Route>
   
-          {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={
-            <AdminProtectedRoute>
-              <AdminDashboard />
-            </AdminProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <AdminProtectedRoute>
-              <AdminUsers />
-            </AdminProtectedRoute>
-          } />
-          <Route path="/admin/companies" element={
-            <AdminProtectedRoute>
-              <AdminCompanies />
-            </AdminProtectedRoute>
-          } />
-          <Route path="/admin/requests" element={
-            <AdminProtectedRoute>
-              <AdminRequests />
-            </AdminProtectedRoute>
-          } />
-          <Route path="/admin/pros" element={
-            <AdminProtectedRoute>
-              <AdminPros />
-            </AdminProtectedRoute>
-          } />
-          <Route path="/admin/alerts" element={
-            <AdminProtectedRoute>
-              <AdminAlerts />
-            </AdminProtectedRoute>
-          } />
-  
+          <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+          <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+          <Route path="/admin/companies" element={<AdminProtectedRoute><AdminCompanies /></AdminProtectedRoute>} />
+          <Route path="/admin/requests" element={<AdminProtectedRoute><AdminRequests /></AdminProtectedRoute>} />
+          <Route path="/admin/pros" element={<AdminProtectedRoute><AdminPros /></AdminProtectedRoute>} />
+          <Route path="/admin/alerts" element={<AdminProtectedRoute><AdminAlerts /></AdminProtectedRoute>} />
+          <Route path="/admin/organizations" element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
+          <Route path="/admin/organizations/new" element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
+          <Route path="/admin/organizations/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
+          
+          <Route path="/dashboard/:orgId" element={renderProtectedRoute(RepDashboard)} />
+          <Route path="/me" element={renderProtectedRoute(MeDashboard)} />
+          <Route path="/me/history" element={renderProtectedRoute(MeHistory)} />
+          
           <Route element={<Layout user={user} />}>
             <Route path="/dashboard" element={renderProtectedRoute(Dashboard)} />
             <Route path="/new-request" element={renderProtectedRoute(NewRequest)} />
             <Route path="/request/:id" element={renderProtectedRoute(RequestStatus)} />
             <Route path="/auth-request/:id" element={renderProtectedRoute(AuthRequestDetails)} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/history" element={renderProtectedRoute(History)} />
             <Route path="/contacts" element={renderProtectedRoute(Contacts)} />
             <Route path="/profile" element={renderProtectedRoute(Profile)} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
           </Route>
+
+          <Route path="/org-auth/:orgId/:requestId" element={renderProtectedRoute(OrgAuthRequestDetails)} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/account-suspended" element={<InstitutionErrorPage type="suspended" />} />
+          <Route path="/organization-inactive" element={<InstitutionErrorPage type="inactive" />} />
         </Routes>
       </Router>
     </ErrorBoundary>

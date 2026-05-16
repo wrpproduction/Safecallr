@@ -1,0 +1,38 @@
+User-agent: *
+Allow: /
+Allow: /particuliers
+Allow: /professionnels
+Allow: /institutions
+Allow: /how-it-works
+Allow: /contact
+
+# Block sensitive areas
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /api
+Disallow: /api/
+Disallow: /me
+Disallow: /me/
+
+# AI Bots explicitly allowed for GEO
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+Sitemap: https://safecallr.com/sitemap.xml

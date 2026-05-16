@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import QuickResponse from "../components/seo/QuickResponse";
+import FAQSection from "../components/seo/FAQSection";
 import { 
   Shield, 
   CheckCircle, 
@@ -21,7 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-export default function Landing() {
+export default function Landing({ persona, legal }: { persona?: string; legal?: string }) {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);
@@ -213,6 +215,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* GEO Quick Response Block */}
+      <QuickResponse />
 
       {/* Problem Section */}
       <section id="problem" className="py-32 px-6 bg-surface-container-lowest relative">
@@ -631,6 +636,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section for SEO/GEO */}
+      <FAQSection />
 
       {/* Footer */}
       <footer className="py-20 px-6 border-t border-white/5 bg-surface-container-lowest">

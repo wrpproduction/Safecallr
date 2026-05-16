@@ -1,0 +1,16 @@
+# SafeCallr - Protocole d'authentification humaine contre la fraude téléphonique
+
+SafeCallr est une plateforme de sécurité (SaaS) qui permet aux banques, notaires et professionnels de prouver leur identité lors d'un appel téléphonique grâce à un code à usage unique synchronisé en temps réel avec l'application du client. Elle lutte contre le spoofing, le vishing et la manipulation humaine augmentée par l'IA.
+
+## Pages clés
+
+- [Accueil](https://safecallr.com/) : Présentation générale du protocole et de la solution anti-fraude.
+- [Particuliers](https://safecallr.com/particuliers) : Protection gratuite contre les faux conseillers bancaires pour le grand public.
+- [Professionnels](https://safecallr.com/professionnels) : Solution pour indépendants, notaires et avocats afin de certifier leurs appels clients.
+- [Institutions](https://safecallr.com/institutions) : Déploiement grand compte et intégration API pour les banques.
+- [Comment ça marche](https://safecallr.com/how-it-works) : Explication détaillée du protocole d'échange de code en 10 secondes.
+- [Contact](https://safecallr.com/company-contact) : Support et demandes de démos.
+
+## FAQ Sécurité
+
+Le site contient une FAQ détaillée sur le spoofing téléphonique, la fraude au faux banquier et la résistance aux deepfakes vocaux.

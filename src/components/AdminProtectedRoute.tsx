@@ -16,14 +16,23 @@ export default function AdminProtectedRoute({ children }: AdminProtectedRoutePro
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Vérification du rôle admin
-        // On vérifie les emails hardcodés pour le test et la collection admins
-        const adminEmails = ["xdcam10@gmail.com", "ulrich.vidal@gmail.com"];
-        const adminDoc = await getDoc(doc(db, "admins", user.uid));
-        
-        if (adminEmails.includes(user.email || "") || (adminDoc.exists() && adminDoc.data().role === "admin")) {
+        const adminEmails = [
+          "xdcam10@gmail.com", 
+          "ulrich.vidal@gmail.com",
+          "contact@wrpproduction.com",
+          "contact@remiprevel.com"
+        ];
+
+        if (adminEmails.includes(user.email || "")) {
           setIsAdmin(true);
         } else {
-          setIsAdmin(false);
+          try {
+            const adminDoc = await getDoc(doc(db, "admins", user.uid));
+            setIsAdmin(adminDoc.exists() && adminDoc.data().role === "admin");
+          } catch (err) {
+            console.error("Admin verification error:", err);
+            setIsAdmin(false);
+          }
         }
       } else {
         setIsAdmin(false);

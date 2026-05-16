@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { db, collection, query, where, onSnapshot, orderBy, auth, signOut, updateDoc, doc, serverTimestamp, getDocs, addDoc } from "../firebase";
-import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, User, Building2, ShieldQuestion } from "lucide-react";
+import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, User, Building2, ShieldQuestion, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function Dashboard({ user }: { user: any }) {
@@ -222,7 +222,7 @@ export default function Dashboard({ user }: { user: any }) {
   };
 
   return (
-    <div className="relative min-h-screen pb-24">
+    <div className="space-y-8">
       {/* Floating Notification Banner */}
       {hasAnyPending && showFloatingBanner && (
         <motion.div 
@@ -267,7 +267,6 @@ export default function Dashboard({ user }: { user: any }) {
         </motion.div>
       )}
 
-      <div className="space-y-8 pb-12">
         {/* URGENT ALERT - Top of page if pending auth */}
         {pendingAuthRequest && (
           <motion.div 
@@ -327,6 +326,31 @@ export default function Dashboard({ user }: { user: any }) {
             Protégez vos échanges. Vérifiez l'identité de votre interlocuteur en un clic.
           </p>
         </section>
+
+        {/* PRO SPACE ACCESS */}
+        {user.orgId && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="px-2"
+          >
+            <Link 
+              to={user.role === 'pro_representative' ? `/dashboard/${user.orgId}` : "/me"} 
+              className="w-full bg-[#c084fc]/10 p-6 rounded-3xl border-2 border-[#c084fc] flex items-center justify-between group active:scale-95 transition-all shadow-xl shadow-[#c084fc]/10"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#c084fc] flex items-center justify-center text-black shadow-lg">
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <h3 className="font-headline font-black text-[#c084fc] text-lg uppercase tracking-tighter">Espace Professionnel</h3>
+                  <p className="text-[#c084fc]/60 text-[10px] font-black uppercase tracking-widest">Gérer vos authentifications clients</p>
+                </div>
+              </div>
+              <ArrowRight className="text-[#c084fc] group-hover:translate-x-1 transition-transform" size={20} />
+            </Link>
+          </motion.div>
+        )}
 
         {/* Navigation Tabs (Unified with main navigation) */}
         <div className="flex bg-surface-container-low p-1 rounded-2xl border border-white/5">
@@ -591,7 +615,6 @@ export default function Dashboard({ user }: { user: any }) {
               )}
             </div>
           </section>
-      </div>
     </div>
   );
 }

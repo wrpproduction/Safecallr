@@ -34,12 +34,19 @@ export default function CompanyContact() {
     setError("");
 
     try {
-      await addDoc(collection(db, "companyContactRequests"), {
-        ...formData,
-        targetEmail: "contact@safecallr.com",
-        status: "new",
-        createdAt: serverTimestamp()
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to send message");
+      }
+
       setSuccess(true);
     } catch (err: any) {
       console.error("Error submitting contact form:", err);
