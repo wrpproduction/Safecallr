@@ -1,4 +1,4 @@
-import admin from "firebase-admin";
+import { Firestore } from "firebase-admin/firestore";
 import { buildAdminNotificationEmail, EmailData, RegistrationType, PlatformStats } from '../src/lib/emailTemplates.js';
 
 // Configuration
@@ -10,6 +10,7 @@ const ENABLED = process.env.ADMIN_NOTIFICATIONS_ENABLED !== "false";
  * This writes a document to the 'mail' collection.
  */
 export async function sendAdminNotification(
+  db: Firestore,
   type: RegistrationType,
   data: EmailData,
   stats: PlatformStats
@@ -19,7 +20,6 @@ export async function sendAdminNotification(
     return false;
   }
 
-  const db = admin.firestore();
   const { html, text } = buildAdminNotificationEmail(data, type, stats);
   
   const typeLabel = type === "grand_public" ? "Grand public" : type === "pro_solo" ? "Professionnel" : "Institution";
@@ -36,7 +36,7 @@ export async function sendAdminNotification(
         html: html,
         text: text,
       },
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: new Date() // Use JS Date if serverTimestamp is not available through this db instance or just works
     });
 
     console.log(`[Notification] Success: Document added to 'mail' collection for ${ADMIN_EMAIL}`);

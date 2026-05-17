@@ -128,15 +128,16 @@ service cloud.firestore {
       allow update: if isAuthenticated();
     }
 
-    // Mail collection
+    // Mail collection (Trigger Email extension)
     match /mail/{mailId} {
+      allow create: if true; 
       allow read, write: if isAdmin();
     }
 
     // Company Contact Requests
     match /companyContactRequests/{requestId} {
+      allow create: if true; 
       allow read: if isAdmin();
-      allow create: if false; 
       allow update, delete: if isAdmin();
     }
 

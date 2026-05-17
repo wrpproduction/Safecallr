@@ -974,8 +974,8 @@ ${pages.map(page => `
         if (createdAt.getTime() < startTime - 10000) continue;
 
         console.log(`[Trigger] Nouvel utilisateur détecté: ${data.email}`);
-        const stats = await getPlatformStats();
-        await sendAdminNotification("grand_public", {
+        const stats = await getPlatformStats(db);
+        await sendAdminNotification(db, "grand_public", {
           firstName: data.firstName || "Inconnu",
           lastName: data.lastName || "Inconnu",
           email: data.email,
@@ -996,7 +996,7 @@ ${pages.map(page => `
         if (createdAt.getTime() < startTime - 10000) continue;
 
         console.log(`[Trigger] Nouveau pro détecté: ${data.email}`);
-        const stats = await getPlatformStats();
+        const stats = await getPlatformStats(db);
         
         // Récupérer infos entreprise si possible
         let companyName = "";
@@ -1005,7 +1005,7 @@ ${pages.map(page => `
           companyName = compDoc.data()?.name || "";
         }
 
-        await sendAdminNotification("pro_solo", {
+        await sendAdminNotification(db, "pro_solo", {
           firstName: data.firstName || "Inconnu",
           lastName: data.lastName || "Inconnu",
           email: data.email,
@@ -1038,9 +1038,9 @@ ${pages.map(page => `
         const orgData = orgDoc.data();
 
         console.log(`[Trigger] Nouveau collaborateur détecté: ${data.email} (${orgData?.name})`);
-        const stats = await getPlatformStats();
+        const stats = await getPlatformStats(db);
 
-        await sendAdminNotification("institution", {
+        await sendAdminNotification(db, "institution", {
           firstName: data.firstName || "Inconnu",
           lastName: data.lastName || "Inconnu",
           email: data.email,

@@ -1,11 +1,9 @@
-import admin from "firebase-admin";
+import { Firestore, Timestamp } from "firebase-admin/firestore";
 
 /**
  * Calculates platform statistics for notifications.
  */
-export async function getPlatformStats() {
-  const db = admin.firestore();
-  
+export async function getPlatformStats(db: Firestore) {
   try {
     const [publicSnap, prosSnap, orgsSnap] = await Promise.all([
       db.collection("users").count().get(),
@@ -19,7 +17,7 @@ export async function getPlatformStats() {
     
     // This is a bit heavy for a quick notification but manageable for low volume
     const last7DaysSnap = await db.collection("users")
-      .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(sevenDaysAgo))
+      .where("createdAt", ">=", Timestamp.fromDate(sevenDaysAgo))
       .get();
 
     return {

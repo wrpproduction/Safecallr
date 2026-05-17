@@ -34,18 +34,32 @@ export default function CompanyContact() {
     setError("");
 
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      // 1. Enregistrer la demande
+      await addDoc(collection(db, "companyContactRequests"), {
+        ...formData,
+        targetEmail: "contact@remiprevel.com",
+        status: "new",
+        createdAt: serverTimestamp()
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to send message");
-      }
+      // 2. Envoyer l'email via l'extension Trigger Email
+      await addDoc(collection(db, "mail"), {
+        to: "contact@remiprevel.com",
+        replyTo: formData.email,
+        message: {
+          subject: `NOUVELLE DEMANDE : ${formData.companyName || formData.firstName + " " + formData.lastName}`,
+          html: `
+            <h3>Nouvelle demande de contact entreprise</h3>
+            <p><strong>Nom :</strong> ${formData.firstName} ${formData.lastName}</p>
+            <p><strong>Entreprise :</strong> ${formData.companyName || "N/A"}</p>
+            <p><strong>Email :</strong> ${formData.email}</p>
+            <p><strong>Téléphone :</strong> ${formData.phone || "N/A"}</p>
+            <p><strong>Message :</strong></p>
+            <p>${formData.message.replace(/\n/g, "<br>")}</p>
+          `
+        },
+        createdAt: serverTimestamp()
+      });
 
       setSuccess(true);
     } catch (err: any) {
