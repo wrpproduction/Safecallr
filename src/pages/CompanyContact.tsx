@@ -47,7 +47,7 @@ export default function CompanyContact() {
         to: "contact@remiprevel.com",
         replyTo: formData.email,
         message: {
-          subject: `NOUVELLE DEMANDE : ${formData.companyName || formData.firstName + " " + formData.lastName}`,
+          subject: `NOUVELLE DEMANDE SAFECALLR : ${formData.companyName || formData.firstName + " " + formData.lastName}`,
           html: `
             <h3>Nouvelle demande de contact entreprise</h3>
             <p><strong>Nom :</strong> ${formData.firstName} ${formData.lastName}</p>

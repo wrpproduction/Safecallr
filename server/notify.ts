@@ -23,7 +23,7 @@ export async function sendAdminNotification(
   const { html, text } = buildAdminNotificationEmail(data, type, stats);
   
   const typeLabel = type === "grand_public" ? "Grand public" : type === "pro_solo" ? "Professionnel" : "Institution";
-  const subject = `Nouveau inscrit SafeCallr — ${typeLabel} — ${data.firstName} ${data.lastName}`;
+  const subject = `NOUVELLE INSCRIPTION SAFECALLR — ${typeLabel} — ${data.firstName} ${data.lastName}`;
 
   try {
     console.log(`[Notification] Triggering email via extension for ${data.email}...`);
