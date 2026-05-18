@@ -16,6 +16,7 @@ import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import Profile from "./pages/Profile";
 import CompanyContact from "./pages/CompanyContact";
+import Welcome from "./pages/Welcome";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
@@ -35,6 +36,20 @@ import InstitutionErrorPage from "./pages/InstitutionErrorPage";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
 import SEOManager from "./components/seo/SEOManager";
+import { InstallPrompt } from "./components/InstallPrompt";
+import { registerSW } from 'virtual:pwa-register';
+
+// Register Service Worker
+if (typeof window !== 'undefined') {
+  registerSW({
+    onNeedRefresh() {
+      console.log('App needs refresh');
+    },
+    onOfflineReady() {
+      console.log('App is ready for offline use');
+    },
+  });
+}
 
 // Pro Pages
 import ProLayout from "./components/pro/ProLayout";
@@ -132,6 +147,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Toaster position="top-right" richColors />
+      <InstallPrompt />
       <Router>
         <Routes>
           <Route path="/" element={
@@ -224,6 +240,7 @@ export default function App() {
           } />
 
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/welcome" element={<Welcome />} />
           <Route path="/auth" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Auth />} />
           <Route path="/register" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Register />} />
           
