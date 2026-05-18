@@ -648,18 +648,19 @@ ${pages.map(page => `
       const orgsCount = await db.collection("organizations").count().get();
       const activeOrgsCount = await db.collection("organizations").where("active", "==", true).count().get();
       
-      // On pourrait calculer le total des auths de toutes les orgs, mais c'est lourd.
-      // Pour le MVP on peut peut-être avoir une collection globale stats ou agréger si possible.
-      // Ici on fait simple.
+      const usersCount = await db.collection("users").count().get();
+      const prosCount = await db.collection("users").where("role", "in", ["pro_representative", "pro"]).count().get();
+      const authRequestsCount = await db.collection("authRequests").count().get();
       
       res.json({
         totalOrganizations: orgsCount.data().count,
         activeOrganizations: activeOrgsCount.data().count,
-        // Autres stats simulées ou calculées si besoin
-        totalCollaborators: 0, // À calculer
-        totalAuths30d: 0 // À calculer
+        totalUsers: usersCount.data().count,
+        totalPros: prosCount.data().count,
+        totalAuths30d: authRequestsCount.data().count
       });
     } catch (error: any) {
+      console.error("Stats API Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

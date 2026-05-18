@@ -44,10 +44,13 @@ const chartData = [
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [recentOrgs, setRecentOrgs] = useState<any[]>([]);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({
     users: 0,
     pros: 0,
-    companies: 0,
+    orgs: 0,
     requests: 0
   });
 
@@ -66,14 +69,24 @@ export default function AdminDashboard() {
         });
         const orgs = await orgsResponse.json();
 
+        // Fetch recent requests for global vision
+        try {
+          const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
+          const requestsSnap = await getDocs(query(collection(db, "authRequests"), orderBy("createdAt", "desc"), limit(5)));
+          const reqs = requestsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          setRecentRequests(reqs);
+        } catch (err) {
+          console.error("Error fetching recent requests:", err);
+        }
+
         setRealStats({
-          users: stats.totalCollaborators || 450, // Fallback for demo
-          pros: stats.activeOrganizations,
-          companies: stats.totalOrganizations,
-          requests: stats.totalAuths30d || 12400
+          users: stats.totalUsers || 0,
+          pros: stats.totalPros || 0,
+          orgs: stats.activeOrganizations || 0,
+          requests: stats.totalAuths30d || 0
         });
-        setOrganizations(orgs.slice(0, 5)); // Top 5
-        setRecentOrgs(orgs.slice(0, 10)); // Recent 10
+        setOrganizations(orgs.slice(0, 5));
+        setRecentOrgs(orgs.slice(0, 10));
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {
@@ -84,14 +97,11 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [recentOrgs, setRecentOrgs] = useState<any[]>([]);
-
   const displayStats = [
-    { label: "Organisations Actives", value: realStats.pros.toString(), icon: Building2, color: "#4ade80", trend: "+2", trendUp: true },
-    { label: "Collaborateurs Totaux", value: realStats.users.toLocaleString(), icon: Users, color: "#60a5fa", trend: "+12%", trendUp: true },
-    { label: "Auths (30j)", value: realStats.requests.toLocaleString(), icon: ShieldCheck, color: "var(--color-primary)", trend: "+18%", trendUp: true },
-    { label: "Taux de Succès Global", value: "99.1%", icon: TrendingUp, color: "#4ade80", trend: "+0.2%", trendUp: true },
+    { label: "Utilisateurs Totaux", value: realStats.users.toLocaleString(), icon: Users, color: "#60a5fa", trend: "+12%", trendUp: true, path: "/admin/users" },
+    { label: "Pros Actifs", value: realStats.pros.toLocaleString(), icon: ShieldCheck, color: "#4ade80", trend: "+5%", trendUp: true, path: "/admin/pros" },
+    { label: "Organisations", value: realStats.orgs.toString(), icon: Building2, color: "#a78bfa", trend: "+2", trendUp: true, path: "/admin/organizations" },
+    { label: "Demandes (Total)", value: realStats.requests.toLocaleString(), icon: History, color: "var(--color-primary)", trend: "+18%", trendUp: true, path: "/admin/requests" },
   ];
 
   if (loading) {
@@ -126,11 +136,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {displayStats.map((stat, index) => (
-            <div 
+            <Link 
               key={index}
-              className="bg-[#1e1e22] border border-[#2e2e34] p-6 rounded-2xl hover:border-[#4ade80]/30 transition-all group"
+              to={stat.path}
+              className="bg-[#1e1e22] border border-[#2e2e34] p-6 rounded-2xl hover:border-[#4ade80]/30 transition-all group block shadow-lg"
             >
               <div className="flex items-center justify-between mb-4">
                 <div 
@@ -148,7 +159,7 @@ export default function AdminDashboard() {
                 <p className="text-[#9a9a9f] text-sm font-medium uppercase tracking-wider">{stat.label}</p>
                 <p className="text-3xl font-bold text-white">{stat.value}</p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>        {/* Chart Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -187,28 +198,41 @@ export default function AdminDashboard() {
 
             <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl overflow-hidden">
                <div className="p-8 border-b border-[#2e2e34] flex items-center justify-between">
-                  <h3 className="font-bold">Top 5 Organisations Actives</h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Par volume d'auths</p>
+                  <h3 className="font-bold">Dernières Demandes d'Authentification</h3>
+                  <Link to="/admin/requests" className="text-[10px] font-black uppercase tracking-widest text-[#4ade80] hover:underline">Voir Tout</Link>
                </div>
                <div className="divide-y divide-[#2e2e34]">
-                  {organizations.map((org, i) => (
-                    <Link key={org.id} to={`/admin/organizations/${org.id}`} className="flex items-center justify-between p-6 hover:bg-[#111113] transition-colors group">
-                       <div className="flex items-center gap-4">
-                          <div className="w-5 h-5 flex items-center justify-center text-[10px] font-black text-slate-600">0{i+1}</div>
-                          <div className="w-10 h-10 rounded-xl bg-[#111113] border border-[#2e2e34] p-1.5 flex items-center justify-center">
-                            <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
-                          </div>
-                          <div>
-                            <p className="text-white font-bold text-sm tracking-tight">{org.name}</p>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Institution</p>
-                          </div>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-white font-black">{Math.floor(Math.random() * 5000 + 1000).toLocaleString()}</p>
-                          <p className="text-[10px] text-slate-500 uppercase font-black">Auths</p>
-                       </div>
-                    </Link>
-                  ))}
+                  {recentRequests.length === 0 ? (
+                    <div className="p-10 text-center text-[#9a9a9f]">Aucune demande récente</div>
+                  ) : (
+                    recentRequests.map((req, i) => (
+                      <div key={req.id} className="flex items-center justify-between p-6 hover:bg-[#111113] transition-colors group">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-[#111113] border border-[#2e2e34] flex items-center justify-center text-[#4ade80]">
+                              <ShieldCheck size={20} />
+                            </div>
+                            <div>
+                              <p className="text-white font-bold text-sm tracking-tight">{req.fromProName || "Pro Inconnu"}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">
+                                {req.fromCompanyName || "Indépendant"} • {req.toUserPhone}
+                              </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                              req.status === 'verified' || req.status === 'validated' ? 'text-[#4ade80] border-[#4ade80]/20 bg-[#4ade80]/10' :
+                              req.status === 'pending' ? 'text-[#fbbf24] border-[#fbbf24]/20 bg-[#fbbf24]/10' :
+                              'text-[#f87171] border-[#f87171]/20 bg-[#f87171]/10'
+                            }`}>
+                              {req.status}
+                            </div>
+                            <p className="text-[10px] text-slate-500 mt-1 uppercase font-black">
+                              {req.createdAt?.seconds ? format(new Date(req.createdAt.seconds * 1000), 'HH:mm', { locale: fr }) : "Maintenant"}
+                            </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                </div>
             </div>
           </div>

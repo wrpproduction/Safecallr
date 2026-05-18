@@ -5,12 +5,12 @@ importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compa
 // The config here can be empty if you use the default project.
 // However, it's better to provide it.
 firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCPrcZlZIeHjJfWT_JiD_PiwzCbhMmmgH0",
+  authDomain: "gen-lang-client-0258611834.firebaseapp.com",
+  projectId: "gen-lang-client-0258611834",
+  storageBucket: "gen-lang-client-0258611834.firebasestorage.app",
+  messagingSenderId: "763824733061",
+  appId: "1:763824733061:web:1febec810fec504e1022ec"
 });
 
 const messaging = firebase.messaging();
