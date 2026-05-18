@@ -23,7 +23,7 @@ export const requestFCMToken = async (userId: string) => {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       const token = await getToken(messaging, {
-        vapidKey: "YOUR_VAPID_KEY_HERE", // À remplacer par la clé réelle du projet
+        vapidKey: import.meta.env.VITE_FCM_VAPID_PUBLIC_KEY,
       });
       if (token) {
         await setDoc(doc(db, "users", userId), { fcmToken: token }, { merge: true });
