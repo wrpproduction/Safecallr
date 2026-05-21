@@ -58,20 +58,52 @@ export default function AdminDashboard() {
     requests: 0
   });
 
+  const formatSafeDate = (createdAt: any) => {
+    if (!createdAt) return "N/A";
+    try {
+      if (typeof createdAt.toDate === "function") {
+        return format(createdAt.toDate(), "dd MMM, HH:mm", { locale: fr });
+      }
+      if (createdAt.seconds) {
+        return format(new Date(createdAt.seconds * 1000), "dd MMM, HH:mm", { locale: fr });
+      }
+      const d = new Date(createdAt);
+      if (isNaN(d.getTime())) return "N/A";
+      return format(d, "dd MMM, HH:mm", { locale: fr });
+    } catch (err) {
+      return "N/A";
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const idToken = await auth.currentUser?.getIdToken();
-        const response = await fetch('/api/admin/stats/global', {
-          headers: { 'Authorization': `Bearer ${idToken}` }
-        });
-        const stats = await response.json();
         
-        const orgsResponse = await fetch('/api/admin/organizations', {
-          headers: { 'Authorization': `Bearer ${idToken}` }
-        });
-        const orgs = await orgsResponse.json();
+        let stats: any = {};
+        try {
+          const response = await fetch('/api/admin/stats/global', {
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+          if (response.ok) {
+            stats = await response.json();
+          }
+        } catch (apiErr) {
+          console.warn("Stats API failed, using direct Firestore fallback:", apiErr);
+        }
+        
+        let orgs: any[] = [];
+        try {
+          const orgsResponse = await fetch('/api/admin/organizations', {
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+          if (orgsResponse.ok) {
+            orgs = await orgsResponse.json();
+          }
+        } catch (orgsApiErr) {
+          console.warn("Orgs API failed, using direct Firestore fallback:", orgsApiErr);
+        }
 
         // Fetch recent requests for global vision
         try {
@@ -83,19 +115,38 @@ export default function AdminDashboard() {
           console.error("Error fetching recent requests:", err);
         }
 
-        // Fetch recent users (both individuals and pros)
+        // Fetch recent members (both individuals and pros)
         try {
           const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
-          const usersSnap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc"), limit(25)));
-          const allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          
-          const membersList = allUsers.filter((u: any) => u.role !== "pro" && u.role !== "pro_representative");
-          const prosList = allUsers.filter((u: any) => u.role === "pro" || u.role === "pro_representative");
-          
+          const usersSnap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc"), limit(15)));
+          const membersList = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
           setRecentMembers(membersList.slice(0, 10));
-          setRecentPros(prosList.slice(0, 10));
         } catch (err) {
-          console.error("Error fetching recent users:", err);
+          console.error("Error fetching recent members:", err);
+        }
+
+        // Fetch recent pros
+        try {
+          const { query, collection, orderBy, limit, getDocs, doc, getDoc } = await import("firebase/firestore");
+          const prosSnap = await getDocs(query(collection(db, "pros"), orderBy("createdAt", "desc"), limit(15)));
+          const prosList = prosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          
+          const loadedPros = await Promise.all(prosList.map(async (p: any) => {
+            if (p.companyId) {
+              try {
+                const compSnap = await getDoc(doc(db, "companies", p.companyId));
+                if (compSnap.exists()) {
+                  return { ...p, companyName: compSnap.data().name };
+                }
+              } catch (e) {
+                console.error("Error loading company for pro", p.id, e);
+              }
+            }
+            return p;
+          }));
+          setRecentPros(loadedPros.slice(0, 10));
+        } catch (err) {
+          console.error("Error fetching recent pros:", err);
         }
 
         // Fetch and merge both professional and individual verification requests
@@ -117,12 +168,69 @@ export default function AdminDashboard() {
           console.error("Error fetching recent connection requests:", err);
         }
 
+        // Fallbacks for stats if API returned an error or 0s
+        let totalUsers = stats.totalUsers;
+        let totalPros = stats.totalPros;
+        let activeOrgs = stats.activeOrganizations;
+        let totalRequests = stats.totalAuths30d;
+
+        const { getCountFromServer, collection } = await import("firebase/firestore");
+
+        if (!totalUsers) {
+          try {
+            const snap = await getCountFromServer(collection(db, "users"));
+            totalUsers = snap.data().count;
+          } catch (e) {
+            console.error("Fallback count mismatch for users:", e);
+          }
+        }
+
+        if (!totalPros) {
+          try {
+            const snap = await getCountFromServer(collection(db, "pros"));
+            totalPros = snap.data().count;
+          } catch (e) {
+            console.error("Fallback count mismatch for pros:", e);
+          }
+        }
+
+        if (activeOrgs === undefined || activeOrgs === null || activeOrgs === 0) {
+          try {
+            const snap = await getCountFromServer(collection(db, "organizations"));
+            activeOrgs = snap.data().count;
+          } catch (e) {
+            console.error("Fallback count mismatch for organizations:", e);
+          }
+        }
+
+        if (!totalRequests) {
+          try {
+            const authSnap = await getCountFromServer(collection(db, "authRequests"));
+            const verifSnap = await getCountFromServer(collection(db, "verification_requests"));
+            totalRequests = authSnap.data().count + verifSnap.data().count;
+          } catch (e) {
+            console.error("Fallback count mismatch for requests:", e);
+          }
+        }
+
         setRealStats({
-          users: stats.totalUsers || 0,
-          pros: stats.totalPros || 0,
-          orgs: stats.activeOrganizations || 0,
-          requests: stats.totalAuths30d || 0
+          users: totalUsers || 0,
+          pros: totalPros || 0,
+          orgs: activeOrgs || 0,
+          requests: totalRequests || 0
         });
+
+        if (!Array.isArray(orgs) || orgs.length === 0) {
+          try {
+            const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
+            const snapshot = await getDocs(query(collection(db, "organizations"), orderBy("createdAt", "desc"), limit(10)));
+            orgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          } catch (e) {
+            console.error("Fallback organizations fetch failed:", e);
+            orgs = [];
+          }
+        }
+
         setOrganizations(orgs.slice(0, 5));
         setRecentOrgs(orgs.slice(0, 10));
       } catch (error) {
@@ -289,7 +397,7 @@ export default function AdminDashboard() {
                                 <td className="p-4 font-mono text-xs text-slate-300">{m.phoneNumber || "N/A"}</td>
                                 <td className="p-4 text-xs text-[#9a9a9f] truncate max-w-[150px]">{m.email || "N/A"}</td>
                                 <td className="p-4 pr-6 text-xs text-slate-400">
-                                  {m.createdAt ? format(new Date(m.createdAt), "dd MMM, HH:mm", { locale: fr }) : "N/A"}
+                                  {formatSafeDate(m.createdAt)}
                                 </td>
                               </tr>
                             ))}
@@ -319,14 +427,14 @@ export default function AdminDashboard() {
                                 <td className="p-4 pl-6 font-bold text-white">
                                   {p.firstName || p.lastName ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : p.displayName || "Sans nom"}
                                 </td>
-                                <td className="p-4 font-mono text-xs text-slate-300">{p.phoneNumber || "N/A"}</td>
+                                <td className="p-4 font-mono text-xs text-slate-300">{p.phone || p.phoneNumber || "N/A"}</td>
                                 <td className="p-4">
                                   <div className="text-xs text-white font-semibold">{p.companyName || "N/A"}</div>
-                                  <div className="text-[9px] text-primary font-bold uppercase tracking-wider">{p.companyCategory || ""}</div>
+                                  <div className="text-[9px] text-primary font-bold uppercase tracking-wider">{p.jobTitle || p.companyCategory || ""}</div>
                                 </td>
                                 <td className="p-4 pr-6">
-                                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                    {p.role === "pro_representative" ? "Représentant" : "Collaborateur"}
+                                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${p.status === 'approved' ? 'bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}`}>
+                                    {p.status || "Inscrit"}
                                   </span>
                                 </td>
                               </tr>

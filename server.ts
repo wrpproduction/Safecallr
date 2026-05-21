@@ -18,7 +18,7 @@ const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-app
 // Initialisation Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID || process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || config.projectId,
+    projectId: config.projectId || process.env.FIREBASE_PROJECT_ID || process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT,
   });
 }
 
@@ -649,7 +649,7 @@ ${pages.map(page => `
       const activeOrgsCount = await db.collection("organizations").where("active", "==", true).count().get();
       
       const usersCount = await db.collection("users").count().get();
-      const prosCount = await db.collection("users").where("role", "in", ["pro_representative", "pro"]).count().get();
+      const prosCount = await db.collection("pros").count().get();
       const authRequestsCount = await db.collection("authRequests").count().get();
       
       res.json({
