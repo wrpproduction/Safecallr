@@ -55,6 +55,7 @@ export default function AdminPros() {
   const [searchEmail, setSearchEmail] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [totalProsCount, setTotalProsCount] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState("pending_validation");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -66,10 +67,9 @@ export default function AdminPros() {
     const totalQ = query(collection(db, "pros"));
     getDocs(totalQ).then(snap => setTotalProsCount(snap.size)).catch(err => handleFirestoreError(err, OperationType.LIST, "pros"));
 
-    const q = query(
-      collection(db, "pros"), 
-      where("status", "==", "pending_validation")
-    );
+    const q = statusFilter === "all"
+      ? query(collection(db, "pros"))
+      : query(collection(db, "pros"), where("status", "==", statusFilter));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const prosData: Pro[] = [];
@@ -109,7 +109,7 @@ export default function AdminPros() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [statusFilter]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,16 +209,36 @@ export default function AdminPros() {
   return (
     <AdminLayout>
       <div className="space-y-8 animate-in fade-in duration-500">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Gestion des Pros</h1>
             <p className="text-[#9a9a9f] mt-1">
-              Validation des nouveaux comptes professionnels ({pendingPros.length} en attente
-              {totalProsCount !== null && ` / ${totalProsCount} au total`})
+              {statusFilter === "pending_validation" 
+                ? `Validation des nouveaux comptes professionnels (${pendingPros.length} en attente${totalProsCount !== null ? ` / ${totalProsCount} au total` : ""})`
+                : statusFilter === "active"
+                ? `Direction et gestion des professionnels actifs (${pendingPros.length} actifs)`
+                : statusFilter === "rejected"
+                ? `Comptes professionnels rejetés (${pendingPros.length} rejetés)`
+                : `Tous les comptes professionnels (${pendingPros.length} enregistrés)`
+              }
             </p>
           </div>
-          <div className="flex flex-col md:flex-row items-center gap-3">
-            <form onSubmit={handleSearch} className="relative w-full md:w-80">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9a9a9f]" size={16} />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-[#111113] border border-[#2e2e34] rounded-xl py-2 pl-9 pr-8 text-sm text-[#e4e4e8] outline-none focus:border-[#4ade80] transition-all cursor-pointer select-none"
+                style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+              >
+                <option value="pending_validation">📁 En attente ({statusFilter === "pending_validation" ? pendingPros.length : "?"})</option>
+                <option value="active">✅ Actifs ({statusFilter === "active" ? pendingPros.length : "?"})</option>
+                <option value="rejected">❌ Rejetés ({statusFilter === "rejected" ? pendingPros.length : "?"})</option>
+                <option value="all">🌐 Tous ({totalProsCount !== null ? totalProsCount : "-"})</option>
+              </select>
+            </div>
+            <form onSubmit={handleSearch} className="relative w-full md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9a9a9f]" size={18} />
               <input
                 type="email"
@@ -254,11 +274,11 @@ export default function AdminPros() {
               className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-red-500 hover:text-white transition-all"
             >
               <XCircle size={18} />
-              Réinitialiser un compte
+              Réinitialiser
             </button>
             <div className="px-4 py-2 bg-[#4ade80]/10 text-[#4ade80] border border-[#4ade80]/20 rounded-lg text-sm font-bold flex items-center gap-2">
               <ShieldCheck size={18} />
-              {pendingPros.length} Demandes en attente
+              {statusFilter === "pending_validation" ? `${pendingPros.length} En attente` : statusFilter === "active" ? `${pendingPros.length} Actifs` : `${pendingPros.length} Affichés`}
             </div>
           </div>
         </header>
@@ -382,7 +402,10 @@ export default function AdminPros() {
           <div className="p-6 border-b border-[#2e2e34] bg-[#18181b]">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Clock className="text-[#fbbf24]" size={20} />
-              Demandes en attente de validation
+              {statusFilter === "pending_validation" ? "Demandes en attente de validation" :
+               statusFilter === "active" ? "Professionnels validés et actifs" :
+               statusFilter === "rejected" ? "Demandes professionnelles rejetées" :
+               "Tous les professionnels"}
             </h2>
           </div>
 
@@ -396,7 +419,12 @@ export default function AdminPros() {
               <div className="w-16 h-16 bg-[#1e1e22] rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 className="text-[#4ade80]" size={32} />
               </div>
-              <p className="text-[#9a9a9f] font-medium">Aucune demande en attente. Beau travail !</p>
+              <p className="text-[#9a9a9f] font-medium">
+                {statusFilter === "pending_validation" ? "Aucune demande en attente. Beau travail !" :
+                 statusFilter === "active" ? "Aucun professionnel actif trouvé." :
+                 statusFilter === "rejected" ? "Aucune demande rejetée." :
+                 "Aucun professionnel trouvé."}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">

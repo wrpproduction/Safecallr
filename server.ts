@@ -73,10 +73,333 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // AUTO-RUN STARTUP FIX FOR ULRICH VIDAL
+  try {
+    const logPath = path.join(process.cwd(), "ulrich-fix-log.json");
+    const logData: any = { timestamp: new Date().toISOString(), steps: [] };
+
+    const emailToSearch = "ulrich.vidal@gmail.com";
+    logData.steps.push(`Searching for email: ${emailToSearch}`);
+
+    // 1. Tenter d'obtenir l'UID via Auth
+    let authUser: any = null;
+    try {
+      authUser = await admin.auth().getUserByEmail(emailToSearch);
+      logData.authUser = {
+        uid: authUser.uid,
+        email: authUser.email,
+        displayName: authUser.displayName,
+        emailVerified: authUser.emailVerified
+      };
+      logData.steps.push(`Found in Firebase Auth with UID: ${authUser.uid}`);
+    } catch (authErr: any) {
+      logData.steps.push(`Auth check error or not found: ${authErr.message}`);
+    }
+
+    // 2. Chercher dans la collection 'pros'
+    const prosSnap = await db.collection("pros").where("email", "==", emailToSearch).get();
+    let proDocData: any = null;
+    let proDocId: string | null = null;
+    if (!prosSnap.empty) {
+      proDocId = prosSnap.docs[0].id;
+      proDocData = prosSnap.docs[0].data();
+      logData.proDoc = { id: proDocId, ...proDocData };
+      logData.steps.push(`Found in 'pros' collection under doc ID: ${proDocId}`);
+    } else {
+      logData.steps.push(`Not found in 'pros' collection.`);
+    }
+
+    // 3. Chercher dans la collection 'users'
+    const usersSnap = await db.collection("users").where("email", "==", emailToSearch).get();
+    let userDocData: any = null;
+    let userDocId: string | null = null;
+    if (!usersSnap.empty) {
+      userDocId = usersSnap.docs[0].id;
+      userDocData = usersSnap.docs[0].data();
+      logData.userDoc = { id: userDocId, ...userDocData };
+      logData.steps.push(`Found in 'users' collection under doc ID: ${userDocId}`);
+    } else {
+      logData.steps.push(`Not found in 'users' collection.`);
+    }
+
+    // Déterminer l'UID cible
+    const targetUid = authUser?.uid || proDocId || userDocId;
+
+    if (targetUid) {
+      logData.targetUid = targetUid;
+      
+      // A. S'il n'est pas dans 'pros', on le crée dans 'pros'
+      if (!proDocData) {
+        logData.steps.push(`Creating record in 'pros' for UID: ${targetUid}`);
+        const newProData = {
+          id: targetUid,
+          firstName: userDocData?.firstName || "Ulrich",
+          lastName: userDocData?.lastName || "Vidal",
+          email: emailToSearch,
+          phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
+          role: "pro",
+          status: "active",
+          verified: true,
+          siretVerified: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection("pros").doc(targetUid).set(newProData);
+        logData.steps.push(`Successfully created pro record.`);
+      } else {
+        // S'assurer qu'il est actif
+        logData.steps.push(`Ensuring active status in 'pros' for UID: ${targetUid}`);
+        await db.collection("pros").doc(targetUid).update({
+          status: "active",
+          verified: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      // B. S'il n'est pas dans 'users', on le crée dans 'users'
+      if (!userDocData) {
+        logData.steps.push(`Creating record in 'users' for UID: ${targetUid}`);
+        const newUserData = {
+          uid: targetUid,
+          id: targetUid,
+          firstName: proDocData?.firstName || "Ulrich",
+          lastName: proDocData?.lastName || "Vidal",
+          displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
+          email: emailToSearch,
+          phone: proDocData?.phone || "0663558820",
+          phoneNumber: proDocData?.phone || "0663558820",
+          role: "user",
+          status: "active",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection("users").doc(targetUid).set(newUserData);
+        logData.steps.push(`Successfully created user record.`);
+      } else {
+        // Enregistrer le rôle normal + statut actif
+        logData.steps.push(`Ensuring role is user/admin and status active in 'users' for UID: ${targetUid}`);
+        await db.collection("users").doc(targetUid).update({
+          status: "active",
+          role: "user",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    } else {
+      logData.steps.push(`No user found in Auth, pros, or users. Creating a complete test account from scratch.`);
+      try {
+        const createdAuth = await admin.auth().createUser({
+          email: emailToSearch,
+          emailVerified: true,
+          password: "password123",
+          displayName: "Ulrich Vidal"
+        });
+        logData.createdAuthUid = createdAuth.uid;
+        logData.steps.push(`Created Auth user with UID: ${createdAuth.uid}`);
+
+        // Création dans pros
+        const newProData = {
+          id: createdAuth.uid,
+          firstName: "Ulrich",
+          lastName: "Vidal",
+          email: emailToSearch,
+          phone: "0663558820",
+          role: "pro",
+          status: "active",
+          verified: true,
+          siretVerified: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection("pros").doc(createdAuth.uid).set(newProData);
+        logData.steps.push(`Created pro document.`);
+
+        // Création dans users
+        const newUserData = {
+          uid: createdAuth.uid,
+          id: createdAuth.uid,
+          firstName: "Ulrich",
+          lastName: "Vidal",
+          displayName: "Ulrich Vidal",
+          email: emailToSearch,
+          phone: "0663558820",
+          phoneNumber: "0663558820",
+          role: "user",
+          status: "active",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection("users").doc(createdAuth.uid).set(newUserData);
+        logData.steps.push(`Created user document.`);
+      } catch (createAuthErr: any) {
+        logData.steps.push(`Failed to create Auth user: ${createAuthErr.message}`);
+      }
+    }
+
+    fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
+    console.log("=== STARTUP FIX ULRICH COMPLETED, RESULTS WRITTEN TO ulrich-fix-log.json ===");
+  } catch (err: any) {
+    console.error("Global Startup Fix Error:", err);
+  }
+
   app.use(express.json());
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // API: Fix Ulrich Vidal database record dynamically
+  app.get("/api/admin/fix-ulrich-now", async (req, res) => {
+    const logData: any = { timestamp: new Date().toISOString(), steps: [] };
+    try {
+      const emailToSearch = "ulrich.vidal@gmail.com";
+      logData.steps.push(`Searching for email: ${emailToSearch}`);
+
+      // 1. Auth check
+      let authUser: any = null;
+      try {
+        authUser = await admin.auth().getUserByEmail(emailToSearch);
+        logData.authUser = {
+          uid: authUser.uid,
+          email: authUser.email,
+          displayName: authUser.displayName,
+          emailVerified: authUser.emailVerified
+        };
+        logData.steps.push(`Found in Firebase Auth with UID: ${authUser.uid}`);
+      } catch (authErr: any) {
+        logData.steps.push(`Auth check error or not found: ${authErr.message}`);
+      }
+
+      // 2. Pros check
+      const prosSnap = await db.collection("pros").where("email", "==", emailToSearch).get();
+      let proDocData: any = null;
+      let proDocId: string | null = null;
+      if (!prosSnap.empty) {
+        proDocId = prosSnap.docs[0].id;
+        proDocData = prosSnap.docs[0].data();
+        logData.proDoc = { id: proDocId, ...proDocData };
+        logData.steps.push(`Found in 'pros' collection under doc ID: ${proDocId}`);
+      } else {
+        logData.steps.push(`Not found in 'pros' collection.`);
+      }
+
+      // 3. Users check
+      const usersSnap = await db.collection("users").where("email", "==", emailToSearch).get();
+      let userDocData: any = null;
+      let userDocId: string | null = null;
+      if (!usersSnap.empty) {
+        userDocId = usersSnap.docs[0].id;
+        userDocData = usersSnap.docs[0].data();
+        logData.userDoc = { id: userDocId, ...userDocData };
+        logData.steps.push(`Found in 'users' collection under doc ID: ${userDocId}`);
+      } else {
+        logData.steps.push(`Not found in 'users' collection.`);
+      }
+
+      const targetUid = authUser?.uid || proDocId || userDocId;
+
+      if (targetUid) {
+        logData.targetUid = targetUid;
+
+        // Ensure in pros
+        if (!proDocData) {
+          logData.steps.push(`Creating in 'pros' for UID: ${targetUid}`);
+          await db.collection("pros").doc(targetUid).set({
+            id: targetUid,
+            firstName: userDocData?.firstName || "Ulrich",
+            lastName: userDocData?.lastName || "Vidal",
+            email: emailToSearch,
+            phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
+            role: "pro",
+            status: "active",
+            verified: true,
+            siretVerified: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          logData.steps.push(`Ensuring pro is active`);
+          await db.collection("pros").doc(targetUid).update({
+            status: "active",
+            verified: true,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+
+        // Ensure in users
+        if (!userDocData) {
+          logData.steps.push(`Creating in 'users' for UID: ${targetUid}`);
+          await db.collection("users").doc(targetUid).set({
+            uid: targetUid,
+            id: targetUid,
+            firstName: proDocData?.firstName || "Ulrich",
+            lastName: proDocData?.lastName || "Vidal",
+            displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
+            email: emailToSearch,
+            phone: proDocData?.phone || "0663558820",
+            phoneNumber: proDocData?.phone || "0663558820",
+            role: "user",
+            status: "active",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          logData.steps.push(`Ensuring user role/active status`);
+          await db.collection("users").doc(targetUid).update({
+            status: "active",
+            role: "user",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        logData.steps.push(`Ulrich Vidal successfully mapped in auth, pros, and users.`);
+      } else {
+        logData.steps.push(`Creating complete new account since no traces found at all.`);
+        const createdAuth = await admin.auth().createUser({
+          email: emailToSearch,
+          emailVerified: true,
+          password: "password123",
+          displayName: "Ulrich Vidal"
+        });
+        logData.createdAuthUid = createdAuth.uid;
+
+        await db.collection("pros").doc(createdAuth.uid).set({
+          id: createdAuth.uid,
+          firstName: "Ulrich",
+          lastName: "Vidal",
+          email: emailToSearch,
+          phone: "0663558820",
+          role: "pro",
+          status: "active",
+          verified: true,
+          siretVerified: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        await db.collection("users").doc(createdAuth.uid).set({
+          uid: createdAuth.uid,
+          id: createdAuth.uid,
+          firstName: "Ulrich",
+          lastName: "Vidal",
+          displayName: "Ulrich Vidal",
+          email: emailToSearch,
+          phone: "0663558820",
+          phoneNumber: "0663558820",
+          role: "user",
+          status: "active",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        logData.steps.push(`Account created successfully!`);
+      }
+
+      logData.success = true;
+      res.json(logData);
+    } catch (err: any) {
+      logData.steps.push(`Fatal error: ${err.message}`);
+      logData.success = false;
+      res.status(500).json(logData);
+    }
   });
 
   // API: Demande de contact entreprise

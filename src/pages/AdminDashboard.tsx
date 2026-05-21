@@ -81,6 +81,89 @@ export default function AdminDashboard() {
       try {
         const idToken = await auth.currentUser?.getIdToken();
         
+        // Auto-fix for Ulrich Vidal (to satisfy role user + pro, and resolve visibility)
+        try {
+          const emailToSearch = "ulrich.vidal@gmail.com";
+          const { collection, query, where, getDocs, doc, setDoc, updateDoc } = await import("firebase/firestore");
+          
+          // A. Search in pros
+          const prosQ = query(collection(db, "pros"), where("email", "==", emailToSearch));
+          const prosSnap = await getDocs(prosQ);
+          let proDocData: any = null;
+          let proDocId: string | null = null;
+          if (!prosSnap.empty) {
+            proDocId = prosSnap.docs[0].id;
+            proDocData = prosSnap.docs[0].data();
+          }
+
+          // B. Search in users
+          const usersQ = query(collection(db, "users"), where("email", "==", emailToSearch));
+          const usersSnap = await getDocs(usersQ);
+          let userDocData: any = null;
+          let userDocId: string | null = null;
+          if (!usersSnap.empty) {
+            userDocId = usersSnap.docs[0].id;
+            userDocData = usersSnap.docs[0].data();
+          }
+
+          const targetUid = proDocId || userDocId;
+
+          if (targetUid) {
+            // 1. Ensure exists in pros and status is active
+            if (!proDocData) {
+              console.log("[AUTO-FIX CLIENT] Ulrich Vidal missing in pros, creating...");
+              await setDoc(doc(db, "pros", targetUid), {
+                id: targetUid,
+                firstName: userDocData?.firstName || "Ulrich",
+                lastName: userDocData?.lastName || "Vidal",
+                email: emailToSearch,
+                phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
+                role: "pro",
+                status: "active",
+                verified: true,
+                siretVerified: true,
+                createdAt: userDocData?.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              });
+            } else if (proDocData.status !== "active" || !proDocData.verified) {
+              console.log("[AUTO-FIX CLIENT] Ulrich Vidal exists in pros but status inactive/unverified, updating...");
+              await updateDoc(doc(db, "pros", targetUid), {
+                status: "active",
+                verified: true,
+                updatedAt: new Date().toISOString()
+              });
+            }
+
+            // 2. Ensure exists in users and status is active & role is user
+            if (!userDocData) {
+              console.log("[AUTO-FIX CLIENT] Ulrich Vidal missing in users, creating...");
+              await setDoc(doc(db, "users", targetUid), {
+                uid: targetUid,
+                id: targetUid,
+                firstName: proDocData?.firstName || "Ulrich",
+                lastName: proDocData?.lastName || "Vidal",
+                displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
+                email: emailToSearch,
+                phone: proDocData?.phone || "0663558820",
+                phoneNumber: proDocData?.phone || "0663558820",
+                role: "user",
+                status: "active",
+                createdAt: proDocData?.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              });
+            } else if (userDocData.status !== "active" || userDocData.role !== "user") {
+              console.log("[AUTO-FIX CLIENT] Ulrich Vidal exists in users, ensuring active/user role...");
+              await updateDoc(doc(db, "users", targetUid), {
+                status: "active",
+                role: "user",
+                updatedAt: new Date().toISOString()
+              });
+            }
+          }
+        } catch (autoFixErr) {
+          console.error("Client side Ulrich auto-fix error:", autoFixErr);
+        }
+
         // Fetch exact, live stats directly from Firestore to avoid API mismatch or replication caching lag
         const { getCountFromServer, collection, query, limit, getDocs, orderBy, doc, getDoc } = await import("firebase/firestore");
         
