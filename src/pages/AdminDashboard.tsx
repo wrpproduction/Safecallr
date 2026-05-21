@@ -47,6 +47,10 @@ export default function AdminDashboard() {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [recentOrgs, setRecentOrgs] = useState<any[]>([]);
   const [recentRequests, setRecentRequests] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"members" | "pros" | "requests">("members");
+  const [recentMembers, setRecentMembers] = useState<any[]>([]);
+  const [recentPros, setRecentPros] = useState<any[]>([]);
+  const [recentConns, setRecentConns] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({
     users: 0,
     pros: 0,
@@ -77,6 +81,40 @@ export default function AdminDashboard() {
           setRecentRequests(reqs);
         } catch (err) {
           console.error("Error fetching recent requests:", err);
+        }
+
+        // Fetch recent users (both individuals and pros)
+        try {
+          const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
+          const usersSnap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc"), limit(25)));
+          const allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          
+          const membersList = allUsers.filter((u: any) => u.role !== "pro" && u.role !== "pro_representative");
+          const prosList = allUsers.filter((u: any) => u.role === "pro" || u.role === "pro_representative");
+          
+          setRecentMembers(membersList.slice(0, 10));
+          setRecentPros(prosList.slice(0, 10));
+        } catch (err) {
+          console.error("Error fetching recent users:", err);
+        }
+
+        // Fetch and merge both professional and individual verification requests
+        try {
+          const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
+          const authSnap = await getDocs(query(collection(db, "authRequests"), orderBy("createdAt", "desc"), limit(8)));
+          const auths = authSnap.docs.map(d => ({ id: d.id, type: "pro", ...d.data() }));
+
+          const verifSnap = await getDocs(query(collection(db, "verification_requests"), orderBy("createdAt", "desc"), limit(8)));
+          const verifs = verifSnap.docs.map(d => ({ id: d.id, type: "individual", ...d.data() }));
+
+          const merged = [...auths, ...verifs].sort((a: any, b: any) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+          });
+          setRecentConns(merged.slice(0, 15));
+        } catch (err) {
+          console.error("Error fetching recent connection requests:", err);
         }
 
         setRealStats({
@@ -196,42 +234,162 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl overflow-hidden">
-               <div className="p-8 border-b border-[#2e2e34] flex items-center justify-between">
-                  <h3 className="font-bold">Dernières Demandes d'Authentification</h3>
-                  <Link to="/admin/requests" className="text-[10px] font-black uppercase tracking-widest text-[#4ade80] hover:underline">Voir Tout</Link>
+            <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl overflow-hidden shadow-xl">
+               <div className="p-6 border-b border-[#2e2e34] flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111113]/40">
+                  <div>
+                    <h3 className="font-bold text-lg">Activités globales</h3>
+                    <p className="text-xs text-[#9a9a9f]">Vision consolidée des membres, pros et connexions</p>
+                  </div>
+                  <div className="flex bg-[#111113] p-1 rounded-xl border border-[#2e2e34] text-xs self-start md:self-auto">
+                    <button 
+                      type="button"
+                      onClick={() => setActiveTab("members")}
+                      className={`px-3 py-1.5 font-bold rounded-lg transition-all ${activeTab === "members" ? "bg-primary text-black" : "text-[#9a9a9f] hover:text-white"}`}
+                    >
+                      Membres ({recentMembers.length})
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveTab("pros")}
+                      className={`px-3 py-1.5 font-bold rounded-lg transition-all ${activeTab === "pros" ? "bg-primary text-black" : "text-[#9a9a9f] hover:text-white"}`}
+                    >
+                      Pros ({recentPros.length})
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveTab("requests")}
+                      className={`px-3 py-1.5 font-bold rounded-lg transition-all ${activeTab === "requests" ? "bg-primary text-black" : "text-[#9a9a9f] hover:text-white"}`}
+                    >
+                      Connexions ({recentConns.length})
+                    </button>
+                  </div>
                </div>
+
                <div className="divide-y divide-[#2e2e34]">
-                  {recentRequests.length === 0 ? (
-                    <div className="p-10 text-center text-[#9a9a9f]">Aucune demande récente</div>
-                  ) : (
-                    recentRequests.map((req, i) => (
-                      <div key={req.id} className="flex items-center justify-between p-6 hover:bg-[#111113] transition-colors group">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-[#111113] border border-[#2e2e34] flex items-center justify-center text-[#4ade80]">
-                              <ShieldCheck size={20} />
+                  {activeTab === "members" && (
+                    recentMembers.length === 0 ? (
+                      <div className="p-12 text-center text-[#9a9a9f]">Aucun utilisateur inscrit</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#2e2e34] text-[#9a9a9f] text-[10px] uppercase font-black bg-[#111113]/20">
+                              <th className="p-4 pl-6">Nom / Prénom</th>
+                              <th className="p-4">Téléphone</th>
+                              <th className="p-4">Email</th>
+                              <th className="p-4 pr-6">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#2e2e34]">
+                            {recentMembers.map((m: any) => (
+                              <tr key={m.id} className="hover:bg-[#111113] transition-colors">
+                                <td className="p-4 pl-6 font-bold text-white">
+                                  {m.firstName || m.lastName ? `${m.firstName || ""} ${m.lastName || ""}`.trim() : m.displayName || "Sans nom"}
+                                </td>
+                                <td className="p-4 font-mono text-xs text-slate-300">{m.phoneNumber || "N/A"}</td>
+                                <td className="p-4 text-xs text-[#9a9a9f] truncate max-w-[150px]">{m.email || "N/A"}</td>
+                                <td className="p-4 pr-6 text-xs text-slate-400">
+                                  {m.createdAt ? format(new Date(m.createdAt), "dd MMM, HH:mm", { locale: fr }) : "N/A"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  )}
+
+                  {activeTab === "pros" && (
+                    recentPros.length === 0 ? (
+                      <div className="p-12 text-center text-[#9a9a9f]">Aucun professionnel inscrit</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#2e2e34] text-[#9a9a9f] text-[10px] uppercase font-black bg-[#111113]/20">
+                              <th className="p-4 pl-6">Professionnel</th>
+                              <th className="p-4">Téléphone</th>
+                              <th className="p-4">Entreprise / Secteur</th>
+                              <th className="p-4 pr-6">Rôle</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#2e2e34]">
+                            {recentPros.map((p: any) => (
+                              <tr key={p.id} className="hover:bg-[#111113] transition-colors">
+                                <td className="p-4 pl-6 font-bold text-white">
+                                  {p.firstName || p.lastName ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : p.displayName || "Sans nom"}
+                                </td>
+                                <td className="p-4 font-mono text-xs text-slate-300">{p.phoneNumber || "N/A"}</td>
+                                <td className="p-4">
+                                  <div className="text-xs text-white font-semibold">{p.companyName || "N/A"}</div>
+                                  <div className="text-[9px] text-primary font-bold uppercase tracking-wider">{p.companyCategory || ""}</div>
+                                </td>
+                                <td className="p-4 pr-6">
+                                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                    {p.role === "pro_representative" ? "Représentant" : "Collaborateur"}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  )}
+
+                  {activeTab === "requests" && (
+                    recentConns.length === 0 ? (
+                      <div className="p-12 text-center text-[#9a9a9f]">Aucune demande de connexion récente</div>
+                    ) : (
+                      <div className="divide-y divide-[#2e2e34]">
+                        {recentConns.map((req: any) => (
+                          <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 hover:bg-[#111113] transition-colors gap-3">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                                req.type === "pro" 
+                                  ? "bg-[#a78bfa]/10 text-[#a78bfa] border-[#a78bfa]/20" 
+                                  : "bg-[#60a5fa]/10 text-[#60a5fa] border-[#60a5fa]/20"
+                              }`}>
+                                <ShieldCheck size={20} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white font-bold text-sm tracking-tight">
+                                    {req.type === "pro" ? req.fromProName : req.requesterName}
+                                  </span>
+                                  <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                                    req.type === "pro" 
+                                      ? "bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/15" 
+                                      : "bg-[#60a5fa]/10 text-[#60a5fa] border border-[#60a5fa]/15"
+                                  }`}>
+                                    {req.type === "pro" ? "PRO" : "INDIVIDUEL"}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                                  Cible : <span className="text-slate-300 font-bold font-mono">{req.type === "pro" ? req.clientPhone : req.targetPhone}</span>
+                                  {req.type === "pro" && ` (Entreprise : ${req.fromCompanyName || "Indépendant"})`}
+                                  {req.type === "individual" && ` (Cible Nom : ${req.targetName || "Invité"})`}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-white font-bold text-sm tracking-tight">{req.fromProName || "Pro Inconnu"}</p>
-                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">
-                                {req.fromCompanyName || "Indépendant"} • {req.toUserPhone}
+                            <div className="text-left sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2">
+                              <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                req.status === 'verified' || req.status === 'validated' ? 'text-[#4ade80] border-[#4ade80]/20 bg-[#4ade80]/10' :
+                                req.status === 'pending' || req.status === 'code_generated' ? 'text-[#fbbf24] border-[#fbbf24]/20 bg-[#fbbf24]/10' :
+                                'text-[#f87171] border-[#f87171]/20 bg-[#f87171]/10'
+                              }`}>
+                                {req.status === "code_generated" ? "Code généré" : req.status === "pending" ? "En attente" : req.status === "validated" || req.status === "verified" ? "Validée" : req.status}
+                              </div>
+                              <p className="text-[10px] text-[#9a9a9f] uppercase font-black">
+                                {req.createdAt?.seconds 
+                                  ? format(new Date(req.createdAt.seconds * 1000), 'dd/MM, HH:mm', { locale: fr }) 
+                                  : "Maintenant"}
                               </p>
                             </div>
-                        </div>
-                        <div className="text-right">
-                            <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                              req.status === 'verified' || req.status === 'validated' ? 'text-[#4ade80] border-[#4ade80]/20 bg-[#4ade80]/10' :
-                              req.status === 'pending' ? 'text-[#fbbf24] border-[#fbbf24]/20 bg-[#fbbf24]/10' :
-                              'text-[#f87171] border-[#f87171]/20 bg-[#f87171]/10'
-                            }`}>
-                              {req.status}
-                            </div>
-                            <p className="text-[10px] text-slate-500 mt-1 uppercase font-black">
-                              {req.createdAt?.seconds ? format(new Date(req.createdAt.seconds * 1000), 'HH:mm', { locale: fr }) : "Maintenant"}
-                            </p>
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    ))
+                    )
                   )}
                </div>
             </div>

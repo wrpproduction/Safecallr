@@ -15,7 +15,15 @@ export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Messaging (FCM)
-export const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
+let fcmMessaging: any = null;
+if (typeof window !== "undefined") {
+  try {
+    fcmMessaging = getMessaging(app);
+  } catch (err) {
+    console.warn("FCM or service workers are not supported in this browser:", err);
+  }
+}
+export const messaging = fcmMessaging;
 
 export const requestFCMToken = async (userId: string) => {
   if (!messaging) return null;
@@ -23,7 +31,7 @@ export const requestFCMToken = async (userId: string) => {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       const token = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FCM_VAPID_PUBLIC_KEY,
+        vapidKey: (import.meta as any).env.VITE_FCM_VAPID_PUBLIC_KEY,
       });
       if (token) {
         await setDoc(doc(db, "users", userId), { fcmToken: token }, { merge: true });

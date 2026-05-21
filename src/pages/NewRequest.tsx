@@ -104,7 +104,7 @@ export default function NewRequest({ user }: { user: any }) {
       navigate(`/request/${docRef.id}`);
     } catch (err: any) {
       console.error("New request error:", err);
-      setError("Une erreur est survenue lors de l'envoi de la demande.");
+      setError(`Une erreur est survenue lors de l'envoi de la demande : ${err.message || err.toString()}`);
     } finally {
       setLoading(false);
     }

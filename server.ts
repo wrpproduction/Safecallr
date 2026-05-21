@@ -18,12 +18,12 @@ const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-app
 // Initialisation Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
-    projectId: config.projectId,
+    projectId: process.env.FIREBASE_PROJECT_ID || process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT || config.projectId,
   });
 }
 
 // Utiliser le databaseId de la config s'il existe, sinon la base par défaut
-const db = getFirestore(config.firestoreDatabaseId || "(default)");
+const db = getFirestore(process.env.FIRESTORE_DB_ID || config.firestoreDatabaseId || "(default)");
 const fcm = admin.messaging();
 
 async function verifyAdmin(idToken: string) {
