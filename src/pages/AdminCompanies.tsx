@@ -16,7 +16,8 @@ import {
   Mail,
   Phone,
   Calendar,
-  X
+  X,
+  ShieldCheck
 } from "lucide-react";
 import { 
   collection, 
@@ -50,6 +51,8 @@ interface Company {
   status: CompanyStatus;
   createdAt: string;
   category?: string;
+  rcs?: string;
+  rcsCity?: string;
 }
 
 interface Pro {
@@ -77,6 +80,12 @@ export default function AdminCompanies() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [companyPros, setCompanyPros] = useState<Pro[]>([]);
   const [prosLoading, setProsLoading] = useState(false);
+
+  // Edit fields for SafeCallr validation
+  const [editSiret, setEditSiret] = useState("");
+  const [editRcs, setEditRcs] = useState("");
+  const [editRcsCity, setEditRcsCity] = useState("");
+  const [savingImmatriculation, setSavingImmatriculation] = useState(false);
   
   // Confirmation Dialog State
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -93,6 +102,63 @@ export default function AdminCompanies() {
   
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Sync edit fields when selectedCompany changes
+  useEffect(() => {
+    if (selectedCompany) {
+      setEditSiret(selectedCompany.siret || "");
+      setEditRcs(selectedCompany.rcs || "");
+      setEditRcsCity(selectedCompany.rcsCity || "");
+    } else {
+      setEditSiret("");
+      setEditRcs("");
+      setEditRcsCity("");
+    }
+  }, [selectedCompany]);
+
+  const handleSaveImmatriculation = async () => {
+    if (!selectedCompany) return;
+    setSavingImmatriculation(true);
+    setFeedback(null);
+    try {
+      await updateDoc(doc(db, "companies", selectedCompany.id), {
+        siret: editSiret,
+        rcs: editRcs,
+        rcsCity: editRcsCity,
+      });
+      
+      // Update selectedCompany in local state
+      setSelectedCompany(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          siret: editSiret,
+          rcs: editRcs,
+          rcsCity: editRcsCity
+        };
+      });
+
+      // Update companies in list state
+      setCompanies(prev => prev.map(c => {
+        if (c.id === selectedCompany.id) {
+          return {
+            ...c,
+            siret: editSiret,
+            rcs: editRcs,
+            rcsCity: editRcsCity
+          };
+        }
+        return c;
+      }));
+
+      setFeedback({ type: "success", message: "Les informations de validation de la fiche entreprise ont été enregistrées avec succès !" });
+    } catch (error) {
+      console.error("Error updating immatriculation:", error);
+      setFeedback({ type: "error", message: "Erreur lors de l'enregistrement des informations d'immatriculation." });
+    } finally {
+      setSavingImmatriculation(false);
+    }
+  };
 
   const fetchCompanies = async (pageNumber = 1) => {
     setLoading(true);
@@ -590,6 +656,60 @@ export default function AdminCompanies() {
                       ? format(selectedCompany.createdAt, "dd MMMM yyyy", { locale: fr }) 
                       : "N/A"}
                   </p>
+                </div>
+              </div>
+
+              {/* Validation d'immatriculation - Equipe SafeCallr */}
+              <div className="bg-[#111113]/50 p-6 rounded-2xl border border-[#2e2e34] space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-[#4ade80] flex items-center gap-2">
+                    <ShieldCheck size={18} />
+                    Validation & Immatriculation (Équipe SafeCallr)
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#9a9a9f] uppercase tracking-wider mb-2">SIRET</label>
+                    <input
+                      type="text"
+                      value={editSiret}
+                      onChange={(e) => setEditSiret(e.target.value)}
+                      placeholder="Ex: 12345678901234"
+                      className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-2.5 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all text-sm font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#9a9a9f] uppercase tracking-wider mb-2">SIREN / RCS</label>
+                    <input
+                      type="text"
+                      value={editRcs}
+                      onChange={(e) => setEditRcs(e.target.value)}
+                      placeholder="Ex: RCS Paris A 123 456 789"
+                      className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-2.5 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all text-sm font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#9a9a9f] uppercase tracking-wider mb-2">RCS Ville d'immatriculation</label>
+                    <input
+                      type="text"
+                      value={editRcsCity}
+                      onChange={(e) => setEditRcsCity(e.target.value)}
+                      placeholder="Ex: Paris"
+                      className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-2.5 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={handleSaveImmatriculation}
+                    disabled={savingImmatriculation}
+                    className="px-6 py-2.5 bg-[#4ade80] hover:bg-[#22c55e] disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2"
+                  >
+                    {savingImmatriculation ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                    Enregistrer l'immatriculation
+                  </button>
                 </div>
               </div>
 

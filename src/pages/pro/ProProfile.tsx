@@ -12,7 +12,10 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  MapPin,
+  Globe,
+  Shield
 } from "lucide-react";
 import { auth, db, storage } from "../../firebase";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -35,6 +38,10 @@ export default function ProProfile() {
     phone: "",
     jobTitle: "",
     companyName: "",
+    companyAddress: "",
+    companyPhone: "",
+    companyEmail: "",
+    companyWebsite: "",
   });
   const [companyCategory, setCompanyCategory] = useState("");
 
@@ -64,13 +71,17 @@ export default function ProProfile() {
       if (proDoc.exists()) {
         const data = proDoc.data();
         setPro(data);
-        setFormData({
+        const initialForm = {
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           phone: data.phone || "",
           jobTitle: data.jobTitle || "",
           companyName: data.companyName || "",
-        });
+          companyAddress: "",
+          companyPhone: "",
+          companyEmail: "",
+          companyWebsite: "",
+        };
 
         if (data.companyId) {
           const companyDoc = await getDoc(doc(db, "companies", data.companyId));
@@ -78,9 +89,11 @@ export default function ProProfile() {
             const compData = companyDoc.data();
             setCompany(compData);
             setCompanyCategory(compData.category || data.companyCategory || "");
-            if (compData.name) {
-              setFormData(prev => ({ ...prev, companyName: compData.name }));
-            }
+            initialForm.companyName = compData.name || data.companyName || "";
+            initialForm.companyAddress = compData.address || "";
+            initialForm.companyPhone = compData.phone || "";
+            initialForm.companyEmail = compData.email || "";
+            initialForm.companyWebsite = compData.website || "";
           } else {
             // Fallback if company doc doesn't exist yet
             setCompanyCategory(data.companyCategory || "");
@@ -88,6 +101,7 @@ export default function ProProfile() {
         } else {
           setCompanyCategory(data.companyCategory || "");
         }
+        setFormData(initialForm);
       }
     } catch (err) {
       console.error("Fetch pro data error:", err);
@@ -138,7 +152,11 @@ export default function ProProfile() {
       const proRef = doc(db, "pros", uid!);
       
       await updateDoc(proRef, {
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        jobTitle: formData.jobTitle,
+        companyName: formData.companyName,
         companyCategory,
         updatedAt: serverTimestamp(),
       });
@@ -147,9 +165,21 @@ export default function ProProfile() {
         await updateDoc(doc(db, "companies", pro.companyId), {
           name: formData.companyName,
           category: companyCategory,
+          address: formData.companyAddress,
+          phone: formData.companyPhone,
+          email: formData.companyEmail,
+          website: formData.companyWebsite,
           updatedAt: serverTimestamp(),
         });
-        setCompany(prev => ({ ...prev, name: formData.companyName, category: companyCategory }));
+        setCompany(prev => ({ 
+          ...prev, 
+          name: formData.companyName, 
+          category: companyCategory,
+          address: formData.companyAddress,
+          phone: formData.companyPhone,
+          email: formData.companyEmail,
+          website: formData.companyWebsite
+        }));
       }
 
       setSuccess("Profil et informations entreprise mis à jour avec succès !");
@@ -331,12 +361,13 @@ export default function ProProfile() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Poste / Titre</label>
+                    <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Métier / Qualité</label>
                     <input
                       type="text"
                       name="jobTitle"
                       value={formData.jobTitle}
                       onChange={handleInputChange}
+                      placeholder="Ex: Conseiller Client"
                       className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all"
                     />
                   </div>
@@ -346,43 +377,140 @@ export default function ProProfile() {
 
             <div className="bg-[#1e1e22] rounded-3xl border border-[#2e2e34] shadow-sm overflow-hidden">
               <div className="p-8 border-b border-[#2e2e34]">
-                <h3 className="text-xl font-bold text-[#e4e4e8]">Informations entreprise</h3>
+                <h3 className="text-xl font-bold text-[#e4e4e8]">Informations de la fiche professionnelle</h3>
               </div>
               <div className="p-8 space-y-6">
-                <div className="space-y-4">
-                  <label className="block text-sm font-semibold ml-1 text-[#9a9a9f]">Nom de l'entreprise</label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleInputChange}
-                    placeholder="Nom de votre entreprise"
-                    className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <label className="block text-sm font-semibold ml-1 text-[#9a9a9f]">Catégorie d'entreprise</label>
-                  <div className="relative">
-                    <select
-                      name="companyCategory"
-                      value={companyCategory}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Raison Sociale</label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      value={formData.companyName}
                       onChange={handleInputChange}
-                      className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all appearance-none"
-                    >
-                      <option value="">Sélectionnez une catégorie</option>
-                      {companyCategories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.label}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#9a9a9f]">
-                      <ChevronRight size={18} className="rotate-90" />
+                      placeholder="Nom officiel de votre entreprise"
+                      className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Catégorie d'entreprise</label>
+                    <div className="relative">
+                      <select
+                        name="companyCategory"
+                        value={companyCategory}
+                        onChange={handleInputChange}
+                        className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all appearance-none"
+                      >
+                        <option value="">Sélectionnez une catégorie</option>
+                        {companyCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.label}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#9a9a9f]">
+                        <ChevronRight size={18} className="rotate-90" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                <div className="border-t border-[#2e2e34] pt-6 space-y-4">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-[#4ade80]">Coordonnées professionnelles</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Adresse de l'établissement</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-4 text-[#9a9a9f]" size={18} />
+                      <textarea
+                        name="companyAddress"
+                        value={formData.companyAddress}
+                        onChange={(e) => setFormData(prev => ({ ...prev, companyAddress: e.target.value }))}
+                        placeholder="Adresse postale complète de l'établissement professionnel"
+                        rows={2}
+                        className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 pl-12 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Téléphone professionnel (celui de l'appelant)</label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9a9a9f]" size={18} />
+                        <input
+                          type="tel"
+                          name="companyPhone"
+                          value={formData.companyPhone}
+                          onChange={handleInputChange}
+                          placeholder="Ex: 0123456789"
+                          className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 pl-12 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Email professionnel</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9a9a9f]" size={18} />
+                        <input
+                          type="email"
+                          name="companyEmail"
+                          value={formData.companyEmail}
+                          onChange={handleInputChange}
+                          placeholder="Ex: contact@entreprise.fr"
+                          className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 pl-12 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 ml-1 text-[#9a9a9f]">Site internet officiel</label>
+                    <div className="relative">
+                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9a9a9f]" size={18} />
+                      <input
+                        type="url"
+                        name="companyWebsite"
+                        value={formData.companyWebsite}
+                        onChange={handleInputChange}
+                        placeholder="Ex: https://www.entreprise.fr"
+                        className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-3 pl-12 text-[#e4e4e8] focus:border-[#4ade80] outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-[#2e2e34] pt-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#111113]/50 p-6 rounded-2xl border border-[#2e2e34]">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 ml-1">Numéro SIRET</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={company?.siret || "En cours d'enregistrement"}
+                      className="w-full bg-[#111113] border border-[#2e2e34]/60 rounded-xl px-4 py-3 text-[#9a9a9f] cursor-not-allowed opacity-80"
+                    />
+                    <p className="text-[10px] text-amber-500/80 mt-1 ml-1">Rempli et certifié par SafeCallr</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 ml-1">Numéro RCS + Ville d'immatriculation</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={company?.rcs ? `${company.rcs} ${company.rcsCity ? `(${company.rcsCity})` : ""}` : "En cours d'enregistrement"}
+                      className="w-full bg-[#111113] border border-[#2e2e34]/60 rounded-xl px-4 py-3 text-[#9a9a9f] cursor-not-allowed opacity-80"
+                    />
+                    <p className="text-[10px] text-amber-500/80 mt-1 ml-1">Rempli et certifié par SafeCallr</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#2e2e34] flex items-center justify-center gap-2 text-[11px] font-bold text-[#4ade80] uppercase tracking-widest bg-[#4ade80]/5 py-3 rounded-xl border border-[#4ade80]/15">
+                  <ShieldCheck size={14} />
+                  <span>SafeCallr — Authentification professionnelle vérifiée</span>
+                </div>
+
                 <div className="space-y-4">
-                  <h4 className="font-bold text-sm text-[#9a9a9f] uppercase tracking-widest">Justificatif SIRET</h4>
+                  <h4 className="font-bold text-sm text-[#9a9a9f] uppercase tracking-widest">Justificatif de l'entreprise</h4>
                   <div className="flex items-center justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl">
                     <div className="flex items-center gap-3">
                       <FileText className="text-[#9a9a9f]" size={24} />
@@ -391,15 +519,17 @@ export default function ProProfile() {
                         <p className="text-[10px] text-[#9a9a9f] uppercase tracking-widest">Uploadé le {pro?.createdAt ? format(pro.createdAt.toDate(), "dd/MM/yyyy") : "-"}</p>
                       </div>
                     </div>
-                    <a 
-                      href={pro?.siretDocUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm font-bold text-[#4ade80] hover:underline flex items-center gap-1"
-                    >
-                      Voir le document
-                      <ChevronRight size={16} />
-                    </a>
+                    {pro?.siretDocUrl && (
+                      <a 
+                        href={pro?.siretDocUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm font-bold text-[#4ade80] hover:underline flex items-center gap-1"
+                      >
+                        Voir le document
+                        <ChevronRight size={16} />
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db, collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, addDoc, deleteDoc, getDocs } from "../firebase";
-import { UserPlus, Check, X, Shield, Building2, Phone, Mail, Clock, Search, User, Plus, Trash2 } from "lucide-react";
+import { UserPlus, Check, X, Shield, Building2, Phone, Mail, Clock, Search, User, Plus, Trash2, MapPin, Globe, CheckCircle2, ShieldCheck, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function Contacts({ user }: { user: any }) {
@@ -18,6 +18,7 @@ export default function Contacts({ user }: { user: any }) {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState("");
+  const [selectedPro, setSelectedPro] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -260,7 +261,9 @@ export default function Contacts({ user }: { user: any }) {
         proId: c.proId,
         proName: proDoc ? `${proDoc.firstName} ${proDoc.lastName}` : c.proName,
         companyName: compDoc?.name || c.companyName,
-        companyCategory: compDoc?.category || c.companyCategory
+        companyCategory: compDoc?.category || c.companyCategory,
+        pro: proDoc || null,
+        company: compDoc || null
       };
     }),
     ...validatedAuthRequests.map(r => {
@@ -271,7 +274,9 @@ export default function Contacts({ user }: { user: any }) {
         proId: r.fromProId,
         proName: proDoc ? `${proDoc.firstName} ${proDoc.lastName}` : r.fromProName,
         companyName: compDoc?.name || r.fromCompanyName,
-        companyCategory: compDoc?.category || r.fromCompanyCategory
+        companyCategory: compDoc?.category || r.fromCompanyCategory,
+        pro: proDoc || null,
+        company: compDoc || null
       };
     })
   ];
@@ -561,7 +566,8 @@ export default function Contacts({ user }: { user: any }) {
                 <motion.div 
                   layout
                   key={conn.id}
-                  className="bg-surface-container-low p-5 rounded-3xl border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-all"
+                  onClick={() => setSelectedPro(conn)}
+                  className="bg-surface-container-low p-5 rounded-3xl border border-white/5 flex items-center justify-between group hover:border-primary/30 hover:bg-surface-container-high cursor-pointer transition-all active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -581,7 +587,7 @@ export default function Contacts({ user }: { user: any }) {
                       )}
                     </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-all">
                     <Check size={16} />
                   </div>
                 </motion.div>
@@ -687,6 +693,173 @@ export default function Contacts({ user }: { user: any }) {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Detailed Professional Profile Modal */}
+      <AnimatePresence>
+        {selectedPro && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg bg-surface-container p-8 rounded-[32px] border border-white/10 shadow-2xl relative space-y-6 my-8"
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedPro(null)}
+                className="absolute right-6 top-6 p-2 bg-surface-container-highest hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Header Context */}
+              <div className="flex flex-col items-center text-center space-y-3 pt-4 border-b border-white/5 pb-6">
+                <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-2 shadow-inner">
+                  <Building2 size={32} />
+                </div>
+                <div>
+                  <h3 className="font-headline font-black text-on-surface text-2xl tracking-tight uppercase leading-tight">
+                    {selectedPro.companyName || selectedPro.company?.name || "Fiche Entreprise"}
+                  </h3>
+                  {selectedPro.companyCategory && (
+                    <span className="inline-block mt-2 text-[10px] font-bold bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-widest border border-primary/25">
+                      {getCategoryLabel(selectedPro.companyCategory)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Information */}
+              <div className="space-y-4">
+                {/* Contact Section */}
+                <div className="bg-surface-container-low p-5 rounded-2xl border border-white/5 space-y-3">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                    Contact Professionnel
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-secondary">
+                      <User size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-on-surface text-base leading-tight">
+                        {selectedPro.proName || "Contact indéfini"}
+                      </p>
+                      <p className="text-slate-400 text-xs mt-1">
+                        {selectedPro.pro?.jobTitle || "Professionnel Qualifié"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coordinates Block */}
+                <div className="bg-surface-container-low p-5 rounded-2xl border border-white/5 space-y-4">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">
+                    Coordonnées Professionnelles
+                  </div>
+
+                  {/* Address */}
+                  <div className="flex gap-3 items-start">
+                    <MapPin className="text-primary shrink-0 mt-0.5" size={16} />
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Adresse de l'établissement</p>
+                      <p className="text-on-surface text-sm font-medium mt-0.5 whitespace-pre-line leading-relaxed">
+                        {selectedPro.company?.address || "Adresse non renseignée"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex gap-3 items-start">
+                    <Phone className="text-primary shrink-0 mt-0.5" size={16} />
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Téléphone professionnel (Appels)</p>
+                      {selectedPro.company?.phone || selectedPro.pro?.phone ? (
+                        <a 
+                          href={`tel:${selectedPro.company?.phone || selectedPro.pro?.phone}`}
+                          className="text-primary text-sm font-bold hover:underline mt-0.5 inline-block"
+                        >
+                          {selectedPro.company?.phone || selectedPro.pro?.phone}
+                        </a>
+                      ) : (
+                        <p className="text-slate-400 text-xs italic mt-0.5">Non spécifié</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex gap-3 items-start">
+                    <Mail className="text-primary shrink-0 mt-0.5" size={16} />
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Email de contact</p>
+                      {selectedPro.company?.email || selectedPro.pro?.email ? (
+                        <a 
+                          href={`mailto:${selectedPro.company?.email || selectedPro.pro?.email}`}
+                          className="text-primary text-sm font-bold hover:underline mt-0.5 inline-block"
+                        >
+                          {selectedPro.company?.email || selectedPro.pro?.email}
+                        </a>
+                      ) : (
+                        <p className="text-slate-400 text-xs italic mt-0.5">Non spécifié</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Website */}
+                  <div className="flex gap-3 items-start">
+                    <Globe className="text-primary shrink-0 mt-0.5" size={16} />
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Site internet officiel</p>
+                      {selectedPro.company?.website ? (
+                        <a 
+                          href={selectedPro.company.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary text-sm font-bold hover:underline mt-0.5 inline-flex items-center gap-1"
+                        >
+                          {selectedPro.company.website.replace(/^https?:\/\//i, "")}
+                          <ExternalLink size={12} />
+                        </a>
+                      ) : (
+                        <p className="text-slate-400 text-xs italic mt-0.5">Non spécifié</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Validation and Registry bottom section */}
+                <div className="bg-surface-container-highest/60 p-5 rounded-2xl border border-white/5 space-y-3 font-mono text-xs text-slate-400">
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Numéro SIRET</span>
+                    <span className="font-bold text-on-surface">{selectedPro.company?.siret || "En cours de validation"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Numéro RCS + Ville</span>
+                    <span className="font-bold text-on-surface text-right">
+                      {selectedPro.company?.rcs ? `${selectedPro.company.rcs} ${selectedPro.company.rcsCity ? `(${selectedPro.company.rcsCity})` : ""}` : "En cours de validation"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Verified Mention Banner */}
+                <div className="flex items-center justify-center gap-2 p-3 bg-green-500/10 text-[#4ade80] border border-green-500/20 rounded-2xl text-[10px] font-bold uppercase tracking-widest mt-2">
+                  <ShieldCheck size={16} />
+                  <span>SafeCallr — Authentification professionnelle vérifiée</span>
+                </div>
+              </div>
+
+              {/* Close button inside modal at the bottom */}
+              <div className="pt-2">
+                <button 
+                  onClick={() => setSelectedPro(null)}
+                  className="w-full bg-white/5 hover:bg-white/10 text-on-surface py-3.5 rounded-2xl font-bold text-sm transition-all text-center"
+                >
+                  Fermer la fiche
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
