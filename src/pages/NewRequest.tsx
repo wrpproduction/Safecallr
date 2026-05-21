@@ -82,6 +82,7 @@ export default function NewRequest({ user }: { user: any }) {
       const docRef = await addDoc(collection(db, "verification_requests"), {
         requesterId: user.uid,
         requesterName: user.displayName || `${user.firstName} ${user.lastName}`,
+        requesterPhone: user.phoneNumber || "",
         targetPhone,
         targetName,
         targetId: targetId || "",

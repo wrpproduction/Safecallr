@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { db, doc, onSnapshot, updateDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from "../firebase";
+import { db, doc, onSnapshot, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from "../firebase";
 import { Shield, CheckCircle, AlertTriangle, Clock, XCircle, Phone, User, ShieldCheck, ShieldAlert, ShieldQuestion } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -11,14 +11,31 @@ export default function RequestStatus({ user }: { user: any }) {
   const [inputCode, setInputCode] = useState("");
   const [codeError, setCodeError] = useState(false);
   const [timeLeft, setTimeLeft] = useState(45);
+  const [fetchedRequesterPhone, setFetchedRequesterPhone] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!id) return;
 
-    const unsubscribe = onSnapshot(doc(db, "verification_requests", id), (doc) => {
-      if (doc.exists()) {
-        setRequest({ id: doc.id, ...doc.data() });
+    const unsubscribe = onSnapshot(doc(db, "verification_requests", id), async (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setRequest({ id: snap.id, ...data });
+
+        // If target (B), fetch requesterPhone from users collection if not stored in the document
+        if (data.requesterId && data.requesterId !== user.uid && !data.requesterPhone) {
+          try {
+            const userSnap = await getDoc(doc(db, "users", data.requesterId));
+            if (userSnap.exists()) {
+              const uData = userSnap.data();
+              if (uData.phoneNumber) {
+                setFetchedRequesterPhone(uData.phoneNumber);
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching requester phone fallback:", err);
+          }
+        }
       } else {
         navigate("/dashboard");
       }
@@ -26,7 +43,7 @@ export default function RequestStatus({ user }: { user: any }) {
     });
 
     return () => unsubscribe();
-  }, [id, navigate]);
+  }, [id, navigate, user.uid]);
 
   useEffect(() => {
     if (request?.status !== "accepted" || !request?.respondedAt) return;
@@ -217,7 +234,7 @@ export default function RequestStatus({ user }: { user: any }) {
       </section>
 
       {/* Details Card */}
-      <div className="bg-surface-container-low p-6 rounded-3xl border border-white/5 space-y-4">
+      <div className="bg-surface-container-low p-6 rounded-3xl border border-white/5 space-y-4 font-sans">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center">
@@ -225,11 +242,20 @@ export default function RequestStatus({ user }: { user: any }) {
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Contact</p>
-              <p className="text-sm font-semibold text-on-surface">{request.targetPhone}</p>
+              {(() => {
+                const contactName = isRequester ? request.targetName : request.requesterName;
+                const contactPhone = isRequester ? request.targetPhone : (request.requesterPhone || fetchedRequesterPhone || "—");
+                return (
+                  <>
+                    {contactName && <p className="text-sm font-bold text-on-surface leading-tight mb-0.5">{contactName}</p>}
+                    <p className={`font-mono text-on-surface ${contactName ? "text-xs text-slate-400 font-medium" : "text-sm font-semibold"}`}>{contactPhone}</p>
+                  </>
+                );
+              })()}
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Type</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold font-sans">Type</p>
             <p className="text-sm font-semibold text-on-surface">{request.type}</p>
           </div>
         </div>
