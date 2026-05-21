@@ -64,9 +64,16 @@ export default function NewRequest({ user }: { user: any }) {
       const targetName = isUserA ? selectedContact.userBName : selectedContact.userAName;
       const targetPhone = isUserA ? selectedContact.userBPhone : selectedContact.userAPhone;
 
-      // 1. On cherche le token FCM de la cible
-      const userDoc = await fetch(`/api/user-by-id/${targetId}`).then(res => res.ok ? res.json() : null);
-      const targetFCMToken = userDoc?.fcmToken;
+      // 1. On cherche le token FCM de la cible (sécurisé pour éviter les erreurs de parsing d'URL dans Safari)
+      let targetFCMToken: string | undefined = undefined;
+      if (targetId && typeof targetId === "string" && !targetId.includes("[") && !targetId.includes("]")) {
+        try {
+          const userDoc = await fetch(`/api/user-by-id/${encodeURIComponent(targetId)}`).then(res => res.ok ? res.json() : null);
+          targetFCMToken = userDoc?.fcmToken;
+        } catch (fetchErr) {
+          console.warn("Could not fetch target user FCM token:", fetchErr);
+        }
+      }
 
       // 2. On crée la requête dans Firestore
       const codeA = Math.floor(1000 + Math.random() * 9000).toString();
@@ -77,7 +84,7 @@ export default function NewRequest({ user }: { user: any }) {
         requesterName: user.displayName || `${user.firstName} ${user.lastName}`,
         targetPhone,
         targetName,
-        targetId,
+        targetId: targetId || "",
         type: "Appel",
         useCode: true,
         codeA,
@@ -87,18 +94,22 @@ export default function NewRequest({ user }: { user: any }) {
         updatedAt: serverTimestamp(),
       });
 
-      // 3. On envoie la notification push via le serveur si B existe
-      if (targetFCMToken) {
-        await fetch("/api/notify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token: targetFCMToken,
-            title: "Demande de vérification",
-            body: `${user.displayName || user.firstName} souhaite vérifier votre identité.`,
-            data: { requestId: docRef.id },
-          }),
-        });
+      // 3. On envoie la notification push via le serveur si B existe (encapsulé pour éviter de bloquer le flux principal en cas de défaillance réseau/Safari)
+      if (targetFCMToken && typeof targetFCMToken === "string" && targetFCMToken !== "undefined" && targetFCMToken !== "null") {
+        try {
+          await fetch("/api/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: targetFCMToken,
+              title: "Demande de vérification",
+              body: `${user.displayName || user.firstName} souhaite vérifier votre identité.`,
+              data: { requestId: docRef.id },
+            }),
+          });
+        } catch (fetchErr) {
+          console.warn("Could not send push notification:", fetchErr);
+        }
       }
 
       navigate(`/request/${docRef.id}`);

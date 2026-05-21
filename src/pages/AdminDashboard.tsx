@@ -81,18 +81,50 @@ export default function AdminDashboard() {
       try {
         const idToken = await auth.currentUser?.getIdToken();
         
-        let stats: any = {};
-        try {
-          const response = await fetch('/api/admin/stats/global', {
-            headers: { 'Authorization': `Bearer ${idToken}` }
-          });
-          if (response.ok) {
-            stats = await response.json();
-          }
-        } catch (apiErr) {
-          console.warn("Stats API failed, using direct Firestore fallback:", apiErr);
-        }
+        // Fetch exact, live stats directly from Firestore to avoid API mismatch or replication caching lag
+        const { getCountFromServer, collection, query, limit, getDocs, orderBy, doc, getDoc } = await import("firebase/firestore");
         
+        let totalUsers = 0;
+        let totalPros = 0;
+        let activeOrgs = 0;
+        let totalRequests = 0;
+
+        try {
+          const snapUsers = await getCountFromServer(collection(db, "users"));
+          totalUsers = snapUsers.data().count;
+        } catch (e) {
+          console.error("Error reading users count from DB:", e);
+        }
+
+        try {
+          const snapPros = await getCountFromServer(collection(db, "pros"));
+          totalPros = snapPros.data().count;
+        } catch (e) {
+          console.error("Error reading pros count from DB:", e);
+        }
+
+        try {
+          const snapOrgs = await getCountFromServer(collection(db, "organizations"));
+          activeOrgs = snapOrgs.data().count;
+        } catch (e) {
+          console.error("Error reading organizations count from DB:", e);
+        }
+
+        try {
+          const snapAuth = await getCountFromServer(collection(db, "authRequests"));
+          const snapVerif = await getCountFromServer(collection(db, "verification_requests"));
+          totalRequests = snapAuth.data().count + snapVerif.data().count;
+        } catch (e) {
+          console.error("Error reading requests count from DB:", e);
+        }
+
+        setRealStats({
+          users: totalUsers,
+          pros: totalPros,
+          orgs: activeOrgs,
+          requests: totalRequests
+        });
+
         let orgs: any[] = [];
         try {
           const orgsResponse = await fetch('/api/admin/organizations', {
@@ -107,7 +139,6 @@ export default function AdminDashboard() {
 
         // Fetch recent requests for global vision
         try {
-          const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
           const requestsSnap = await getDocs(query(collection(db, "authRequests"), orderBy("createdAt", "desc"), limit(5)));
           const reqs = requestsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
           setRecentRequests(reqs);
@@ -115,23 +146,31 @@ export default function AdminDashboard() {
           console.error("Error fetching recent requests:", err);
         }
 
-        // Fetch recent members (both individuals and pros)
+        // Fetch recent members (both individuals and pros) and sort client-side safely to handle any missing fields transparently
         try {
-          const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
-          const usersSnap = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc"), limit(15)));
+          const usersSnap = await getDocs(query(collection(db, "users"), limit(50)));
           const membersList = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          membersList.sort((a: any, b: any) => {
+            const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+            const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+            return timeB - timeA;
+          });
           setRecentMembers(membersList.slice(0, 10));
         } catch (err) {
           console.error("Error fetching recent members:", err);
         }
 
-        // Fetch recent pros
+        // Fetch recent pros and sort client-side safely
         try {
-          const { query, collection, orderBy, limit, getDocs, doc, getDoc } = await import("firebase/firestore");
-          const prosSnap = await getDocs(query(collection(db, "pros"), orderBy("createdAt", "desc"), limit(15)));
+          const prosSnap = await getDocs(query(collection(db, "pros"), limit(50)));
           const prosList = prosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-          
-          const loadedPros = await Promise.all(prosList.map(async (p: any) => {
+          prosList.sort((a: any, b: any) => {
+            const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+            const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+            return timeB - timeA;
+          });
+
+          const loadedPros = await Promise.all(prosList.slice(0, 10).map(async (p: any) => {
             if (p.companyId) {
               try {
                 const compSnap = await getDoc(doc(db, "companies", p.companyId));
@@ -144,14 +183,13 @@ export default function AdminDashboard() {
             }
             return p;
           }));
-          setRecentPros(loadedPros.slice(0, 10));
+          setRecentPros(loadedPros);
         } catch (err) {
           console.error("Error fetching recent pros:", err);
         }
 
         // Fetch and merge both professional and individual verification requests
         try {
-          const { query, collection, orderBy, limit, getDocs } = await import("firebase/firestore");
           const authSnap = await getDocs(query(collection(db, "authRequests"), orderBy("createdAt", "desc"), limit(8)));
           const auths = authSnap.docs.map(d => ({ id: d.id, type: "pro", ...d.data() }));
 
@@ -167,58 +205,6 @@ export default function AdminDashboard() {
         } catch (err) {
           console.error("Error fetching recent connection requests:", err);
         }
-
-        // Fallbacks for stats if API returned an error or 0s
-        let totalUsers = stats.totalUsers;
-        let totalPros = stats.totalPros;
-        let activeOrgs = stats.activeOrganizations;
-        let totalRequests = stats.totalAuths30d;
-
-        const { getCountFromServer, collection } = await import("firebase/firestore");
-
-        if (!totalUsers) {
-          try {
-            const snap = await getCountFromServer(collection(db, "users"));
-            totalUsers = snap.data().count;
-          } catch (e) {
-            console.error("Fallback count mismatch for users:", e);
-          }
-        }
-
-        if (!totalPros) {
-          try {
-            const snap = await getCountFromServer(collection(db, "pros"));
-            totalPros = snap.data().count;
-          } catch (e) {
-            console.error("Fallback count mismatch for pros:", e);
-          }
-        }
-
-        if (activeOrgs === undefined || activeOrgs === null || activeOrgs === 0) {
-          try {
-            const snap = await getCountFromServer(collection(db, "organizations"));
-            activeOrgs = snap.data().count;
-          } catch (e) {
-            console.error("Fallback count mismatch for organizations:", e);
-          }
-        }
-
-        if (!totalRequests) {
-          try {
-            const authSnap = await getCountFromServer(collection(db, "authRequests"));
-            const verifSnap = await getCountFromServer(collection(db, "verification_requests"));
-            totalRequests = authSnap.data().count + verifSnap.data().count;
-          } catch (e) {
-            console.error("Fallback count mismatch for requests:", e);
-          }
-        }
-
-        setRealStats({
-          users: totalUsers || 0,
-          pros: totalPros || 0,
-          orgs: activeOrgs || 0,
-          requests: totalRequests || 0
-        });
 
         if (!Array.isArray(orgs) || orgs.length === 0) {
           try {
