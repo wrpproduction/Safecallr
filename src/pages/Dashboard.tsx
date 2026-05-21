@@ -16,11 +16,24 @@ export default function Dashboard({ user }: { user: any }) {
   const navigate = useNavigate();
 
   const pendingAuthRequest = authRequests.find(r => r.status === "pending" || r.status === "code_generated");
+  const pendingIncomingVerification = requests.find(r => r.status === "pending" && r.requesterId !== user.uid);
   const pendingConnections = [...connections, ...personalRequests];
-  const hasAnyPending = !!pendingAuthRequest || pendingConnections.length > 0;
+  const hasAnyPending = !!pendingAuthRequest || !!pendingIncomingVerification || pendingConnections.length > 0;
+
+  const requestIdsString = [
+    pendingAuthRequest?.id,
+    pendingIncomingVerification?.id,
+    pendingConnections.map(c => c.id).join(",")
+  ].filter(Boolean).join("|");
 
   useEffect(() => {
-    if (pendingAuthRequest) {
+    if (requestIdsString) {
+      setShowFloatingBanner(true);
+    }
+  }, [requestIdsString]);
+
+  useEffect(() => {
+    if (pendingAuthRequest || pendingIncomingVerification) {
       // Play a subtle notification sound when a new request arrives
       try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -42,7 +55,7 @@ export default function Dashboard({ user }: { user: any }) {
         navigator.vibrate([200, 100, 200]);
       }
     }
-  }, [pendingAuthRequest?.id]);
+  }, [pendingAuthRequest?.id, pendingIncomingVerification?.id]);
 
   useEffect(() => {
     if (!user || !user.phoneNumber) return;
@@ -240,18 +253,26 @@ export default function Dashboard({ user }: { user: any }) {
               <div className="w-10 h-10 rounded-full bg-on-primary/20 flex items-center justify-center text-on-primary shrink-0 animate-bounce">
                 <Shield size={20} />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 relative z-10">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-primary/80">Notification Prioritaire</p>
                 <h4 className="text-sm font-bold text-on-primary truncate">
-                  {pendingAuthRequest ? "Demande d'authentification en cours" : "Nouvelle mise en relation"}
+                  {pendingAuthRequest 
+                    ? `Authentification : ${pendingAuthRequest.fromCompanyName || "Pro"}` 
+                    : pendingIncomingVerification 
+                      ? `Demande de vérification par ${pendingIncomingVerification.requesterName || "un contact"}` 
+                      : "Nouvelle mise en relation"}
                 </h4>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative z-10">
                 <button 
                   onClick={() => {
-                    if (pendingAuthRequest) navigate(`/auth-request/${pendingAuthRequest.id}`);
+                    if (pendingAuthRequest) {
+                      navigate(`/auth-request/${pendingAuthRequest.id}`);
+                    } else if (pendingIncomingVerification) {
+                      navigate(`/request/${pendingIncomingVerification.id}`);
+                    }
                   }}
-                  className="bg-on-primary text-primary px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                  className="bg-on-primary text-primary px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all font-bold"
                 >
                   Voir
                 </button>
@@ -272,7 +293,7 @@ export default function Dashboard({ user }: { user: any }) {
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="px-2"
+            className="px-2 animate-pulse"
           >
             <Link 
               to={`/auth-request/${pendingAuthRequest.id}`} 
@@ -295,7 +316,7 @@ export default function Dashboard({ user }: { user: any }) {
                   <div className="inline-block bg-on-primary text-primary text-[12px] font-black uppercase tracking-[0.3em] px-4 py-1.5 rounded-full shadow-lg">
                     ALERTE SÉCURITÉ
                   </div>
-                  <h3 className="font-headline font-black text-3xl text-on-primary uppercase tracking-tighter leading-none">
+                  <h3 className="font-headline font-black text-3xl text-on-primary uppercase tracking-tighter leading-none mt-2">
                     Demande d'authentification
                   </h3>
                   <p className="text-on-primary/90 text-lg font-bold">
@@ -304,6 +325,49 @@ export default function Dashboard({ user }: { user: any }) {
                 </div>
                 <div className="bg-on-primary text-primary px-10 py-5 rounded-3xl font-black text-lg uppercase tracking-widest shadow-2xl group-hover:scale-110 transition-transform">
                   Vérifier l'identité
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* URGENT ALERT - Top of page if pending incoming individual verification */}
+        {pendingIncomingVerification && !pendingAuthRequest && (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="px-2 animate-pulse"
+          >
+            <Link 
+              to={`/request/${pendingIncomingVerification.id}`} 
+              className="w-full bg-primary-gradient p-10 rounded-[40px] flex flex-col items-center justify-center gap-6 shadow-2xl shadow-primary/50 group relative overflow-hidden border-4 border-white/20"
+            >
+              <motion.div 
+                animate={{ 
+                  scale: [1, 1.5, 1],
+                  opacity: [0.1, 0.3, 0.1]
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="absolute inset-0 bg-white rounded-full blur-[100px]"
+              />
+              
+              <div className="relative z-10 flex flex-col items-center gap-6">
+                <div className="w-24 h-24 rounded-full bg-on-primary flex items-center justify-center shadow-2xl animate-bounce">
+                  <Shield className="text-primary w-12 h-12" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="inline-block bg-on-primary text-primary text-[12px] font-black uppercase tracking-[0.3em] px-4 py-1.5 rounded-full shadow-lg">
+                    DEMANDE DE VÉRIFICATION
+                  </div>
+                  <h3 className="font-headline font-black text-3xl text-on-primary uppercase tracking-tighter leading-none mt-2">
+                    Confirmation d'identité reçue
+                  </h3>
+                  <p className="text-on-primary/95 text-lg font-bold">
+                    Demande de vérification par : {pendingIncomingVerification.requesterName || "un contact"}
+                  </p>
+                </div>
+                <div className="bg-on-primary text-primary px-10 py-5 rounded-3xl font-black text-lg uppercase tracking-widest shadow-2xl group-hover:scale-110 transition-transform">
+                  Répondre / Voir le code
                 </div>
               </div>
             </Link>
