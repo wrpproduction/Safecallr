@@ -1245,7 +1245,13 @@ ${pages.map(page => `
     });
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".webmanifest") || filePath.endsWith("manifest.webmanifest")) {
+          res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+        }
+      }
+    }));
 
     // Routes prérendues : On vérifie si un fichier .html existe par dossier
     const prerenderedRoutes = [
