@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { db, collection, query, where, onSnapshot, orderBy, auth, signOut, updateDoc, doc, serverTimestamp, getDocs, addDoc } from "../firebase";
-import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, User, Building2, ShieldQuestion, ArrowRight } from "lucide-react";
+import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, User, Building2, ShieldQuestion, ArrowRight, MonitorSmartphone } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function Dashboard({ user }: { user: any }) {
@@ -13,7 +13,15 @@ export default function Dashboard({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [loadingConnections, setLoadingConnections] = useState(true);
   const [showFloatingBanner, setShowFloatingBanner] = useState(true);
+  const [isStandalone, setIsStandalone] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const isStandaloneMode = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as any).standalone === true;
+    setIsStandalone(isStandaloneMode);
+  }, []);
 
   const pendingAuthRequest = authRequests.find(r => r.status === "pending" || r.status === "code_generated");
   const pendingIncomingVerification = requests.find(r => r.status === "pending" && r.requesterId !== user.uid);
@@ -630,6 +638,30 @@ export default function Dashboard({ user }: { user: any }) {
               <h3 className="font-headline font-bold text-on-surface text-sm">Aide</h3>
             </Link>
           </div>
+
+          {/* Fallback Install Card (shown if not in standalone PWA mode) */}
+          {!isStandalone && (
+            <div className="bg-surface-container-low p-5 rounded-3xl border border-white/5 flex flex-col gap-4 shadow-md">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <MonitorSmartphone className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-headline font-bold text-on-surface text-sm leading-tight text-white">Installer l'application</h3>
+                  <p className="text-slate-400 text-xs mt-1 leading-normal">
+                    Ajoutez SafeCallr à votre écran d'accueil d'iPhone, iPad ou Android pour valider en un clic à tout instant et recevoir des alertes.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('trigger-safecallr-install'))}
+                className="w-full bg-[#00E676] text-[#0F1B3D] py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[#00E676]/25"
+              >
+                <PlusCircle size={14} />
+                Installer SafeCallr
+              </button>
+            </div>
+          )}
 
           {/* Latest Requests */}
           <section className="space-y-4">

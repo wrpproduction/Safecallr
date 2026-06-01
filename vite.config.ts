@@ -83,7 +83,7 @@ export default defineConfig(({mode}) => {
           ],
         }
       }),
-      prerender({
+      process.env.ENABLE_PRERENDER === 'true' ? prerender({
         routes: [
           '/', 
           '/particuliers', 
@@ -99,8 +99,8 @@ export default defineConfig(({mode}) => {
         rendererOptions: {
           renderAfterTime: 500,
         }
-      })
-    ],
+      }) : null
+    ].filter(Boolean),
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
