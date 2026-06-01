@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth, signInWithPopup, googleProvider, db, setDoc, doc, serverTimestamp } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-react";
 import { linkPendingConnections } from "../lib/connections";
@@ -190,7 +190,6 @@ export default function Auth() {
                     return;
                   }
                   try {
-                    const { sendPasswordResetEmail } = await import("firebase/auth");
                     await sendPasswordResetEmail(auth, email);
                     setError("");
                     alert("Un email de réinitialisation a été envoyé.");

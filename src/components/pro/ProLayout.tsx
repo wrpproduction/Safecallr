@@ -34,7 +34,6 @@ export default function ProLayout() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const { doc, getDoc, db } = await import("../../firebase");
           const proDoc = await getDoc(doc(db, "pros", user.uid));
           if (proDoc.exists()) {
             setProData(proDoc.data());
