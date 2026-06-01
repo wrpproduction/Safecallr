@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Rounded Squircle Background -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="#060B18" />
+
+  <!-- Shield Quadrants using Clipping -->
+  <g>
+    <!-- Define the inner shield viewport for clipping -->
+    <clipPath id="shield-clip">
+      <path d="M 256,115 L 348,147 C 348,245 292,308 256,338 C 220,308 164,245 164,147 Z" />
+    </clipPath>
+
+    <!-- Fill quadrants on clipped region -->
+    <g clip-path="url(#shield-clip)">
+      <!-- Top-Left Quadrant (Solid Green) -->
+      <rect x="100" y="80" width="156" height="145" fill="#00E676" />
+      <!-- Bottom-Right Quadrant (Solid Green) -->
+      <rect x="256" y="225" width="150" height="150" fill="#00E676" />
+    </g>
+  </g>
+
+  <!-- Central Quadrant Dividers & Outer Shield Outline -->
+  <path d="M 256,115 L 348,147 C 348,245 292,308 256,338 C 220,308 164,245 164,147 Z" stroke="#00E676" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="none" />
+  
+  <line x1="256" y1="120" x2="256" y2="332" stroke="#00E676" stroke-width="14" />
+  <line x1="164" y1="225" x2="348" y2="225" stroke="#00E676" stroke-width="14" />
+
+  <!-- App Brand Wordmark -->
+  <text x="256" y="425" font-family="'Manrope', 'Inter', -apple-system, sans-serif" font-weight="800" font-size="58" fill="#00E676" text-anchor="middle" letter-spacing="0.5">SafeCallr</text>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Rounded Squircle Background -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="#060B18" />
+
+  <!-- Shield Quadrants using Clipping -->
+  <g>
+    <!-- Define the inner shield viewport for clipping (larger and centered) -->
+    <clipPath id="shield-clip">
+      <path d="M 256,90 L 372,130 C 372,254 302,334 256,372 C 210,334 140,254 140,130 Z" />
+    </clipPath>
+
+    <!-- Fill quadrants on clipped region -->
+    <g clip-path="url(#shield-clip)">
+      <!-- Top-Left Quadrant (Solid Green) -->
+      <rect x="50" y="50" width="206" height="180" fill="#00E676" />
+      <!-- Bottom-Right Quadrant (Solid Green) -->
+      <rect x="256" y="230" width="200" height="200" fill="#00E676" />
+    </g>
+  </g>
+
+  <!-- Central Quadrant Dividers & Outer Shield Outline -->
+  <path d="M 256,90 L 372,130 C 372,254 302,334 256,372 C 210,334 140,254 140,130 Z" stroke="#00E676" stroke-width="18" stroke-linejoin="round" stroke-linecap="round" fill="none" />
+  
+  <line x1="256" y1="95" x2="256" y2="365" stroke="#00E676" stroke-width="18" />
+  <line x1="140" y1="230" x2="372" y2="230" stroke="#00E676" stroke-width="18" />
+</svg>

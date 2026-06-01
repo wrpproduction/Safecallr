@@ -7,12 +7,16 @@ import { fr } from "date-fns/locale";
 
 export default function History({ user }: { user: any }) {
   const [requests, setRequests] = useState<any[]>([]);
+  const [userConnections, setUserConnections] = useState<any[]>([]);
+  const [personalContacts, setPersonalContacts] = useState<any[]>([]);
+  const [pros, setPros] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
-    // On écoute les demandes envoyées ET reçues
+    // 1. Verification requests
     const q = query(
       collection(db, "verification_requests"),
       where("requesterId", "==", user.uid),
@@ -24,7 +28,59 @@ export default function History({ user }: { user: any }) {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // 2. User to User Connections
+    const qUserConn = query(
+      collection(db, "userConnections"),
+      where("userAId", "==", user.uid)
+    );
+    const qUserConnB = query(
+      collection(db, "userConnections"),
+      where("userBId", "==", user.uid)
+    );
+
+    const unsubscribeUserConnA = onSnapshot(qUserConn, (snapshot) => {
+      const connsA = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUserConnections(prev => {
+        const other = prev.filter(c => c.userBId === user.uid);
+        return [...connsA, ...other];
+      });
+    });
+
+    const unsubscribeUserConnB = onSnapshot(qUserConnB, (snapshot) => {
+      const connsB = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUserConnections(prev => {
+        const other = prev.filter(c => c.userAId === user.uid);
+        return [...other, ...connsB];
+      });
+    });
+
+    // 3. Personal Contacts
+    const qPerso = query(
+      collection(db, "personalContacts"),
+      where("ownerId", "==", user.uid)
+    );
+    const unsubscribePerso = onSnapshot(qPerso, (snapshot) => {
+      setPersonalContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // 4. Pros
+    const unsubscribePros = onSnapshot(collection(db, "pros"), (snapshot) => {
+      setPros(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // 5. Companies
+    const unsubscribeCompanies = onSnapshot(collection(db, "companies"), (snapshot) => {
+      setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeUserConnA();
+      unsubscribeUserConnB();
+      unsubscribePerso();
+      unsubscribePros();
+      unsubscribeCompanies();
+    };
   }, [user]);
 
   const getStatusInfo = (status: string) => {
@@ -62,6 +118,52 @@ export default function History({ user }: { user: any }) {
         ) : (
           requests.map((req) => {
             const status = getStatusInfo(req.status);
+            
+            // Normalize targetPhone for comparison
+            const normalizePhone = (phone: string | undefined | null) => {
+              if (!phone) return "";
+              let cleaned = phone.replace(/[\s\-\(\)\.]/g, "");
+              if (cleaned.startsWith("+33")) {
+                cleaned = "0" + cleaned.slice(3);
+              } else if (cleaned.startsWith("33") && cleaned.length === 11) {
+                cleaned = "0" + cleaned.slice(2);
+              }
+              return cleaned;
+            };
+
+            const cleanTargetPhone = normalizePhone(req.targetPhone);
+
+            // A. Look up in pros & companies
+            const matchedPro = pros.find(p => p.phone && normalizePhone(p.phone) === cleanTargetPhone);
+            const matchedCompany = matchedPro?.companyId 
+              ? companies.find(c => c.id === matchedPro.companyId) 
+              : companies.find(c => c.phone && normalizePhone(c.phone) === cleanTargetPhone);
+
+            let displayName = "";
+            if (matchedCompany && matchedPro) {
+              displayName = `${matchedCompany.name} (Contact: ${matchedPro.firstName} ${matchedPro.lastName})`;
+            } else if (matchedCompany) {
+              displayName = matchedCompany.name;
+            } else if (matchedPro) {
+              displayName = `${matchedPro.firstName} ${matchedPro.lastName}`;
+            } else {
+              // B. Look up in userConnections (verified personal)
+              const matchedConn = userConnections.find(c => {
+                const otherPhone = c.userAId === user.uid ? c.userBPhone : c.userAPhone;
+                return otherPhone && normalizePhone(otherPhone) === cleanTargetPhone;
+              });
+
+              if (matchedConn) {
+                displayName = matchedConn.userAId === user.uid ? matchedConn.userBName : matchedConn.userAName;
+              } else {
+                // C. Look up in personalContacts (manual personal)
+                const matchedPerso = personalContacts.find(p => p.phone && normalizePhone(p.phone) === cleanTargetPhone);
+                if (matchedPerso) {
+                  displayName = matchedPerso.name;
+                }
+              }
+            }
+
             return (
               <Link 
                 key={req.id} to={`/request/${req.id}`}
@@ -72,8 +174,19 @@ export default function History({ user }: { user: any }) {
                     <status.icon className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-headline font-bold text-on-surface text-lg">{req.targetPhone}</h3>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{req.type}</p>
+                    <h3 className="font-headline font-bold text-on-surface text-lg">
+                      {displayName || req.targetPhone}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {displayName && (
+                        <p className="text-slate-400 text-xs font-semibold">
+                          {req.targetPhone}
+                        </p>
+                      )}
+                      <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full">
+                        {req.type}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">

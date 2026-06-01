@@ -251,7 +251,89 @@ export default function Contacts({ user }: { user: any }) {
     };
   });
   
-  // Combine connections and validated auth requests, removing duplicates by proId
+  // Prefix-robust phone normalization
+  const normalizePhone = (phone: string | undefined | null) => {
+    if (!phone) return "";
+    let cleaned = phone.replace(/[\s\-\(\)\.]/g, "");
+    if (cleaned.startsWith("+33")) {
+      cleaned = "0" + cleaned.slice(3);
+    } else if (cleaned.startsWith("33") && cleaned.length === 11) {
+      cleaned = "0" + cleaned.slice(2);
+    }
+    return cleaned;
+  };
+
+  // Create sets of Pro and Company properties for rapid filtering or exclusion
+  const proIdsSet = new Set(pros.map(p => p.id).filter(Boolean));
+  const proPhonesSet = new Set(pros.map(p => normalizePhone(p.phone)).filter(Boolean));
+  const proEmailsSet = new Set(pros.map(p => p.email?.toLowerCase().trim()).filter(Boolean));
+
+  const companySiretsSet = new Set(companies.map(c => c.id?.toLowerCase().trim()).filter(Boolean));
+  const companyPhonesSet = new Set(companies.map(c => normalizePhone(c.phone)).filter(Boolean));
+  const companyEmailsSet = new Set(companies.map(c => c.email?.toLowerCase().trim()).filter(Boolean));
+
+  // Determine if a user-to-user connection belongs to a Pro
+  const isConnectionAPro = (c: any) => {
+    const otherId = c.userAId === user.uid ? c.userBId : c.userAId;
+    const otherPhone = c.userAId === user.uid ? c.userBPhone : c.userAPhone;
+    const otherName = c.userAId === user.uid ? c.userBName : c.userAName;
+    const cleanOtherPhone = normalizePhone(otherPhone);
+
+    // 1. Check if UID is registered as a Pro
+    if (otherId && proIdsSet.has(otherId)) {
+      return true;
+    }
+
+    // 2. Check by phone number + company/pro naming to prevent general personal accounts from being misidentified
+    if (cleanOtherPhone && (proPhonesSet.has(cleanOtherPhone) || companyPhonesSet.has(cleanOtherPhone))) {
+      const matchesCompany = companies.some(comp => {
+        const compPhone = normalizePhone(comp.phone);
+        const nameMatches = comp.name?.toLowerCase().trim() === otherName?.toLowerCase().trim();
+        return (compPhone === cleanOtherPhone) && nameMatches;
+      });
+
+      const matchesProName = pros.some(p => {
+        const pPhone = normalizePhone(p.phone);
+        const fullName = `${p.firstName} ${p.lastName}`.toLowerCase().trim();
+        return (pPhone === cleanOtherPhone) && (fullName === otherName?.toLowerCase().trim() || otherName?.toLowerCase().includes(p.lastName?.toLowerCase() || ""));
+      });
+
+      const isCompanyIndicator = otherName?.toLowerCase().includes("production") || 
+                                 otherName?.toLowerCase().includes("sarl") || 
+                                 otherName?.toLowerCase().includes("sas") ||
+                                 otherName?.toLowerCase().includes("pro");
+
+      if (matchesCompany || matchesProName || isCompanyIndicator || otherName === "wrpproduction") {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Identify and convert any user-to-user connections (userConnections) with Pros
+  const userConnectionsWithPros = userConnections.filter(c => isConnectionAPro(c)).map(c => {
+    const otherId = c.userAId === user.uid ? c.userBId : c.userAId;
+    const otherName = c.userAId === user.uid ? c.userBName : c.userAName;
+    const otherPhone = c.userAId === user.uid ? c.userBPhone : c.userAPhone;
+    const cleanOtherPhone = normalizePhone(otherPhone);
+
+    // Find the pro document
+    const proDoc = pros.find(p => p.id === otherId || (cleanOtherPhone && normalizePhone(p.phone) === cleanOtherPhone));
+    const compDoc = proDoc?.companyId ? companies.find(cp => cp.id === proDoc.companyId) : null;
+
+    return {
+      id: c.id,
+      proId: proDoc?.id || otherId,
+      proName: proDoc ? `${proDoc.firstName} ${proDoc.lastName}` : otherName,
+      companyName: compDoc?.name || proDoc?.companyName || "Entreprise Professionnelle",
+      companyCategory: compDoc?.category || proDoc?.companyCategory || "autres",
+      pro: proDoc || null,
+      company: compDoc || null
+    };
+  });
+
+  // Combine connections, validated auth requests, and pro user-to-user connections, removing duplicates by proId
   const allPros = [
     ...connections.filter(c => c.status === "connected").map(c => {
       const proDoc = pros.find(p => p.id === c.proId);
@@ -278,7 +360,8 @@ export default function Contacts({ user }: { user: any }) {
         pro: proDoc || null,
         company: compDoc || null
       };
-    })
+    }),
+    ...userConnectionsWithPros
   ];
 
   // Unique pros by proId
@@ -291,18 +374,34 @@ export default function Contacts({ user }: { user: any }) {
     return proName.includes(search) || companyName.includes(search);
   });
 
-  const filteredUserConnections = userConnections.filter(c => {
+  const filteredUserConnections = userConnections.filter(c => !isConnectionAPro(c)).filter(c => {
     const otherName = c.userAId === user.uid ? c.userBName : c.userAName;
     const otherPhone = c.userAId === user.uid ? c.userBPhone : c.userAPhone;
+
     const search = searchTerm.toLowerCase();
     return otherName?.toLowerCase().includes(search) ||
            otherPhone?.toLowerCase().includes(search);
   });
 
-  const filteredPersonal = personalContacts.filter(c => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone?.includes(searchTerm)
-  );
+  const filteredPersonal = personalContacts.filter(c => {
+    // Normalize phone and email
+    const cleanPhone = normalizePhone(c.phone);
+    const cleanEmail = c.email?.toLowerCase().trim();
+
+    // Filter out manual contacts from personal only if they match a known corporate pro/company name
+    if (cleanPhone && (proPhonesSet.has(cleanPhone) || companyPhonesSet.has(cleanPhone))) {
+      const isCompanyIndicator = c.name?.toLowerCase().includes("production") || 
+                                 c.name?.toLowerCase().includes("sarl") || 
+                                 c.name?.toLowerCase().includes("sas") ||
+                                 c.name?.toLowerCase().includes("pro");
+      if (isCompanyIndicator || c.name === "wrpproduction") {
+        return false;
+      }
+    }
+
+    return c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           c.phone?.includes(searchTerm);
+  });
 
   const getCategoryLabel = (cat: string) => {
     const categories: Record<string, string> = {
