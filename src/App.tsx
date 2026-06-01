@@ -36,7 +36,6 @@ import InstitutionErrorPage from "./pages/InstitutionErrorPage";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
 import SEOManager from "./components/seo/SEOManager";
-import { InstallPrompt } from "./components/InstallPrompt";
 import { registerSW } from 'virtual:pwa-register';
 
 // Register Service Worker
@@ -147,7 +146,6 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Toaster position="top-right" richColors />
-      <InstallPrompt />
       <Router>
         <Routes>
           <Route path="/" element={

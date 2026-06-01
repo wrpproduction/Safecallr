@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { fileURLToPath } from "url";
@@ -12,19 +11,41 @@ import { EmailData } from "./src/lib/emailTemplates.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Charger la config pour avoir le databaseId
-const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf-8"));
+// Initialisation Firebase Admin sécurisée
+let config: any = {};
+let db: any;
+let fcm: any;
+let firebaseInitialized = false;
 
-// Initialisation Firebase Admin
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: config.projectId || process.env.FIREBASE_PROJECT_ID || process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT,
-  });
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  }
+} catch (e) {
+  console.warn("[FirebaseConfig] N'a pas pu lire firebase-applet-config.json:", e);
 }
 
-// Utiliser le databaseId de la config s'il existe, sinon la base par défaut
-const db = getFirestore(process.env.FIRESTORE_DB_ID || config.firestoreDatabaseId || "(default)");
-const fcm = admin.messaging();
+const projectId = config.projectId || process.env.FIREBASE_PROJECT_ID || process.env.GCP_PROJECT || process.env.GCLOUD_PROJECT;
+
+try {
+  if (projectId) {
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        projectId: projectId,
+      });
+    }
+    const dbId = process.env.FIRESTORE_DB_ID || config.firestoreDatabaseId || "(default)";
+    db = getFirestore(dbId);
+    fcm = admin.messaging();
+    firebaseInitialized = true;
+    console.log(`[Firebase] Initialisé avec Succès. Project: ${projectId}, Database: ${dbId}`);
+  } else {
+    console.warn("[Firebase] Aucun PROJECT ID trouvé. Le SDK Admin Firebase est inactif.");
+  }
+} catch (err) {
+  console.error("[Firebase] Échec critique d'initialisation de Firebase Admin:", err);
+}
 
 async function verifyAdmin(idToken: string) {
   if (!idToken) throw new Error("Accès non autorisé");
@@ -74,171 +95,175 @@ async function startServer() {
   const PORT = 3000;
 
   // AUTO-RUN STARTUP FIX FOR ULRICH VIDAL
-  try {
-    const logPath = path.join(process.cwd(), "ulrich-fix-log.json");
-    const logData: any = { timestamp: new Date().toISOString(), steps: [] };
-
-    const emailToSearch = "ulrich.vidal@gmail.com";
-    logData.steps.push(`Searching for email: ${emailToSearch}`);
-
-    // 1. Tenter d'obtenir l'UID via Auth
-    let authUser: any = null;
+  if (firebaseInitialized && db) {
     try {
-      authUser = await admin.auth().getUserByEmail(emailToSearch);
-      logData.authUser = {
-        uid: authUser.uid,
-        email: authUser.email,
-        displayName: authUser.displayName,
-        emailVerified: authUser.emailVerified
-      };
-      logData.steps.push(`Found in Firebase Auth with UID: ${authUser.uid}`);
-    } catch (authErr: any) {
-      logData.steps.push(`Auth check error or not found: ${authErr.message}`);
-    }
+      const logPath = path.join(process.cwd(), "ulrich-fix-log.json");
+      const logData: any = { timestamp: new Date().toISOString(), steps: [] };
 
-    // 2. Chercher dans la collection 'pros'
-    const prosSnap = await db.collection("pros").where("email", "==", emailToSearch).get();
-    let proDocData: any = null;
-    let proDocId: string | null = null;
-    if (!prosSnap.empty) {
-      proDocId = prosSnap.docs[0].id;
-      proDocData = prosSnap.docs[0].data();
-      logData.proDoc = { id: proDocId, ...proDocData };
-      logData.steps.push(`Found in 'pros' collection under doc ID: ${proDocId}`);
-    } else {
-      logData.steps.push(`Not found in 'pros' collection.`);
-    }
+      const emailToSearch = "ulrich.vidal@gmail.com";
+      logData.steps.push(`Searching for email: ${emailToSearch}`);
 
-    // 3. Chercher dans la collection 'users'
-    const usersSnap = await db.collection("users").where("email", "==", emailToSearch).get();
-    let userDocData: any = null;
-    let userDocId: string | null = null;
-    if (!usersSnap.empty) {
-      userDocId = usersSnap.docs[0].id;
-      userDocData = usersSnap.docs[0].data();
-      logData.userDoc = { id: userDocId, ...userDocData };
-      logData.steps.push(`Found in 'users' collection under doc ID: ${userDocId}`);
-    } else {
-      logData.steps.push(`Not found in 'users' collection.`);
-    }
-
-    // Déterminer l'UID cible
-    const targetUid = authUser?.uid || proDocId || userDocId;
-
-    if (targetUid) {
-      logData.targetUid = targetUid;
-      
-      // A. S'il n'est pas dans 'pros', on le crée dans 'pros'
-      if (!proDocData) {
-        logData.steps.push(`Creating record in 'pros' for UID: ${targetUid}`);
-        const newProData = {
-          id: targetUid,
-          firstName: userDocData?.firstName || "Ulrich",
-          lastName: userDocData?.lastName || "Vidal",
-          email: emailToSearch,
-          phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
-          role: "pro",
-          status: "active",
-          verified: true,
-          siretVerified: true,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        await db.collection("pros").doc(targetUid).set(newProData);
-        logData.steps.push(`Successfully created pro record.`);
-      } else {
-        // S'assurer qu'il est actif
-        logData.steps.push(`Ensuring active status in 'pros' for UID: ${targetUid}`);
-        await db.collection("pros").doc(targetUid).update({
-          status: "active",
-          verified: true,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
-
-      // B. S'il n'est pas dans 'users', on le crée dans 'users'
-      if (!userDocData) {
-        logData.steps.push(`Creating record in 'users' for UID: ${targetUid}`);
-        const newUserData = {
-          uid: targetUid,
-          id: targetUid,
-          firstName: proDocData?.firstName || "Ulrich",
-          lastName: proDocData?.lastName || "Vidal",
-          displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
-          email: emailToSearch,
-          phone: proDocData?.phone || "0663558820",
-          phoneNumber: proDocData?.phone || "0663558820",
-          role: "user",
-          status: "active",
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        await db.collection("users").doc(targetUid).set(newUserData);
-        logData.steps.push(`Successfully created user record.`);
-      } else {
-        // Enregistrer le rôle normal + statut actif
-        logData.steps.push(`Ensuring role is user/admin and status active in 'users' for UID: ${targetUid}`);
-        await db.collection("users").doc(targetUid).update({
-          status: "active",
-          role: "user",
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    } else {
-      logData.steps.push(`No user found in Auth, pros, or users. Creating a complete test account from scratch.`);
+      // 1. Tenter d'obtenir l'UID via Auth
+      let authUser: any = null;
       try {
-        const createdAuth = await admin.auth().createUser({
-          email: emailToSearch,
-          emailVerified: true,
-          password: "password123",
-          displayName: "Ulrich Vidal"
-        });
-        logData.createdAuthUid = createdAuth.uid;
-        logData.steps.push(`Created Auth user with UID: ${createdAuth.uid}`);
-
-        // Création dans pros
-        const newProData = {
-          id: createdAuth.uid,
-          firstName: "Ulrich",
-          lastName: "Vidal",
-          email: emailToSearch,
-          phone: "0663558820",
-          role: "pro",
-          status: "active",
-          verified: true,
-          siretVerified: true,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        authUser = await admin.auth().getUserByEmail(emailToSearch);
+        logData.authUser = {
+          uid: authUser.uid,
+          email: authUser.email,
+          displayName: authUser.displayName,
+          emailVerified: authUser.emailVerified
         };
-        await db.collection("pros").doc(createdAuth.uid).set(newProData);
-        logData.steps.push(`Created pro document.`);
-
-        // Création dans users
-        const newUserData = {
-          uid: createdAuth.uid,
-          id: createdAuth.uid,
-          firstName: "Ulrich",
-          lastName: "Vidal",
-          displayName: "Ulrich Vidal",
-          email: emailToSearch,
-          phone: "0663558820",
-          phoneNumber: "0663558820",
-          role: "user",
-          status: "active",
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
-        await db.collection("users").doc(createdAuth.uid).set(newUserData);
-        logData.steps.push(`Created user document.`);
-      } catch (createAuthErr: any) {
-        logData.steps.push(`Failed to create Auth user: ${createAuthErr.message}`);
+        logData.steps.push(`Found in Firebase Auth with UID: ${authUser.uid}`);
+      } catch (authErr: any) {
+        logData.steps.push(`Auth check error or not found: ${authErr.message}`);
       }
-    }
 
-    fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
-    console.log("=== STARTUP FIX ULRICH COMPLETED, RESULTS WRITTEN TO ulrich-fix-log.json ===");
-  } catch (err: any) {
-    console.error("Global Startup Fix Error:", err);
+      // 2. Chercher dans la collection 'pros'
+      const prosSnap = await db.collection("pros").where("email", "==", emailToSearch).get();
+      let proDocData: any = null;
+      let proDocId: string | null = null;
+      if (!prosSnap.empty) {
+        proDocId = prosSnap.docs[0].id;
+        proDocData = prosSnap.docs[0].data();
+        logData.proDoc = { id: proDocId, ...proDocData };
+        logData.steps.push(`Found in 'pros' collection under doc ID: ${proDocId}`);
+      } else {
+        logData.steps.push(`Not found in 'pros' collection.`);
+      }
+
+      // 3. Chercher dans la collection 'users'
+      const usersSnap = await db.collection("users").where("email", "==", emailToSearch).get();
+      let userDocData: any = null;
+      let userDocId: string | null = null;
+      if (!usersSnap.empty) {
+        userDocId = usersSnap.docs[0].id;
+        userDocData = usersSnap.docs[0].data();
+        logData.userDoc = { id: userDocId, ...userDocData };
+        logData.steps.push(`Found in 'users' collection under doc ID: ${userDocId}`);
+      } else {
+        logData.steps.push(`Not found in 'users' collection.`);
+      }
+
+      // Déterminer l'UID cible
+      const targetUid = authUser?.uid || proDocId || userDocId;
+
+      if (targetUid) {
+        logData.targetUid = targetUid;
+        
+        // A. S'il n'est pas dans 'pros', on le crée dans 'pros'
+        if (!proDocData) {
+          logData.steps.push(`Creating record in 'pros' for UID: ${targetUid}`);
+          const newProData = {
+            id: targetUid,
+            firstName: userDocData?.firstName || "Ulrich",
+            lastName: userDocData?.lastName || "Vidal",
+            email: emailToSearch,
+            phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
+            role: "pro",
+            status: "active",
+            verified: true,
+            siretVerified: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection("pros").doc(targetUid).set(newProData);
+          logData.steps.push(`Successfully created pro record.`);
+        } else {
+          // S'assurer qu'il est actif
+          logData.steps.push(`Ensuring active status in 'pros' for UID: ${targetUid}`);
+          await db.collection("pros").doc(targetUid).update({
+            status: "active",
+            verified: true,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+
+        // B. S'il n'est pas dans 'users', on le crée dans 'users'
+        if (!userDocData) {
+          logData.steps.push(`Creating record in 'users' for UID: ${targetUid}`);
+          const newUserData = {
+            uid: targetUid,
+            id: targetUid,
+            firstName: proDocData?.firstName || "Ulrich",
+            lastName: proDocData?.lastName || "Vidal",
+            displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
+            email: emailToSearch,
+            phone: proDocData?.phone || "0663558820",
+            phoneNumber: proDocData?.phone || "0663558820",
+            role: "user",
+            status: "active",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection("users").doc(targetUid).set(newUserData);
+          logData.steps.push(`Successfully created user record.`);
+        } else {
+          // Enregistrer le rôle normal + statut actif
+          logData.steps.push(`Ensuring role is user/admin and status active in 'users' for UID: ${targetUid}`);
+          await db.collection("users").doc(targetUid).update({
+            status: "active",
+            role: "user",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      } else {
+        logData.steps.push(`No user found in Auth, pros, or users. Creating a complete test account from scratch.`);
+        try {
+          const createdAuth = await admin.auth().createUser({
+            email: emailToSearch,
+            emailVerified: true,
+            password: "password123",
+            displayName: "Ulrich Vidal"
+          });
+          logData.createdAuthUid = createdAuth.uid;
+          logData.steps.push(`Created Auth user with UID: ${createdAuth.uid}`);
+
+          // Création dans pros
+          const newProData = {
+            id: createdAuth.uid,
+            firstName: "Ulrich",
+            lastName: "Vidal",
+            email: emailToSearch,
+            phone: "0663558820",
+            role: "pro",
+            status: "active",
+            verified: true,
+            siretVerified: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection("pros").doc(createdAuth.uid).set(newProData);
+          logData.steps.push(`Created pro document.`);
+
+          // Création dans users
+          const newUserData = {
+            uid: createdAuth.uid,
+            id: createdAuth.uid,
+            firstName: "Ulrich",
+            lastName: "Vidal",
+            displayName: "Ulrich Vidal",
+            email: emailToSearch,
+            phone: "0663558820",
+            phoneNumber: "0663558820",
+            role: "user",
+            status: "active",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection("users").doc(createdAuth.uid).set(newUserData);
+          logData.steps.push(`Created user document.`);
+        } catch (createAuthErr: any) {
+          logData.steps.push(`Failed to create Auth user: ${createAuthErr.message}`);
+        }
+      }
+
+      fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
+      console.log("=== STARTUP FIX ULRICH COMPLETED, RESULTS WRITTEN TO ulrich-fix-log.json ===");
+    } catch (err: any) {
+      console.error("Global Startup Fix Error:", err);
+    }
+  } else {
+    console.warn("Skipping Ulrich Vidal startup fix as Firebase is not fully initialized.");
   }
 
   app.use(express.json());
@@ -1224,6 +1249,7 @@ ${pages.map(page => `
 
   // Vite middleware pour le développement
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -1290,100 +1316,104 @@ ${pages.map(page => `
   });
 
   // --- TRIGGERS NOTIFICATIONS ADMIN ---
-  const startTime = Date.now();
-  console.log("[Triggers] Démarrage des listeners de notification...");
+  if (firebaseInitialized && db) {
+    const startTime = Date.now();
+    console.log("[Triggers] Démarrage des listeners de notification...");
 
-  // 1. Nouvel utilisateur Grand Public
-  db.collection("users").orderBy("createdAt", "desc").limit(1).onSnapshot(async (snapshot) => {
-    for (const change of snapshot.docChanges()) {
-      if (change.type === "added") {
-        const data = change.doc.data();
-        const createdAt = data.createdAt?.toDate() || new Date();
-        
-        // Ignorer les anciens documents au démarrage
-        if (createdAt.getTime() < startTime - 10000) continue;
+    // 1. Nouvel utilisateur Grand Public
+    db.collection("users").orderBy("createdAt", "desc").limit(1).onSnapshot(async (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        if (change.type === "added") {
+          const data = change.doc.data();
+          const createdAt = data.createdAt?.toDate() || new Date();
+          
+          // Ignorer les anciens documents au démarrage
+          if (createdAt.getTime() < startTime - 10000) continue;
 
-        console.log(`[Trigger] Nouvel utilisateur détecté: ${data.email}`);
-        const stats = await getPlatformStats(db);
-        await sendAdminNotification(db, "grand_public", {
-          firstName: data.firstName || "Inconnu",
-          lastName: data.lastName || "Inconnu",
-          email: data.email,
-          phone: data.phoneNumber,
-          createdAt: createdAt.toLocaleString("fr-FR")
-        }, stats);
-      }
-    }
-  }, (err) => console.error("[Trigger Error] Users:", err));
-
-  // 2. Nouveau Professionnel Solo
-  db.collection("pros").orderBy("createdAt", "desc").limit(1).onSnapshot(async (snapshot) => {
-    for (const change of snapshot.docChanges()) {
-      if (change.type === "added") {
-        const data = change.doc.data();
-        const createdAt = data.createdAt?.toDate() || new Date();
-
-        if (createdAt.getTime() < startTime - 10000) continue;
-
-        console.log(`[Trigger] Nouveau pro détecté: ${data.email}`);
-        const stats = await getPlatformStats(db);
-        
-        // Récupérer infos entreprise si possible
-        let companyName = "";
-        if (data.companyId) {
-          const compDoc = await db.collection("companies").doc(data.companyId).get();
-          companyName = compDoc.data()?.name || "";
+          console.log(`[Trigger] Nouvel utilisateur détecté: ${data.email}`);
+          const stats = await getPlatformStats(db);
+          await sendAdminNotification(db, "grand_public", {
+            firstName: data.firstName || "Inconnu",
+            lastName: data.lastName || "Inconnu",
+            email: data.email,
+            phone: data.phoneNumber,
+            createdAt: createdAt.toLocaleString("fr-FR")
+          }, stats);
         }
-
-        await sendAdminNotification(db, "pro_solo", {
-          firstName: data.firstName || "Inconnu",
-          lastName: data.lastName || "Inconnu",
-          email: data.email,
-          phone: data.phone,
-          createdAt: createdAt.toLocaleString("fr-FR"),
-          profession: data.jobTitle,
-          companyName: companyName,
-          siret: "" // À remplir si disponible dans le doc pro
-        }, stats);
       }
-    }
-  }, (err) => console.error("[Trigger Error] Pros:", err));
+    }, (err) => console.error("[Trigger Error] Users:", err));
 
-  // 3. Nouveau Collaborateur Institution (via collectionGroup pour members)
-  db.collectionGroup("members").orderBy("createdAt", "desc").limit(1).onSnapshot(async (snapshot) => {
-    for (const change of snapshot.docChanges()) {
-      if (change.type === "added") {
-        const data = change.doc.data();
-        const createdAt = data.createdAt?.toDate() || new Date();
+    // 2. Nouveau Professionnel Solo
+    db.collection("pros").orderBy("createdAt", "desc").limit(1).onSnapshot(async (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        if (change.type === "added") {
+          const data = change.doc.data();
+          const createdAt = data.createdAt?.toDate() || new Date();
 
-        if (createdAt.getTime() < startTime - 10000) continue;
+          if (createdAt.getTime() < startTime - 10000) continue;
 
-        // On ne veut pas notifier pour le Représentant qui est créé en même temps que l'organisation (ou alors différemment)
-        // Mais l'utilisateur demande : "Institution (collaborateur)"
-        
-        const orgId = change.doc.ref.parent.parent?.id;
-        if (!orgId) continue;
+          console.log(`[Trigger] Nouveau pro détecté: ${data.email}`);
+          const stats = await getPlatformStats(db);
+          
+          // Récupérer infos entreprise si possible
+          let companyName = "";
+          if (data.companyId) {
+            const compDoc = await db.collection("companies").doc(data.companyId).get();
+            companyName = compDoc.data()?.name || "";
+          }
 
-        const orgDoc = await db.collection("organizations").doc(orgId).get();
-        const orgData = orgDoc.data();
-
-        console.log(`[Trigger] Nouveau collaborateur détecté: ${data.email} (${orgData?.name})`);
-        const stats = await getPlatformStats(db);
-
-        await sendAdminNotification(db, "institution", {
-          firstName: data.firstName || "Inconnu",
-          lastName: data.lastName || "Inconnu",
-          email: data.email,
-          phone: data.directPhone,
-          createdAt: createdAt.toLocaleString("fr-FR"),
-          organizationName: orgData?.name,
-          organizationSiret: orgData?.siret,
-          representativeName: "", // Optionnel
-          jobTitle: data.jobTitle
-        }, stats);
+          await sendAdminNotification(db, "pro_solo", {
+            firstName: data.firstName || "Inconnu",
+            lastName: data.lastName || "Inconnu",
+            email: data.email,
+            phone: data.phone,
+            createdAt: createdAt.toLocaleString("fr-FR"),
+            profession: data.jobTitle,
+            companyName: companyName,
+            siret: "" // À remplir si disponible dans le doc pro
+          }, stats);
+        }
       }
-    }
-  }, (err) => console.error("[Trigger Error] Members:", err));
+    }, (err) => console.error("[Trigger Error] Pros:", err));
+
+    // 3. Nouveau Collaborateur Institution (via collectionGroup pour members)
+    db.collectionGroup("members").orderBy("createdAt", "desc").limit(1).onSnapshot(async (snapshot) => {
+      for (const change of snapshot.docChanges()) {
+        if (change.type === "added") {
+          const data = change.doc.data();
+          const createdAt = data.createdAt?.toDate() || new Date();
+
+          if (createdAt.getTime() < startTime - 10000) continue;
+
+          // On ne veut pas notifier pour le Représentant qui est créé en même temps que l'organisation (ou alors différemment)
+          // Mais l'utilisateur demande : "Institution (collaborateur)"
+          
+          const orgId = change.doc.ref.parent.parent?.id;
+          if (!orgId) continue;
+
+          const orgDoc = await db.collection("organizations").doc(orgId).get();
+          const orgData = orgDoc.data();
+
+          console.log(`[Trigger] Nouveau collaborateur détecté: ${data.email} (${orgData?.name})`);
+          const stats = await getPlatformStats(db);
+
+          await sendAdminNotification(db, "institution", {
+            firstName: data.firstName || "Inconnu",
+            lastName: data.lastName || "Inconnu",
+            email: data.email,
+            phone: data.directPhone,
+            createdAt: createdAt.toLocaleString("fr-FR"),
+            organizationName: orgData?.name,
+            organizationSiret: orgData?.siret,
+            representativeName: "", // Optionnel
+            jobTitle: data.jobTitle
+          }, stats);
+        }
+      }
+    }, (err) => console.error("[Trigger Error] Members:", err));
+  } else {
+    console.warn("[Triggers] Les listeners de notification Admin ont été désactivés (Firebase inactif).");
+  }
 }
 
 startServer();
