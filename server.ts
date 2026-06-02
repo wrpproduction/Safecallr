@@ -8,8 +8,33 @@ import { sendAdminNotification } from "./server/notify.js";
 import { getPlatformStats } from "./server/stats.js";
 import { EmailData } from "./src/lib/emailTemplates.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Handle ESM and CommonJS path resolution gracefully
+let resolvedFilename = "";
+let resolvedDirname = "";
+
+try {
+  const g = globalThis as any;
+  if (typeof g.__filename !== "undefined" && g.__filename) {
+    resolvedFilename = g.__filename;
+  } else if (typeof import.meta !== "undefined" && import.meta.url) {
+    resolvedFilename = fileURLToPath(import.meta.url);
+  }
+} catch (e) {
+  // Ignore
+}
+
+try {
+  const g = globalThis as any;
+  if (typeof g.__dirname !== "undefined" && g.__dirname) {
+    resolvedDirname = g.__dirname;
+  } else if (resolvedFilename) {
+    resolvedDirname = path.dirname(resolvedFilename);
+  } else {
+    resolvedDirname = process.cwd();
+  }
+} catch (e) {
+  resolvedDirname = process.cwd();
+}
 
 // Initialisation Firebase Admin sécurisée
 let config: any = {};
@@ -1261,7 +1286,7 @@ ${pages.map(page => `
       const url = req.originalUrl;
       if (url.startsWith("/api/")) return next();
       try {
-        let template = fs.readFileSync(path.resolve(__dirname, "index.html"), "utf-8");
+        let template = fs.readFileSync(path.resolve(resolvedDirname, "index.html"), "utf-8");
         template = await vite.transformIndexHtml(url, template);
         res.status(200).set({ "Content-Type": "text/html" }).end(template);
       } catch (e) {

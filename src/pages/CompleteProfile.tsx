@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { db, doc, setDoc, serverTimestamp } from "../firebase";
-import { Shield, Phone, ArrowRight, User } from "lucide-react";
+import { auth, db, doc, setDoc, serverTimestamp } from "../firebase";
+import { Shield, Phone, ArrowRight, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { linkPendingConnections } from "../lib/connections";
 
@@ -93,6 +93,24 @@ export default function CompleteProfile({ user }: { user: any }) {
             {loading ? "Enregistrement..." : "Activer mon compte"}
             <ArrowRight className="w-6 h-6" />
           </button>
+
+          <div className="pt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await auth.signOut();
+                } catch (err) {
+                  console.error("Logout error:", err);
+                }
+                navigate("/");
+              }}
+              className="text-slate-500 hover:text-white text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer pb-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour à l'accueil
+            </button>
+          </div>
         </form>
       </div>
     </div>

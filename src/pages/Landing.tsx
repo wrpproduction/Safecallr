@@ -77,7 +77,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
                     exit={{ opacity: 0, y: 10 }}
                     className="absolute top-full right-0 mt-4 w-64 bg-surface-container-low border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl"
                   >
-                    <Link to="/auth" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
+                    <Link to="/auth?mode=login" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                         <Users className="w-4 h-4 text-primary" />
                       </div>
@@ -117,31 +117,31 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
                     exit={{ opacity: 0, y: 10 }}
                     className="absolute top-full right-0 mt-4 w-72 bg-surface-container-low border border-white/10 rounded-2xl p-2 shadow-2xl backdrop-blur-xl"
                   >
-                    <Link to="/register" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
+                    <Link to="/particuliers" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                         <Users className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <div className="text-sm font-bold">Vous êtes un particulier</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Inscription gratuite</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">En savoir plus</div>
                       </div>
                     </Link>
-                    <Link to="/pro/register" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
+                    <Link to="/professionnels" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                         <Building2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <div className="text-sm font-bold">Vous êtes un pro</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Compte certifié</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">En savoir plus</div>
                       </div>
                     </Link>
-                    <Link to="/company-contact" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
+                    <Link to="/entreprises" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                         <Banknote className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <div className="text-sm font-bold">Vous êtes une entreprise</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Nous contacter</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">En savoir plus</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -183,11 +183,11 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             transition={{ delay: 0.2, duration: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 px-4"
           >
-            <Link to="/auth" className="w-full sm:w-auto bg-primary text-on-primary px-6 md:px-10 py-5 md:py-6 rounded-2xl font-headline font-black text-lg md:text-xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-              Particulier : S'inscrire & Télécharger
+            <Link to="/particuliers" className="w-full sm:w-auto bg-primary text-on-primary px-6 md:px-10 py-5 md:py-6 rounded-2xl font-headline font-black text-lg md:text-xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+              Particulier : Inscrivez-vous
               <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
             </Link>
-            <Link to="/pro/register" className="w-full sm:w-auto bg-surface-container-low border border-white/10 text-on-surface px-6 md:px-10 py-5 md:py-6 rounded-2xl font-headline font-black text-lg md:text-xl hover:bg-surface-container transition-all flex items-center justify-center gap-3">
+            <Link to="/professionnels" className="w-full sm:w-auto bg-surface-container-low border border-white/10 text-on-surface px-6 md:px-10 py-5 md:py-6 rounded-2xl font-headline font-black text-lg md:text-xl hover:bg-surface-container transition-all flex items-center justify-center gap-3">
               Vous êtes un Pro ?
             </Link>
           </motion.div>
@@ -357,8 +357,8 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
                   <span>Protection contre les arnaques</span>
                 </li>
               </ul>
-              <Link to="/auth" className="w-full bg-primary text-on-primary py-4 rounded-2xl font-bold text-center shadow-lg shadow-primary/20 transition-all">
-                S'inscrire / Télécharger
+              <Link to="/particuliers" className="w-full bg-primary text-on-primary py-4 rounded-2xl font-bold text-center shadow-lg shadow-primary/20 transition-all">
+                Découvrir l'offre Particuliers
               </Link>
             </div>
 
@@ -380,8 +380,8 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
                   <span>Différenciation concurrentielle</span>
                 </li>
               </ul>
-              <Link to="/pro/register" className="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-bold text-center hover:bg-primary hover:text-on-primary transition-all">
-                Créer votre compte Pro
+              <Link to="/professionnels" className="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-bold text-center hover:bg-primary hover:text-on-primary transition-all">
+                Découvrir l'offre Professionnels
               </Link>
             </div>
 
@@ -403,8 +403,8 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
                   <span>Conformité et traçabilité</span>
                 </li>
               </ul>
-              <Link to="/company-contact" className="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-bold text-center hover:bg-white hover:text-background transition-all">
-                Contacter un expert
+              <Link to="/entreprises" className="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-bold text-center hover:bg-white hover:text-background transition-all">
+                Découvrir l'offre Entreprises
               </Link>
             </div>
           </div>
@@ -419,30 +419,48 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
               <div>
                 <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-6 block">Particulier Grand Public</span>
-                <h2 className="font-headline font-black text-5xl md:text-7xl tracking-tight leading-none mb-8">
-                  Inscrivez-vous et <br /> téléchargez <span className="text-primary">l'application.</span>
+                <h2 className="font-headline font-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tight leading-none mb-8">
+                  Inscrivez-vous et <br /> <span className="text-primary">activez votre protection</span>
                 </h2>
                 <p className="text-xl text-slate-400 mb-12 leading-relaxed">
-                  Ne prenez plus jamais un appel “à l’aveugle”. Avec SafeCallr, vous pouvez vérifier un conseiller bancaire, sécuriser un appel suspect et protéger vos proches.
+                  Ne prenez plus jamais un appel "à l'aveugle". Avec SafeCallr, vous protégez vos proches, vérifiez un conseiller bancaire et sécurisez un appel suspect.
                 </p>
                 <Link to="/auth" className="inline-flex bg-primary text-on-primary px-10 py-5 rounded-2xl font-headline font-black text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
                   S'inscrire maintenant
                 </Link>
               </div>
-              <div className="relative">
-                <div className="bg-background rounded-3xl p-8 border border-white/10 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
-                  <div className="flex items-center gap-4 mb-8">
+              <div className="relative h-[480px] w-full max-w-[440px] mx-auto lg:mx-0">
+                {/* Mock 1: Camille (à gauche, au-dessus) */}
+                <div className="absolute top-0 left-0 w-[90%] sm:w-[325px] bg-background rounded-3xl p-6 border border-white/10 shadow-2xl -rotate-2 hover:rotate-0 transition-all duration-500 z-10 hover:z-20">
+                  <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
                       <Phone className="text-primary w-6 h-6" />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Appel entrant</div>
-                      <div className="text-lg font-bold">Conseiller BNP</div>
+                      <div className="text-lg font-bold text-white">Camille — Ma fille</div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="bg-surface-container-highest p-4 rounded-xl text-sm italic text-slate-400">"Papa c'est moi, j'ai eu un souci, il faut que tu m'envoies de l'argent vite..."</div>
+                    <div className="bg-primary p-4 rounded-xl text-on-primary font-bold text-center cursor-pointer hover:bg-primary/95 transition-colors">Lancer SafeCallr</div>
+                  </div>
+                </div>
+
+                {/* Mock 2: Conseiller BNP (à droite, en-dessous) */}
+                <div className="absolute bottom-0 right-0 w-[90%] sm:w-[325px] bg-background rounded-3xl p-6 border border-white/10 shadow-2xl rotate-3 hover:rotate-0 transition-all duration-500 z-0 hover:z-20">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Phone className="text-primary w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Appel entrant</div>
+                      <div className="text-lg font-bold text-white">Conseiller BNP</div>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div className="bg-surface-container-highest p-4 rounded-xl text-sm italic text-slate-400">"Bonjour, je vous appelle pour une opération suspecte sur votre compte..."</div>
-                    <div className="bg-primary p-4 rounded-xl text-on-primary font-bold text-center">Lancer SafeCallr</div>
+                    <div className="bg-primary p-4 rounded-xl text-on-primary font-bold text-center cursor-pointer hover:bg-primary/95 transition-colors">Lancer SafeCallr</div>
                   </div>
                 </div>
               </div>
@@ -615,12 +633,12 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           
           <div className="flex flex-col items-center gap-6">
             <Link to="/auth" className="w-full sm:w-auto bg-primary text-on-primary px-12 py-8 rounded-[32px] font-headline font-black text-2xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
-              Télécharger l’application
+              Particulier : Inscrivez-vous
               <ArrowRight className="w-8 h-8" />
             </Link>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link to="/pro/register" className="text-sm font-bold uppercase tracking-widest bg-surface-container-low px-8 py-4 rounded-2xl border border-white/5 hover:bg-surface-container transition-all">
-                Accéder à l’espace pro
+                Pro : créer votre compte
               </Link>
               <Link to="/company-contact" className="text-sm font-bold uppercase tracking-widest bg-surface-container-low px-8 py-4 rounded-2xl border border-white/5 hover:bg-surface-container transition-all">
                 Contacter un expert

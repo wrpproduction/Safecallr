@@ -36,7 +36,12 @@ import InstitutionErrorPage from "./pages/InstitutionErrorPage";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
 import SEOManager from "./components/seo/SEOManager";
+import ScrollToTop from "./components/ScrollToTop";
 import { registerSW } from 'virtual:pwa-register';
+
+import Particuliers from "./pages/Particuliers";
+import Professionnels from "./pages/Professionnels";
+import Entreprises from "./pages/Entreprises";
 
 // Register Service Worker
 if (typeof window !== 'undefined') {
@@ -147,6 +152,7 @@ export default function App() {
     <ErrorBoundary>
       <Toaster position="top-right" richColors />
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={
             <>
@@ -174,38 +180,12 @@ export default function App() {
             </>
           } />
           
-          <Route path="/particuliers" element={
-            <>
-              <SEOManager 
-                title="Protection Particuliers | Stop Fraude Faux Conseiller"
-                description="Protégez vos comptes bancaires et vos données personnelles. SafeCallr permet d'identifier vos interlocuteurs par téléphone gratuitement."
-                jsonLd={[ORGANIZATION_JSON_LD]}
-              />
-              <Landing persona="particuliers" />
-            </>
-          } />
+          <Route path="/particuliers" element={<Particuliers />} />
 
-          <Route path="/professionnels" element={
-            <>
-              <SEOManager 
-                title="Espace Professionnel | Authentifiez vos Appels Clients"
-                description="Garantissez votre identité lors de vos appels sortants. Notaires, avocats et cabinets de conseil : éliminez toute suspicion de fraude."
-                jsonLd={[ORGANIZATION_JSON_LD]}
-              />
-              <Landing persona="professionnels" />
-            </>
-          } />
+          <Route path="/professionnels" element={<Professionnels />} />
 
-          <Route path="/institutions" element={
-            <>
-              <SEOManager 
-                title="Solution Institutionnelle & API | Sécurité Fraude Bancaire"
-                description="Banques et grandes entreprises : intégrez le protocole SafeCallr pour éradiquer les pertes liées au vishing et à l'ingénierie sociale."
-                jsonLd={[ORGANIZATION_JSON_LD]}
-              />
-              <Landing persona="institutions" />
-            </>
-          } />
+          <Route path="/entreprises" element={<Entreprises />} />
+          <Route path="/institutions" element={<Entreprises />} />
 
           <Route path="/company-contact" element={
             <>
