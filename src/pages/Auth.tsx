@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVe
 import { useNavigate } from "react-router-dom";
 import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-react";
 import { linkPendingConnections } from "../lib/connections";
+import { emailService } from "../services/emailService";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -46,6 +47,14 @@ export default function Auth() {
           });
           // Link pending connections
           await linkPendingConnections(user.uid, phoneNumber, email);
+
+          // Notify Admin of registration
+          await emailService.sendAdminRegistrationNotification({
+            firstName,
+            lastName,
+            email,
+            phone: phoneNumber
+          }, "grand_public");
         } catch (dbErr: any) {
           console.error("Error creating user doc:", dbErr);
         }

@@ -57,7 +57,7 @@ async function verifyAdmin(idToken: string) {
     "xdcam10@gmail.com",
     "ulrich.vidal@gmail.com",
     "contact@wrpproduction.com",
-    "contact@remiprevel.com"
+    "contact@safecallr.com"
   ];
 
   const isAdminEmail = superAdmins.includes(callerEmail || "");
@@ -444,7 +444,7 @@ async function startServer() {
         phone: phone || "",
         companyName: companyName || "",
         message,
-        targetEmail: "contact@remiprevel.com",
+        targetEmail: "contact@safecallr.com",
         status: "new",
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       };
@@ -453,7 +453,7 @@ async function startServer() {
 
       // 2. Déclencher l'envoi d'un email via l'extension Trigger Email (collection 'mail')
       await db.collection("mail").add({
-        to: "contact@remiprevel.com",
+        to: "contact@safecallr.com",
         replyTo: email,
         message: {
           subject: `NOUVELLE DEMANDE : ${companyName || firstName + " " + lastName}`,
@@ -688,7 +688,7 @@ ${pages.map(page => `
         "xdcam10@gmail.com",
         "ulrich.vidal@gmail.com",
         "contact@wrpproduction.com",
-        "contact@remiprevel.com"
+        "contact@safecallr.com"
       ];
 
       const isAdminEmail = superAdmins.includes(callerEmail || "");

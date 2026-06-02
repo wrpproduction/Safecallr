@@ -1,5 +1,6 @@
 import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
+import { buildAdminNotificationEmail } from "../lib/emailTemplates";
 
 export const emailService = {
   /**
@@ -98,6 +99,89 @@ export const emailService = {
       console.log(`Email de confirmation d'inscription envoyé à ${email}`);
     } catch (error) {
       console.error("Erreur lors de l'envoi de l'email de confirmation d'inscription:", error);
+    }
+  },
+
+  /**
+   * Envoie un email de notification d'inscription à l'administrateur.
+   */
+  async sendAdminRegistrationNotification(
+    data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      profession?: string;
+      companyName?: string;
+      siret?: string;
+      organizationName?: string;
+      organizationSiret?: string;
+      representativeName?: string;
+      jobTitle?: string;
+    },
+    type: "grand_public" | "pro_solo" | "institution"
+  ) {
+    try {
+      let totalPublic = 0;
+      let totalPros = 0;
+      let totalOrgs = 0;
+      let last7Days = 0;
+
+      try {
+        const [snapPublic, snapPros, snapOrgs] = await Promise.all([
+          getCountFromServer(collection(db, "users")),
+          getCountFromServer(collection(db, "pros")),
+          getCountFromServer(collection(db, "organizations"))
+        ]);
+        totalPublic = snapPublic.data().count;
+        totalPros = snapPros.data().count;
+        totalOrgs = snapOrgs.data().count;
+      } catch (err) {
+        console.warn("Could not load count for admin notification stats:", err);
+      }
+
+      const emailData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone || "",
+        createdAt: new Date().toLocaleString("fr-FR"),
+        profession: data.profession,
+        companyName: data.companyName,
+        siret: data.siret,
+        organizationName: data.organizationName,
+        organizationSiret: data.organizationSiret,
+        representativeName: data.representativeName,
+        jobTitle: data.jobTitle
+      };
+
+      const { html, text } = buildAdminNotificationEmail(
+        emailData,
+        type,
+        {
+          totalPublic,
+          totalPros,
+          totalOrgs,
+          last7Days
+        }
+      );
+
+      const typeLabel = type === "grand_public" ? "Grand public" : type === "pro_solo" ? "Professionnel" : "Institution";
+      const subject = `NOUVELLE INSCRIPTION SAFECALLR — ${typeLabel} — ${data.firstName} ${data.lastName}`;
+
+      await addDoc(collection(db, "mail"), {
+        to: "contact@safecallr.com",
+        message: {
+          subject: subject,
+          html: html,
+          text: text
+        },
+        createdAt: serverTimestamp()
+      });
+
+      console.log(`Notification d'inscription envoyée à contact@safecallr.com pour : ${data.email}`);
+    } catch (error) {
+      console.error("Erreur d'envoi de la notification administrateur :", error);
     }
   }
 };

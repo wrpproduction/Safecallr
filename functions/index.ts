@@ -12,7 +12,7 @@ const db = admin.firestore();
 // Config (à renseigner dans les variables de config de la Cloud Function)
 // firebase functions:config:set resend.key="YOUR_API_KEY" admin.email="ADMIN_EMAIL"
 const RESEND_API_KEY = functions.config().resend?.key || process.env.RESEND_API_KEY;
-const ADMIN_EMAIL = functions.config().admin?.email || process.env.ADMIN_NOTIFICATION_EMAIL || "contact@remiprevel.com";
+const ADMIN_EMAIL = functions.config().admin?.email || process.env.ADMIN_NOTIFICATION_EMAIL || "contact@safecallr.com";
 
 const resend = new Resend(RESEND_API_KEY);
 

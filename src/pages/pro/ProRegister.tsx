@@ -320,6 +320,17 @@ export default function ProRegister() {
       // 6. Envoyer l'email de confirmation d'inscription
       await emailService.sendProRegistrationConfirmationEmail(formData.email, formData.firstName);
 
+      // Envoyer la notification d'inscription à l'administrateur
+      await emailService.sendAdminRegistrationNotification({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        profession: formData.jobTitle,
+        companyName: formData.companyName,
+        siret: formData.companySiret
+      }, "pro_solo");
+
       // 7. TODO: Appeler POST /api/set-role avec { uid, role: "pro" }
       // Mocking the API call
       console.log("Calling /api/set-role for uid:", uid);

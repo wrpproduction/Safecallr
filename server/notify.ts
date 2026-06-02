@@ -2,7 +2,7 @@ import { Firestore } from "firebase-admin/firestore";
 import { buildAdminNotificationEmail, EmailData, RegistrationType, PlatformStats } from '../src/lib/emailTemplates.js';
 
 // Configuration
-const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "contact@remiprevel.com";
+const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "contact@safecallr.com";
 const ENABLED = process.env.ADMIN_NOTIFICATIONS_ENABLED !== "false";
 
 /**
