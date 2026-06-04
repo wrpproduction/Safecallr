@@ -9,8 +9,10 @@ import { emailService } from "../services/emailService";
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const mode = new URLSearchParams(location.search).get("mode");
-  const [isLogin, setIsLogin] = useState(mode === "login");
+  const searchParams = new URLSearchParams(location.search);
+  const mode = searchParams.get("mode");
+  const verified = searchParams.get("verified") === "true";
+  const [isLogin, setIsLogin] = useState(mode === "login" || verified);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -142,6 +144,15 @@ export default function Auth() {
             {isLogin ? "Connectez-vous pour continuer" : "Rejoignez le réseau de confiance"}
           </p>
         </div>
+
+        {verified && (
+          <div className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-xl text-sm flex items-center gap-3 animate-fade-in">
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <p className="text-left font-medium leading-normal">
+              Votre adresse e-mail a été vérifiée avec succès ! Connectez-vous ci-dessous.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleAuth} className="w-full space-y-4">
           {!isLogin && (

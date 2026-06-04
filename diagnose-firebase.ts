@@ -22,7 +22,7 @@ async function diagnose() {
     // @ts-ignore
     console.log("Project ID (from app):", app.options.projectId || "Default");
 
-    const db = getFirestore(config.firestoreDatabaseId);
+    const db = getFirestore(app, config.firestoreDatabaseId);
     console.log("Tentative de lecture de la collection 'pros'...");
     
     const snapshot = await db.collection("pros").limit(1).get();
