@@ -46,12 +46,21 @@ export default function RequestStatus({ user }: { user: any }) {
   }, [id, navigate, user.uid]);
 
   useEffect(() => {
-    if (request?.status !== "accepted" || !request?.respondedAt) return;
+    if (!request) return;
+    
+    const isRequester = request.requesterId === user.uid;
+    const isPending = request.status === "pending";
+    const isAccepted = request.status === "accepted";
+    
+    if (!(isAccepted && request.respondedAt) && !(isPending && isRequester && request.createdAt)) return;
+    
+    const baseTime = isPending ? request.createdAt : request.respondedAt;
+    if (!baseTime) return;
     
     const calculateTimeLeft = () => {
-      const respondedAt = request.respondedAt.toDate();
+      const baseDate = baseTime.toDate();
       const now = new Date();
-      const diff = Math.floor((now.getTime() - respondedAt.getTime()) / 1000);
+      const diff = Math.floor((now.getTime() - baseDate.getTime()) / 1000);
       return Math.max(0, 60 - diff);
     };
 
@@ -64,7 +73,7 @@ export default function RequestStatus({ user }: { user: any }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [request?.status, request?.respondedAt]);
+  }, [request?.status, request?.respondedAt, request?.createdAt, user.uid]);
 
   if (loading) {
     return (
@@ -152,7 +161,7 @@ export default function RequestStatus({ user }: { user: any }) {
     showCode: true
   };
 
-  if (request?.status === "accepted") {
+  if (request?.status === "accepted" || (request?.status === "pending" && isRequester)) {
     if (timeLeft > 30) {
       // 1 min to 30s: Green
       timerThemeArgs = {
@@ -238,7 +247,13 @@ export default function RequestStatus({ user }: { user: any }) {
             {request.status === "refused" && "Demande refusée"}
           </h2>
           <p className="text-slate-400 text-sm max-w-[280px] mx-auto">
-            {request.status === "pending" && (isRequester ? "Attendez que votre interlocuteur accepte." : "Acceptez pour voir le code de sécurité.")}
+            {request.status === "pending" && (
+              isRequester ? (
+                timeLeft > 0 ? "Attendez que votre interlocuteur accepte." : "Session interrompue par sécurité."
+              ) : (
+                "Acceptez pour voir le code de sécurité."
+              )
+            )}
             {request.status === "accepted" && (
               timeLeft > 0 ? (
                 isRequester ? "Votre interlocuteur doit vous donner le code." : "Donnez ce code à votre interlocuteur."
@@ -252,9 +267,33 @@ export default function RequestStatus({ user }: { user: any }) {
 
         {/* STEP 1: A sees codeA, B sees codeA after accepting */}
         {request.status === "pending" && isRequester && (
-          <div className="bg-surface-container-low p-6 rounded-3xl border border-white/5 text-center space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Votre code de sécurité</p>
-            <div className="text-4xl font-black tracking-widest text-primary font-mono">{request.codeA}</div>
+          <div className="w-full space-y-4">
+            <div className={`p-8 rounded-3xl border text-center space-y-4 transition-colors duration-500 ${timerThemeArgs.bgClass} ${timerThemeArgs.borderClass}`}>
+              <p className={`text-[10px] uppercase tracking-widest font-bold ${timerThemeArgs.colorClass}`}>
+                {timeLeft > 0 ? "Votre code de sécurité" : "Code de sécurité expiré"}
+              </p>
+              
+              {timerThemeArgs.showCode ? (
+                <div className={`text-6xl font-black tracking-[0.2em] font-mono ${timerThemeArgs.colorClass}`}>
+                  {request.codeA}
+                </div>
+              ) : (
+                <div className="text-4xl font-black tracking-widest text-slate-500 font-mono select-none my-2 py-2 animate-pulse">
+                  ••••
+                </div>
+              )}
+
+              {timerThemeArgs.alertLabel && (
+                <div className="py-2">
+                  {timerThemeArgs.alertLabel}
+                </div>
+              )}
+
+              <div className={`flex items-center justify-center gap-2 ${timerThemeArgs.colorClass} font-mono transition-colors duration-500`}>
+                <Clock className="w-4 h-4 animate-pulse" />
+                <span className="text-sm font-bold">{timeLeft}s</span>
+              </div>
+            </div>
           </div>
         )}
 
