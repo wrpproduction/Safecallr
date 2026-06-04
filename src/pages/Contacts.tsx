@@ -138,10 +138,12 @@ export default function Contacts({ user }: { user: any }) {
     setAddError("");
     setAddSuccess("");
     
+    let currentStep = "initialisation";
     try {
       // Normalize phone for comparison
       const cleanPhone = newContact.phone.replace(/\s/g, "").replace(/-/g, "");
       
+      currentStep = "recherche_utilisateur";
       // Check if user exists in SafeCallr base
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", newContact.email.toLowerCase().trim()));
@@ -157,42 +159,44 @@ export default function Contacts({ user }: { user: any }) {
       });
 
       if (targetUser) {
+        currentStep = "ajout_demande_contact_personnel";
         // Person is in the base, send a validation request
         const target = targetUser as any;
         const targetName = target.displayName || (target.firstName ? `${target.firstName} ${target.lastName}` : "Utilisateur SafeCallr");
         
-          await addDoc(collection(db, "personalContactRequests"), {
-            fromUserId: user.uid,
-            fromUserName: user.displayName || "Utilisateur SafeCallr",
-            fromUserPhone: user.phoneNumber || "",
-            toUserId: target.id,
-            toUserName: targetName,
-            toUserPhone: target.phoneNumber || "",
-            toUserEmail: target.email || "",
-            status: "pending",
-            description: newContact.description,
-            createdAt: serverTimestamp()
-          });
-          setAddSuccess("Demande de validation envoyée à " + newContact.name);
-          setTimeout(() => setShowAddModal(false), 2000);
-        } else {
-          // Person not in base, add as local contact
-          await addDoc(collection(db, "personalContacts"), {
-            ownerId: user.uid,
-            name: newContact.name,
-            phone: newContact.phone,
-            email: newContact.email,
-            description: newContact.description,
-            createdAt: serverTimestamp()
-          });
+        await addDoc(collection(db, "personalContactRequests"), {
+          fromUserId: user.uid || "",
+          fromUserName: user.displayName || "Utilisateur SafeCallr",
+          fromUserPhone: user.phoneNumber || "",
+          toUserId: target.id,
+          toUserName: targetName,
+          toUserPhone: target.phoneNumber || "",
+          toUserEmail: target.email || "",
+          status: "pending",
+          description: newContact.description,
+          createdAt: serverTimestamp()
+        });
+        setAddSuccess("Demande de validation envoyée à " + newContact.name);
+        setTimeout(() => setShowAddModal(false), 2000);
+      } else {
+        currentStep = "ajout_contact_local";
+        // Person not in base, add as local contact
+        await addDoc(collection(db, "personalContacts"), {
+          ownerId: user.uid || "",
+          name: newContact.name,
+          phone: newContact.phone,
+          email: newContact.email,
+          description: newContact.description,
+          createdAt: serverTimestamp()
+        });
         setAddSuccess("Contact ajouté localement (non inscrit sur SafeCallr)");
         setTimeout(() => setShowAddModal(false), 2000);
       }
       
       setNewContact({ name: "", phone: "", email: "", description: "" });
     } catch (err: any) {
-      console.error("Add contact error:", err);
-      setAddError("Erreur lors de l'ajout : " + err.message);
+      console.error(`Add contact error during step [${currentStep}]:`, err);
+      setAddError(`Erreur lors de l'ajout (Étape: ${currentStep}, UID: ${user?.uid || 'absent'}) : ${err.message}`);
     } finally {
       setAdding(false);
     }

@@ -10,7 +10,7 @@ export default function RequestStatus({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [inputCode, setInputCode] = useState("");
   const [codeError, setCodeError] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(45);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [fetchedRequesterPhone, setFetchedRequesterPhone] = useState("");
   const navigate = useNavigate();
 
@@ -52,7 +52,7 @@ export default function RequestStatus({ user }: { user: any }) {
       const respondedAt = request.respondedAt.toDate();
       const now = new Date();
       const diff = Math.floor((now.getTime() - respondedAt.getTime()) / 1000);
-      return Math.max(0, 45 - diff);
+      return Math.max(0, 60 - diff);
     };
 
     setTimeLeft(calculateTimeLeft());
@@ -143,6 +143,75 @@ export default function RequestStatus({ user }: { user: any }) {
     }
   };
 
+  // Dynamic variables for visual timer feedback
+  let timerThemeArgs = {
+    colorClass: "text-[#10b981]", 
+    borderClass: "border-[#10b981]/20",
+    bgClass: "bg-[#10b981]/5",
+    alertLabel: null as any,
+    showCode: true
+  };
+
+  if (request?.status === "accepted") {
+    if (timeLeft > 30) {
+      // 1 min to 30s: Green
+      timerThemeArgs = {
+        colorClass: "text-[#10b981]",
+        borderClass: "border-[#10b981]/20",
+        bgClass: "bg-[#10b981]/5",
+        alertLabel: null,
+        showCode: true
+      };
+    } else if (timeLeft > 10) {
+      // 30s to 10s: Orange with "attention" alert
+      timerThemeArgs = {
+        colorClass: "text-[#f59e0b]",
+        borderClass: "border-[#f59e0b]/40",
+        bgClass: "bg-[#f59e0b]/5",
+        alertLabel: (
+          <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] px-4 py-2 rounded-2xl font-bold text-xs uppercase tracking-wider animate-pulse flex items-center justify-center gap-1.5 shadow-sm">
+            <AlertTriangle className="w-4 h-4" />
+            ATTENTION
+          </div>
+        ),
+        showCode: true
+      };
+    } else if (timeLeft > 0) {
+      // 10s to 1s: Red with "danger suspicion arnaque"
+      timerThemeArgs = {
+        colorClass: "text-[#ef4444]",
+        borderClass: "border-[#ef4444]/60",
+        bgClass: "bg-[#ef4444]/5",
+        alertLabel: (
+          <div className="bg-[#ef4444]/15 border border-[#ef4444]/30 text-[#ef4444] px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-wider animate-bounce flex items-center justify-center gap-1.5 shadow-md">
+            <ShieldAlert className="w-5 h-5 animate-pulse" />
+            DANGER SUSPICION ARNAQUE
+          </div>
+        ),
+        showCode: true
+      };
+    } else {
+      // 0: Red, code disappears, "danger suspicion d'arnaque"
+      timerThemeArgs = {
+        colorClass: "text-[#ef4444]",
+        borderClass: "border-[#ef4444]/80",
+        bgClass: "bg-[#ef4444]/10",
+        alertLabel: (
+          <div className="bg-[#ef4444]/20 border border-[#ef4444]/50 text-[#ef4444] px-5 py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest text-center shadow-lg animate-pulse flex flex-col items-center justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-6 h-6" />
+              <span>DANGER : SUSPICION D'ARNAQUE</span>
+            </div>
+            <p className="text-[10px] font-bold text-[#ef4444]/80 tracking-normal normal-case font-sans mt-1">
+              Délai expiré. Raccrochez immédiatement, ne donnez aucun code !
+            </p>
+          </div>
+        ),
+        showCode: false
+      };
+    }
+  }
+
   return (
     <div className="space-y-8 pb-12">
       {/* Status Hero */}
@@ -170,7 +239,13 @@ export default function RequestStatus({ user }: { user: any }) {
           </h2>
           <p className="text-slate-400 text-sm max-w-[280px] mx-auto">
             {request.status === "pending" && (isRequester ? "Attendez que votre interlocuteur accepte." : "Acceptez pour voir le code de sécurité.")}
-            {request.status === "accepted" && (isRequester ? "Votre interlocuteur doit vous donner le code." : "Donnez ce code à votre interlocuteur.")}
+            {request.status === "accepted" && (
+              timeLeft > 0 ? (
+                isRequester ? "Votre interlocuteur doit vous donner le code." : "Donnez ce code à votre interlocuteur."
+              ) : (
+                "Session interrompue par sécurité."
+              )
+            )}
             {request.status === "step1_verified" && (isRequester ? "Donnez ce nouveau code à votre interlocuteur." : "Votre interlocuteur doit vous donner le code.")}
           </p>
         </div>
@@ -185,20 +260,38 @@ export default function RequestStatus({ user }: { user: any }) {
 
         {request.status === "accepted" && (
           <div className="w-full space-y-4">
-            <div className="bg-primary/5 p-8 rounded-3xl border border-primary/20 text-center space-y-4">
-              <p className="text-[10px] uppercase tracking-widest text-primary font-bold">
-                {isTarget ? "Dites ce code à votre interlocuteur" : "Votre interlocuteur doit dire ce code"}
+            <div className={`p-8 rounded-3xl border text-center space-y-4 transition-colors duration-500 ${timerThemeArgs.bgClass} ${timerThemeArgs.borderClass}`}>
+              <p className={`text-[10px] uppercase tracking-widest font-bold ${timerThemeArgs.colorClass}`}>
+                {timeLeft > 0 ? (
+                  isTarget ? "Dites ce code à votre interlocuteur" : "Votre interlocuteur doit dire ce code"
+                ) : (
+                  "Code de sécurité expiré"
+                )}
               </p>
-              <div className="text-6xl font-black tracking-[0.2em] text-primary font-mono">
-                {request.codeA}
-              </div>
-              <div className="flex items-center justify-center gap-2 text-slate-500">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm font-bold font-mono">{timeLeft}s</span>
+              
+              {timerThemeArgs.showCode ? (
+                <div className={`text-6xl font-black tracking-[0.2em] font-mono ${timerThemeArgs.colorClass}`}>
+                  {request.codeA}
+                </div>
+              ) : (
+                <div className="text-4xl font-black tracking-widest text-slate-500 font-mono select-none my-2 py-2 animate-pulse">
+                  ••••
+                </div>
+              )}
+
+              {timerThemeArgs.alertLabel && (
+                <div className="py-2">
+                  {timerThemeArgs.alertLabel}
+                </div>
+              )}
+
+              <div className={`flex items-center justify-center gap-2 ${timerThemeArgs.colorClass} font-mono transition-colors duration-500`}>
+                <Clock className="w-4 h-4 animate-pulse" />
+                <span className="text-sm font-bold">{timeLeft}s</span>
               </div>
             </div>
             
-            {isRequester && (
+            {isRequester && timeLeft > 0 && (
               <button 
                 onClick={() => handleAction("step1_verified")}
                 className="w-full bg-primary-gradient text-on-primary font-headline font-extrabold text-xl py-6 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all"
