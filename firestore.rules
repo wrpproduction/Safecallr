@@ -134,6 +134,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Verification Codes for Custom Email verification
+    match /verification_codes/{tokenId} {
+      allow create: if true;
+      allow read, update: if true;
+    }
+
     // Company Contact Requests
     match /companyContactRequests/{requestId} {
       allow create: if true; 

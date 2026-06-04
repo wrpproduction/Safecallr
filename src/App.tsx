@@ -142,7 +142,7 @@ export default function App() {
   const isEmailVerified = user && (user.emailVerified || user.providerData?.some((p: any) => p.providerId === "google.com"));
 
   const renderProtectedRoute = (Component: any) => {
-    if (!user) return <Navigate to="/auth" />;
+    if (!user) return <Navigate to="/" />;
     if (!isEmailVerified) return <VerifyEmail user={user} />;
     if (!isProfileComplete) return <CompleteProfile user={user} />;
     return <Component user={user} />;

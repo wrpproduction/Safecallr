@@ -1,6 +1,7 @@
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp, getCountFromServer } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { collection, addDoc, serverTimestamp, getCountFromServer, doc, setDoc } from "firebase/firestore";
 import { buildAdminNotificationEmail } from "../lib/emailTemplates";
+import { sendEmailVerification } from "firebase/auth";
 
 /**
  * Envoie un email par l'API Resend de façon sécurisée (via le serveur Express)
@@ -195,26 +196,71 @@ export const emailService = {
 
   /**
    * Envoie un email de vérification d'adresse e-mail personnalisé pour SafeCallr,
-   * en contactant l'API sécurisée du serveur.
+   * contenant un code de validation à 6 chiffres unique et sécurisé.
    */
   async sendCustomVerificationEmail(email: string, firstName: string) {
     try {
-      const response = await fetch("/api/send-custom-verification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email, firstName })
-      });
-      if (!response.ok) {
-        throw new Error("HTTP status " + response.status);
+      // 1. Générer le code à 6 chiffres
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // 2. Stocker le code directement dans Firestore (assure le fonctionnement même si l'admin SDK a un problème)
+      try {
+        await setDoc(doc(db, "verification_codes", email), {
+          email,
+          code,
+          createdAt: serverTimestamp(),
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes de validité
+          used: false
+        });
+        console.log(`[EmailService] Code à 6 chiffres enregistré pour ${email}: ${code}`);
+      } catch (dbErr) {
+        console.error("[EmailService] Échec d'écriture du code dans Firestore:", dbErr);
+        throw dbErr;
       }
-      console.log(`[EmailService] Custom verification email request successful for ${email}`);
+
+      // 3. Préparer l'e-mail brandé SafeCallr
+      const subject = "SafeCallr - Activez votre compte avec votre code à 6 chiffres";
+      const text = `Bonjour ${firstName || ""}, votre code de validation d'adresse email pour SafeCallr est : ${code}. Il expire dans 30 minutes.`;
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px 20px; border: 1px solid #1f2937; border-radius: 16px; background-color: #0b0f19; color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="display: inline-block; background-color: #10b981; padding: 12px; border-radius: 12px; margin-bottom: 10px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6z"/></svg>
+            </div>
+            <h1 style="font-size: 24px; font-weight: 800; color: #10b981; margin: 0; letter-spacing: -0.05em;">SafeCallr</h1>
+            <p style="font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 0.15em;">Sécurité des appels bancaires</p>
+          </div>
+
+          <div style="background-color: #111827; padding: 25px; border-radius: 12px; border: 1px solid #1f2937; text-align: center;">
+            <h2 style="font-size: 18px; font-weight: 700; color: #ffffff; margin-top: 0; margin-bottom: 15px; text-align: left;">Activez votre compte</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #d1d5db; margin-bottom: 25px; text-align: left;">
+              Bonjour ${firstName || "utilisateur"},<br/><br/>
+              Merci pour votre inscription sur <strong>SafeCallr</strong> !<br/>
+              Pour finaliser votre inscription et activer votre compte, veuillez saisir le code de sécurité à 6 chiffres ci-dessous dans l'application :
+            </p>
+
+            <div style="margin: 30px 0; background-color: #1f2937; border: 1px solid #374151; padding: 15px 30px; border-radius: 12px; display: inline-block;">
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 0.2em; color: #10b981; font-family: monospace;">${code}</span>
+            </div>
+
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 15px; text-align: left;">
+              Ce code de sécurité est strictement confidentiel et expire dans 30 minutes. L'équipe SafeCallr ne vous demandera jamais ce code par téléphone ou par e-mail.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; border-top: 1px solid #1f2937; padding-top: 20px;">
+            <p style="margin: 0 0 10px 0;">Cet e-mail est automatique. Merci de ne pas y répondre directement.</p>
+            <p style="margin: 0; font-weight: bold; color: #9ca3af;">L'équipe SafeCallr &bull; SafeCallr Network</p>
+          </div>
+        </div>
+      `;
+
+      // 4. Envoyer avec repli
+      await sendEmailWithFallback(email, subject, html, text);
+      console.log(`[EmailService] Verification code email triggered for ${email}`);
     } catch (err) {
-      console.error("[EmailService] Error calling custom verification API, falling back to default Firebase Auth:", err);
-      // Dynamically import to avoid top level import noise or cyclic dependencies
-      const { auth } = await import("../firebase");
-      const { sendEmailVerification } = await import("firebase/auth");
+      console.error("[EmailService] Error in custom 6-digit email flow:", err);
+      // fallback
       if (auth.currentUser) {
         await sendEmailVerification(auth.currentUser);
       }

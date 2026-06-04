@@ -48,7 +48,7 @@ export default function MeDashboard() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    navigate("/login");
+    navigate("/");
   };
 
   return (
