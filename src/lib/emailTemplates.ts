@@ -96,8 +96,6 @@ export function buildAdminNotificationEmail(data: EmailData, type: RegistrationT
         <div class="info-grid">
           <div class="label">Prénom</div><div class="value">${data.firstName}</div>
           <div class="label">Nom</div><div class="value">${data.lastName}</div>
-          <div class="label">Email</div><div class="value">${data.email}</div>
-          <div class="label">Téléphone</div><div class="value">${data.phone || "Non renseigné"}</div>
           <div class="label">Date</div><div class="value">${data.createdAt}</div>
         </div>
       </div>
@@ -170,8 +168,6 @@ TYPE D'INSCRIPTION : ${typeLabel}
 INFORMATIONS UTILISATEUR
 Prénom : ${data.firstName}
 Nom : ${data.lastName}
-Email : ${data.email}
-Téléphone : ${data.phone || "Non renseigné"}
 Date d'inscription : ${data.createdAt}
 
 ${type === "pro_solo" ? `
