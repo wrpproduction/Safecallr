@@ -334,8 +334,8 @@ async function startServer() {
       }
 
       const resend = new Resend(apiKey);
-      const fromAddress = process.env.EMAIL_FROM_ADDRESS || "notifications@safecallr.com";
-      const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr Notifications";
+      const fromAddress = process.env.EMAIL_FROM_ADDRESS || "contact@safecallr.com";
+      const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
 
       console.log(`[Resend Backend] Tentative d'envoi d'un mail à : ${to} (Sujet : ${subject})`);
       
@@ -443,7 +443,7 @@ async function startServer() {
       if (apiKey) {
         try {
           const resend = new Resend(apiKey);
-          const fromAddress = process.env.EMAIL_FROM_ADDRESS || "notifications@safecallr.com";
+          const fromAddress = process.env.EMAIL_FROM_ADDRESS || "contact@safecallr.com";
           const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
 
           await resend.emails.send({

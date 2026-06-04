@@ -140,6 +140,12 @@ service cloud.firestore {
       allow read, update: if true;
     }
 
+    // Global stats metadata document for client-side count updates
+    match /global/stats {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Company Contact Requests
     match /companyContactRequests/{requestId} {
       allow create: if true; 

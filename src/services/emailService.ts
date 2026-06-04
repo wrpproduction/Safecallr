@@ -1,5 +1,5 @@
 import { db, auth } from "../firebase";
-import { collection, addDoc, serverTimestamp, getCountFromServer, doc, setDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getCountFromServer, doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { buildAdminNotificationEmail } from "../lib/emailTemplates";
 import { sendEmailVerification } from "firebase/auth";
 
@@ -145,17 +145,50 @@ export const emailService = {
       let totalOrgs = 0;
       let last7Days = 0;
 
+      // 1. Incrémenter les compteurs directement sur le document global /global/stats
       try {
-        const [snapPublic, snapPros, snapOrgs] = await Promise.all([
-          getCountFromServer(collection(db, "users")),
-          getCountFromServer(collection(db, "pros")),
-          getCountFromServer(collection(db, "organizations"))
-        ]);
-        totalPublic = snapPublic.data().count;
-        totalPros = snapPros.data().count;
-        totalOrgs = snapOrgs.data().count;
+        const statsDocRef = doc(db, "global", "stats");
+        const updates: any = {
+          last7Days: increment(1)
+        };
+        if (type === "grand_public") {
+          updates.usersCount = increment(1);
+        } else if (type === "pro_solo") {
+          updates.prosCount = increment(1);
+        } else if (type === "institution") {
+          updates.orgsCount = increment(1);
+        }
+        await setDoc(statsDocRef, updates, { merge: true });
+        console.log(`[EmailService] Stats incrémentées avec succès dans global/stats pour le type ${type}`);
+      } catch (incErr) {
+        console.warn("[EmailService] Échec d'incrémentation du document global/stats :", incErr);
+      }
+
+      // 2. Charger les statistiques du document global /global/stats
+      try {
+        const statsDocRef = doc(db, "global", "stats");
+        const statsSnap = await getDoc(statsDocRef);
+        if (statsSnap.exists()) {
+          const statsData = statsSnap.data();
+          totalPublic = statsData.usersCount || 0;
+          totalPros = statsData.prosCount || 0;
+          totalOrgs = statsData.orgsCount || 0;
+          last7Days = statsData.last7Days || 0;
+        }
       } catch (err) {
-        console.warn("Could not load count for admin notification stats:", err);
+        console.warn("[EmailService] Impossible de charger les stats globales, tentative de comptage direct :", err);
+        try {
+          const [snapPublic, snapPros, snapOrgs] = await Promise.all([
+            getCountFromServer(collection(db, "users")),
+            getCountFromServer(collection(db, "pros")),
+            getCountFromServer(collection(db, "organizations"))
+          ]);
+          totalPublic = snapPublic.data().count;
+          totalPros = snapPros.data().count;
+          totalOrgs = snapOrgs.data().count;
+        } catch (innerErr) {
+          console.warn("Échec du comptage direct de repli :", innerErr);
+        }
       }
 
       const emailData = {
