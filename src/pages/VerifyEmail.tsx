@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { auth, db, doc, updateDoc } from "../firebase";
-import { sendEmailVerification, reload } from "firebase/auth";
+import { auth, db, doc, updateDoc, getDoc } from "../firebase";
+import { reload } from "firebase/auth";
 import { Shield, Mail, RefreshCw, LogOut, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { emailService } from "../services/emailService";
 
 export default function VerifyEmail({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,18 @@ export default function VerifyEmail({ user }: { user: any }) {
   const resendEmail = async () => {
     setLoading(true);
     try {
-      await sendEmailVerification(auth.currentUser!);
+      let firstName = "";
+      if (user?.uid) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", user.uid));
+          if (userSnap.exists()) {
+            firstName = userSnap.data().firstName || "";
+          }
+        } catch (dbErr) {
+          console.warn("Could not fetch user document for name customization:", dbErr);
+        }
+      }
+      await emailService.sendCustomVerificationEmail(user.email, firstName);
       setMessage("Un nouvel email de validation a été envoyé.");
       setError("");
     } catch (err: any) {

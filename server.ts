@@ -362,6 +362,100 @@ async function startServer() {
     }
   });
 
+  // API: Générer un lien de vérification d'adresse e-mail personnalisé et envoyer le courriel
+  app.post("/api/send-custom-verification", async (req, res) => {
+    try {
+      const { email, firstName } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "L'adresse email est requise." });
+      }
+
+      if (!firebaseInitialized) {
+        return res.status(500).json({ error: "Le SDK Admin de Firebase n'est pas prêt." });
+      }
+
+      console.log(`[Verification] Génération d'un lien de vérification d'email pour ${email}...`);
+      const verificationLink = await admin.auth().generateEmailVerificationLink(email);
+      console.log(`[Verification] Lien généré : ${verificationLink}`);
+
+      const subject = "SafeCallr - Activez votre compte";
+      const text = `Bonjour ${firstName || ""}, merci de vous être inscrit sur SafeCallr. Veuillez valider votre adresse e-mail en cliquant sur le lien suivant: ${verificationLink}`;
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px 20px; border: 1px solid #1f2937; border-radius: 16px; background-color: #0b0f19; color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <div style="display: inline-block; background-color: #10b981; padding: 12px; border-radius: 12px; margin-bottom: 10px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6z"/></svg>
+            </div>
+            <h1 style="font-size: 24px; font-weight: 800; color: #10b981; margin: 0; letter-spacing: -0.05em;">SafeCallr</h1>
+            <p style="font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 0.15em;">Sécurité des appels bancaires</p>
+          </div>
+
+          <div style="background-color: #111827; padding: 25px; border-radius: 12px; border: 1px solid #1f2937;">
+            <h2 style="font-size: 18px; font-weight: 700; color: #ffffff; margin-top: 0; margin-bottom: 15px;">Activez votre compte</h2>
+            <p style="font-size: 14px; line-height: 1.6; color: #d1d5db; margin-bottom: 25px;">
+              Bonjour ${firstName || "utilisateur"},<br/><br/>
+              Merci pour votre inscription sur <strong>SafeCallr</strong> !
+              Pour finaliser la création de votre compte et accéder à votre espace sécurisé, merci de confirmer votre adresse e-mail en cliquant sur le bouton ci-dessous.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationLink}" style="background-color: #10b981; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 15px; display: inline-block;">Vérifier mon adresse e-mail</a>
+            </div>
+
+            <p style="font-size: 12px; line-height: 1.5; color: #9ca3af; margin-bottom: 0;">
+              Si le bouton ne fonctionne pas, vous pouvez copier et coller ce lien complet dans votre navigateur :<br/>
+              <a href="${verificationLink}" style="color: #10b981; text-decoration: none; word-break: break-all;">${verificationLink}</a>
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; border-top: 1px solid #1f2937; padding-top: 20px;">
+            <p style="margin: 0 0 10px 0;">Cet e-mail est automatique. Merci de ne pas y répondre directement.</p>
+            <p style="margin: 0; font-weight: bold; color: #9ca3af;">L'équipe SafeCallr</p>
+          </div>
+        </div>
+      `;
+
+      // Envoi de l'email via la collection "mail" pour l'extension Trigger Email OU via Resend directement
+      const apiKey = process.env.RESEND_API_KEY;
+      if (apiKey) {
+        try {
+          const resend = new Resend(apiKey);
+          const fromAddress = process.env.EMAIL_FROM_ADDRESS || "notifications@safecallr.com";
+          const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
+
+          await resend.emails.send({
+            from: `${fromName} <${fromAddress}>`,
+            to: email,
+            subject: subject,
+            html: html,
+            text: text
+          });
+
+          console.log(`[Verification] Email de vérification personnalisé envoyé avec succès à ${email} via Resend.`);
+        } catch (resendErr) {
+          console.error("[Verification] Échec de l'envoi via Resend d'Express, tentative de repli via Firestore...");
+          await db.collection("mail").add({
+            to: email,
+            message: { subject, html, text },
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      } else {
+        console.log(`[Verification] Pas de clé API Resend configurée. Enregistrement en brouillon dans Firestore mail...`);
+        await db.collection("mail").add({
+          to: email,
+          message: { subject, html, text },
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      return res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Verification] Erreur lors de la génération du lien / envoi de l'email :", err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // API: Fix Ulrich Vidal database record dynamically
   app.get("/api/admin/fix-ulrich-now", async (req, res) => {
     const logData: any = { timestamp: new Date().toISOString(), steps: [] };

@@ -191,5 +191,33 @@ export const emailService = {
     } catch (error) {
       console.error("Erreur d'envoi de la notification administrateur :", error);
     }
+  },
+
+  /**
+   * Envoie un email de vérification d'adresse e-mail personnalisé pour SafeCallr,
+   * en contactant l'API sécurisée du serveur.
+   */
+  async sendCustomVerificationEmail(email: string, firstName: string) {
+    try {
+      const response = await fetch("/api/send-custom-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, firstName })
+      });
+      if (!response.ok) {
+        throw new Error("HTTP status " + response.status);
+      }
+      console.log(`[EmailService] Custom verification email request successful for ${email}`);
+    } catch (err) {
+      console.error("[EmailService] Error calling custom verification API, falling back to default Firebase Auth:", err);
+      // Dynamically import to avoid top level import noise or cyclic dependencies
+      const { auth } = await import("../firebase");
+      const { sendEmailVerification } = await import("firebase/auth");
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+      }
+    }
   }
 };

@@ -33,8 +33,8 @@ export default function Auth() {
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
-        // Envoyer l'email de vérification
-        await sendEmailVerification(user);
+        // Envoyer l'email de vérification personnalisé SafeCallr
+        await emailService.sendCustomVerificationEmail(email, firstName);
 
         try {
           await setDoc(doc(db, "users", user.uid), {
