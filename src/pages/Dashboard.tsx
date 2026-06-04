@@ -14,6 +14,10 @@ export default function Dashboard({ user }: { user: any }) {
   const [loadingConnections, setLoadingConnections] = useState(true);
   const [showFloatingBanner, setShowFloatingBanner] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [userConnections, setUserConnections] = useState<any[]>([]);
+  const [personalContacts, setPersonalContacts] = useState<any[]>([]);
+  const [pros, setPros] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -154,12 +158,58 @@ export default function Dashboard({ user }: { user: any }) {
       setLoading(false);
     });
 
+    const qUserConn = query(
+      collection(db, "userConnections"),
+      where("userAId", "==", user.uid)
+    );
+    const qUserConnB = query(
+      collection(db, "userConnections"),
+      where("userBId", "==", user.uid)
+    );
+
+    const unsubscribeUserConnA = onSnapshot(qUserConn, (snapshot) => {
+      const connsA = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUserConnections(prev => {
+        const other = prev.filter(c => c.userBId === user.uid);
+        return [...connsA, ...other];
+      });
+    });
+
+    const unsubscribeUserConnB = onSnapshot(qUserConnB, (snapshot) => {
+      const connsB = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUserConnections(prev => {
+        const other = prev.filter(c => c.userAId === user.uid);
+        return [...other, ...connsB];
+      });
+    });
+
+    const qPerso = query(
+      collection(db, "personalContacts"),
+      where("ownerId", "==", user.uid)
+    );
+    const unsubscribePerso = onSnapshot(qPerso, (snapshot) => {
+      setPersonalContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubscribePros = onSnapshot(collection(db, "pros"), (snapshot) => {
+      setPros(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubscribeCompanies = onSnapshot(collection(db, "companies"), (snapshot) => {
+      setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubSent();
       unsubReceived();
       unsubConnections();
       unsubAuth();
       unsubPersoReq();
+      unsubscribeUserConnA();
+      unsubscribeUserConnB();
+      unsubscribePerso();
+      unsubscribePros();
+      unsubscribeCompanies();
     };
   }, [user]);
 
@@ -662,6 +712,52 @@ export default function Dashboard({ user }: { user: any }) {
                 requests.slice(0, 5).map((req) => {
                   const status = getStatusInfo(req.status);
                   const isSent = req.requesterId === user.uid;
+
+                  // Normalize targetPhone for comparison
+                  const normalizePhone = (phone: string | undefined | null) => {
+                    if (!phone) return "";
+                    let cleaned = phone.replace(/[\s\-\(\)\.]/g, "");
+                    if (cleaned.startsWith("+33")) {
+                      cleaned = "0" + cleaned.slice(3);
+                    } else if (cleaned.startsWith("33") && cleaned.length === 11) {
+                      cleaned = "0" + cleaned.slice(2);
+                    }
+                    return cleaned;
+                  };
+
+                  const cleanTargetPhone = normalizePhone(req.targetPhone);
+
+                  // A. Look up in pros & companies
+                  const matchedPro = pros.find(p => p.phone && normalizePhone(p.phone) === cleanTargetPhone);
+                  const matchedCompany = matchedPro?.companyId 
+                    ? companies.find(c => c.id === matchedPro.companyId) 
+                    : companies.find(c => c.phone && normalizePhone(c.phone) === cleanTargetPhone);
+
+                  let displayName = "";
+                  if (matchedCompany && matchedPro) {
+                    displayName = `${matchedCompany.name} (Contact: ${matchedPro.firstName} ${matchedPro.lastName})`;
+                  } else if (matchedCompany) {
+                    displayName = matchedCompany.name;
+                  } else if (matchedPro) {
+                    displayName = `${matchedPro.firstName} ${matchedPro.lastName}`;
+                  } else {
+                    // B. Look up in userConnections (verified personal)
+                    const matchedConn = userConnections.find(c => {
+                      const otherPhone = c.userAId === user.uid ? c.userBPhone : c.userAPhone;
+                      return otherPhone && normalizePhone(otherPhone) === cleanTargetPhone;
+                    });
+
+                    if (matchedConn) {
+                      displayName = matchedConn.userAId === user.uid ? matchedConn.userBName : matchedConn.userAName;
+                    } else {
+                      // C. Look up in personalContacts (manual personal)
+                      const matchedPerso = personalContacts.find(p => p.phone && normalizePhone(p.phone) === cleanTargetPhone);
+                      if (matchedPerso) {
+                        displayName = matchedPerso.name;
+                      }
+                    }
+                  }
+
                   return (
                     <Link 
                       key={req.id} to={`/request/${req.id}`}
@@ -673,11 +769,18 @@ export default function Dashboard({ user }: { user: any }) {
                         </div>
                         <div>
                           <h4 className="font-headline font-bold text-on-surface text-sm">
-                            {isSent ? req.targetPhone : req.requesterName}
+                            {isSent ? (displayName || req.targetPhone) : req.requesterName}
                           </h4>
-                          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                            {isSent ? `Envoi • ${req.type}` : `Réception • ${req.type}`}
-                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {isSent && displayName && (
+                              <p className="text-slate-400 text-[11px] font-semibold">
+                                {req.targetPhone}
+                              </p>
+                            )}
+                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                              {isSent ? `Envoi • ${req.type}` : `Réception • ${req.type}`}
+                            </p>
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">

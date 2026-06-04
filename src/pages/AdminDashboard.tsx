@@ -43,6 +43,7 @@ const chartData = [
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
+  const [resendConfigured, setResendConfigured] = useState<boolean | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [recentOrgs, setRecentOrgs] = useState<any[]>([]);
@@ -302,6 +303,17 @@ export default function AdminDashboard() {
 
         setOrganizations(orgs.slice(0, 5));
         setRecentOrgs(orgs.slice(0, 10));
+
+        // Check Resend Status
+        try {
+          const res = await fetch("/api/resend-status");
+          if (res.ok) {
+            const data = await res.json();
+            setResendConfigured(data.configured);
+          }
+        } catch (e) {
+          console.error("Error fetching resend status:", e);
+        }
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {
@@ -349,6 +361,33 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Notice of Missing Email Config (RESEND_API_KEY) */}
+        {resendConfigured === false && (
+          <div className="bg-[#ea580c]/10 border border-[#ea580c]/30 rounded-2xl p-6 flex gap-4 animate-in slide-in-from-top duration-300">
+            <div className="p-3 bg-[#ea580c]/10 text-[#ea580c] rounded-xl shrink-0 h-fit self-start">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-white text-base">Configuration des emails à finaliser (RESEND_API_KEY requis)</h4>
+              <p className="text-[#9a9a9f] text-sm leading-relaxed">
+                Vous n'avez pas encore configuré la clé d'environnement <code className="text-white bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs">RESEND_API_KEY</code> dans vos paramètres Google AI Studio. 
+                De ce fait, les e-mails réels (confirmations d'inscription, notifications, validations professionnelles) ne sont pas physiquement envoyés à vos destinataires.
+              </p>
+              <div className="text-[#9a9a9f] text-sm leading-relaxed space-y-1">
+                <p><strong>Pour activer les envois :</strong></p>
+                <ol className="list-decimal list-inside pl-1 space-y-1 text-slate-300">
+                  <li>Inscrivez-vous gratuitement sur <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline font-bold">Resend.com</a></li>
+                  <li>Copiez votre clé API de test ou de production</li>
+                  <li>Ouvrez l'onglet de configuration <strong>Secrets / Paramètres</strong> de Google AI Studio et définissez <code className="text-white bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs">RESEND_API_KEY="votre_cle"</code></li>
+                </ol>
+              </div>
+              <p className="text-xs text-[#9a9a9f] italic pt-1 border-t border-white/5">
+                Note : Pendant ce temps, par sécurité, tous les emails générés par vos utilisateurs et administrateurs sont conservés en file d'attente sous forme de brouillons dans la collection Firestore <code className="text-white bg-white/10 px-1 py-0.5 rounded font-mono text-xs">/mail</code>.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

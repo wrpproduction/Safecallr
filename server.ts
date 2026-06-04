@@ -4,6 +4,7 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import { Resend } from "resend";
 import { sendAdminNotification } from "./server/notify.js";
 import { getPlatformStats } from "./server/stats.js";
 import { EmailData } from "./src/lib/emailTemplates.js";
@@ -295,6 +296,70 @@ async function startServer() {
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // API: Status of Resend configuration
+  app.get("/api/resend-status", (req, res) => {
+    res.json({ configured: !!process.env.RESEND_API_KEY });
+  });
+
+  // API: Secure server-side Proxy for sending emails using Resend with direct Firestore /mail fallback
+  app.post("/api/send-email", async (req, res) => {
+    try {
+      const { to, subject, html, text } = req.body;
+
+      if (!to || !subject) {
+        return res.status(400).json({ error: "Les champs 'to' et 'subject' sont requis." });
+      }
+
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        console.warn("[Resend Backend] RESEND_API_KEY non configurée. Envoi direct via Resend désactivé.");
+        return res.json({ 
+          success: true, 
+          sentVia: "none", 
+          warning: "RESEND_API_KEY is not defined. The email will be generated via Firestore fallback." 
+        });
+      }
+
+      const resend = new Resend(apiKey);
+      const fromAddress = process.env.EMAIL_FROM_ADDRESS || "notifications@safecallr.com";
+      const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr Notifications";
+
+      console.log(`[Resend Backend] Tentative d'envoi d'un mail à : ${to} (Sujet : ${subject})`);
+      
+      const emailResult = await resend.emails.send({
+        from: `${fromName} <${fromAddress}>`,
+        to: to,
+        subject: subject,
+        html: html || text,
+        text: text || ""
+      });
+
+      console.log(`[Resend Backend] Mail envoyé avec succès à ${to} via Resend. ID:`, emailResult.data?.id);
+
+      // Tenter d'enregistrer l'audit log dans la collection Firestore mail si disponible (optionnel)
+      if (firebaseInitialized && db) {
+        try {
+          await db.collection("mail").add({
+            to,
+            message: { subject, html, text },
+            status: "sent",
+            sentVia: "resend",
+            resendId: emailResult.data?.id || "",
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (dbErr) {
+          // Ignorer l'erreur d'écriture en base de données si l'admin n'a pas les droits en écriture sur Firestore
+          console.warn("[Resend Backend] Sauvegarde de l'audit logFirestore ignorée (Droits Firestore Admin limités).");
+        }
+      }
+
+      return res.json({ success: true, sentVia: "resend", emailId: emailResult.data?.id });
+    } catch (err: any) {
+      console.error("[Resend Backend] Échec d'envoi d'email via l'API Resend:", err);
+      return res.status(500).json({ error: err.message, sentVia: "error" });
+    }
   });
 
   // API: Fix Ulrich Vidal database record dynamically
