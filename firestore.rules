@@ -54,7 +54,7 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow read: if isAuthenticated();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
@@ -62,7 +62,7 @@ service cloud.firestore {
 
     // Pros collection
     match /pros/{proId} {
-      allow read: if isAuthenticated() && (request.auth.uid == proId || isAdmin());
+      allow read: if isAuthenticated();
       allow create: if isOwner(proId);
       allow update: if isAdmin() || isOwner(proId);
       allow delete: if isAdmin();
