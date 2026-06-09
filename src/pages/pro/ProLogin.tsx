@@ -148,16 +148,29 @@ export default function ProLogin() {
           </button>
         </form>
 
-        <div className="mt-10 pt-8 border-t border-surface-container-highest text-center">
-          <p className="text-on-surface-variant text-sm">
-            Pas encore de compte professionnel ?
-          </p>
-          <Link
-            to="/pro/register"
-            className="inline-block mt-3 text-primary font-bold hover:underline underline-offset-4"
-          >
-            S'inscrire gratuitement
-          </Link>
+        <div className="mt-10 pt-8 border-t border-surface-container-highest text-center space-y-4">
+          <div>
+            <p className="text-on-surface-variant text-sm">
+              Président, Cadre ou Professionnel Solo ?
+            </p>
+            <Link
+              to="/pro/register"
+              className="inline-block mt-2 text-primary font-bold hover:underline underline-offset-4"
+            >
+              S'inscrire comme Professionnel Solo
+            </Link>
+          </div>
+          <div className="pt-4 border-t border-dashed border-surface-container-highest/50">
+            <p className="text-on-surface-variant text-sm">
+              Sécuriser les collaborateurs de votre entreprise ?
+            </p>
+            <Link
+              to="/business/register"
+              className="inline-block mt-2 text-emerald-400 font-bold hover:underline underline-offset-4"
+            >
+              Créer un Espace SafeCallr Business
+            </Link>
+          </div>
         </div>
       </div>
       
