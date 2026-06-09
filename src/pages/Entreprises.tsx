@@ -161,13 +161,13 @@ export default function Entreprises() {
                         <div className="text-[10px] text-slate-500 uppercase tracking-widest">Compte certifié</div>
                       </div>
                     </Link>
-                    <Link to="/company-contact" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
+                    <Link to="/business/register" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                         <Banknote className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Vous êtes une entreprise</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Nous contacter</div>
+                        <div className="text-sm font-bold font-headline">Vous êtes une entreprise</div>
+                        <div className="text-[10px] text-primary uppercase tracking-widest font-bold">Créer mon organisation en ligne</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -210,11 +210,14 @@ export default function Entreprises() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="flex flex-col items-center gap-4 mb-20"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
           >
-            <Link to="/company-contact" className="w-full sm:w-auto bg-primary text-on-primary px-12 py-6 rounded-2xl font-headline font-black text-xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+            <Link to="/business/register" className="w-full sm:w-auto bg-[#3DFFA0] text-[#0F1B3D] px-10 py-5 rounded-2xl font-headline font-black text-lg shadow-2xl shadow-[#3DFFA0]/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+              Créer votre espace Business
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link to="/company-contact" className="w-full sm:w-auto bg-slate-900 border border-white/5 hover:bg-slate-800 text-slate-300 px-10 py-5 rounded-2xl font-headline font-semibold text-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
               Contacter un expert
-              <ArrowRight className="w-6 h-6" />
             </Link>
           </motion.div>
         </div>

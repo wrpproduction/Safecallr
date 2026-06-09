@@ -39,6 +39,7 @@ import BusinessAdminDashboard from "./pages/business/AdminDashboard";
 import BusinessAdminMembers from "./pages/business/AdminMembers";
 import BusinessAdminHistory from "./pages/business/AdminHistory";
 import BusinessAdminSettings from "./pages/business/AdminSettings";
+import BusinessRegister from "./pages/business/BusinessRegister";
 import AdminBusinessBilling from "./pages/admin/AdminBusinessBilling";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
@@ -261,6 +262,7 @@ export default function App() {
           <Route path="/admin/business/billing" element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
           
           {/* SafeCallr Business Administrator Routes */}
+          <Route path="/business/register" element={<BusinessRegister />} />
           <Route path="/business/admin/dashboard" element={<BusinessAdminDashboard />} />
           <Route path="/business/admin/members" element={<BusinessAdminMembers />} />
           <Route path="/business/admin/history" element={<BusinessAdminHistory />} />
