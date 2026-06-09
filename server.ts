@@ -1113,7 +1113,7 @@ ${pages.map(page => `
         firstName: repData.firstName,
         lastName: repData.lastName,
         email: repData.email,
-        role: "representative",
+        role: orgData.type === "business" ? "admin" : "representative",
         status: "active",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         createdBy: callerUid

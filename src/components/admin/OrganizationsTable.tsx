@@ -31,10 +31,21 @@ export default function OrganizationsTable({ organizations, onAction }: Organiza
                     <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
                   </div>
                   <div>
-                    <Link to={`/admin/organizations/${org.id}`} className="text-white font-bold hover:text-primary transition-colors block">
-                      {org.name}
-                    </Link>
-                    <p className="text-xs text-slate-500">Représentant ID: {org.representativeUserId?.substring(0, 8)}...</p>
+                    <div className="flex items-center gap-2">
+                      <Link to={`/admin/organizations/${org.id}`} className="text-white font-bold hover:text-primary transition-colors block">
+                        {org.name}
+                      </Link>
+                      {org.type === "business" ? (
+                        <span className="inline-flex px-1.5 py-0.5 bg-[#3dffa0]/10 text-[#3dffa0] text-[8px] font-black uppercase tracking-widest rounded border border-[#3dffa0]/25">
+                          Business
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded border border-blue-500/25">
+                          Institution
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Représentant ID: {org.representativeUserId?.substring(0, 8)}...</p>
                   </div>
                 </div>
               </td>

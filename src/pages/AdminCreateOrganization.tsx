@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  X
+  X,
+  ShieldCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth, getIdToken, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
@@ -25,6 +26,7 @@ import DynamicList from "../components/DynamicList";
 
 // Validation Schema
 const schema = z.object({
+  type: z.enum(["institution", "business"]),
   name: z.string().min(1, "Nom requis"),
   siret: z.string().length(14, "Le SIRET doit faire 14 chiffres").regex(/^[0-9]+$/, "Chiffres uniquement"),
   streetNumber: z.string().optional(),
@@ -58,6 +60,7 @@ export default function AdminCreateOrganization() {
     resolver: zodResolver(schema),
     mode: "onChange",
     defaultValues: {
+      type: "institution",
       primaryColor: "#22C55E",
       trustMessage: "Le Crédit Mutuel ne vous demandera jamais vos codes par téléphone"
     }
@@ -130,7 +133,8 @@ export default function AdminCreateOrganization() {
             trustMessage: data.trustMessage,
             officialPhones: officialPhones.filter(p => p.trim() !== ""),
             allowedEmailDomains: allowedDomains.filter(d => d.trim() !== ""),
-            active: true
+            active: true,
+            type: data.type
           },
           repData: {
             firstName: data.repFirstName,
@@ -213,6 +217,46 @@ export default function AdminCreateOrganization() {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* SELECTION DU TYPE */}
+          <section className="bg-[#1e1e22] border border-[#2e2e34] rounded-[32px] p-8 space-y-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <ShieldCheck size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-white">Usage & modèle de protection</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className={`flex flex-col p-6 rounded-2xl border-2 cursor-pointer transition-all ${watch("type") === "institution" ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-400 hover:border-slate-700"}`}>
+                <input 
+                  type="radio" 
+                  value="institution" 
+                  {...register("type")} 
+                  className="sr-only" 
+                />
+                <span className="font-extrabold text-sm block mb-1">Institution Publique (Vérification Externe)</span>
+                <span className="text-[11px] leading-relaxed text-slate-400">
+                  Idéal pour les banques, assurances ou marques (ex: Crédit Mutuel). Les clients finaux utilisent l'application grand public pour authentifier vos conseillers lors d'un appel téléphonique.
+                </span>
+              </label>
+
+              <label className={`flex flex-col p-6 rounded-2xl border-2 cursor-pointer transition-all ${watch("type") === "business" ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-400 hover:border-slate-700"}`}>
+                <input 
+                  type="radio" 
+                  value="business" 
+                  {...register("type")} 
+                  className="sr-only" 
+                />
+                <span className="font-extrabold text-sm block mb-1 text-[#3dffa0] flex items-center gap-2">
+                  Espace Business (Sécurité Interne)
+                </span>
+                <span className="text-[11px] leading-relaxed text-slate-400">
+                  Idéal pour les entreprises voulant protéger leurs collaborateurs en interne. Solution confidentielle opérée en circuit fermé : les salariés s'identifient mutuellement pour faire échec au spoofing et fraude au président.
+                </span>
+              </label>
+            </div>
+          </section>
+
           {/* SECTION 1: LEGAL */}
           <section className="bg-[#1e1e22] border border-[#2e2e34] rounded-[32px] p-8 space-y-6 shadow-xl">
             <div className="flex items-center gap-3 mb-2">
