@@ -27,6 +27,7 @@ const navItems = [
   { label: "Entreprises", icon: Building2, path: "/admin/companies" },
   { label: "Demandes", icon: History, path: "/admin/requests" },
   { label: "Alertes", icon: AlertCircle, path: "/admin/alerts" },
+  { label: "Business", icon: ShieldCheck, path: "/admin/business/billing" },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

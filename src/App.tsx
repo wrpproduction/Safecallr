@@ -33,6 +33,13 @@ import MeHistory from "./pages/me/MeHistory";
 import Unauthorized from "./pages/Unauthorized";
 import OrgAuthRequestDetails from "./pages/OrgAuthRequestDetails";
 import InstitutionErrorPage from "./pages/InstitutionErrorPage";
+
+// SafeCallr Business Administrator Pages
+import BusinessAdminDashboard from "./pages/business/AdminDashboard";
+import BusinessAdminMembers from "./pages/business/AdminMembers";
+import BusinessAdminHistory from "./pages/business/AdminHistory";
+import BusinessAdminSettings from "./pages/business/AdminSettings";
+import AdminBusinessBilling from "./pages/admin/AdminBusinessBilling";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
 import SEOManager from "./components/seo/SEOManager";
@@ -251,6 +258,13 @@ export default function App() {
           <Route path="/admin/organizations" element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/new" element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
+          <Route path="/admin/business/billing" element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
+          
+          {/* SafeCallr Business Administrator Routes */}
+          <Route path="/business/admin/dashboard" element={<BusinessAdminDashboard />} />
+          <Route path="/business/admin/members" element={<BusinessAdminMembers />} />
+          <Route path="/business/admin/history" element={<BusinessAdminHistory />} />
+          <Route path="/business/admin/settings" element={<BusinessAdminSettings />} />
           
           <Route path="/dashboard/:orgId" element={renderProtectedRoute(RepDashboard)} />
           <Route path="/me" element={renderProtectedRoute(MeDashboard)} />
