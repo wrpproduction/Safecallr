@@ -38,7 +38,8 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, getDoc, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
 import AuditLogTimeline from "../components/admin/AuditLogTimeline";
 import DangerZone from "../components/admin/DangerZone";
@@ -61,11 +62,81 @@ export default function AdminOrganizationDetail() {
     if (!id) return;
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      const response = await fetch(`/api/admin/organizations/${id}`, {
-        headers: { 'Authorization': `Bearer ${idToken}` }
-      });
-      if (!response.ok) throw new Error("Organisation non trouvée");
-      const data = await response.json();
+      let apiSuccess = false;
+      let data: any = null;
+
+      try {
+        const response = await fetch(`/api/admin/organizations/${id}`, {
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+        const contentType = response.headers.get("content-type");
+        if (response.ok && contentType && contentType.includes("application/json")) {
+          data = await response.json();
+          apiSuccess = true;
+        } else {
+          console.warn("API returned non-json/error space. Falling back to direct client-side Firestore load.");
+        }
+      } catch (apiErr) {
+        console.warn("API fetch error, falling back to direct client-side Firestore load:", apiErr);
+      }
+
+      if (!apiSuccess) {
+        // Direct Firestore fallback
+        const orgDoc = await getDoc(doc(db, "organizations", id));
+        if (!orgDoc.exists()) throw new Error("Organisation non trouvée");
+        
+        const orgData = orgDoc.data();
+        
+        let totalMembers = 0;
+        let activeMembers = 0;
+        try {
+          const membersSnap = await getDocs(collection(db, "organizations", id, "members"));
+          totalMembers = membersSnap.size;
+          activeMembers = membersSnap.docs.filter(d => d.data().status === "active").length;
+        } catch (mErr) {
+          console.warn("Direct members read failed:", mErr);
+        }
+
+        let totalAuthRequests = 0;
+        try {
+          const authSnap = await getDocs(collection(db, "organizations", id, "authRequests"));
+          totalAuthRequests = authSnap.size;
+        } catch (aErr) {
+          console.warn("Direct authRequests read failed:", aErr);
+        }
+
+        let auditLog: any[] = [];
+        try {
+          const auditSnap = await getDocs(query(collection(db, "organizations", id, "auditLog"), orderBy("createdAt", "desc"), limit(10)));
+          auditLog = auditSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (auErr) {
+          console.warn("Direct auditLog read failed:", auErr);
+        }
+
+        let representative = null;
+        const repUid = orgData?.representativeUserId;
+        if (repUid) {
+          try {
+            const repDoc = await getDoc(doc(db, "organizations", id, "members", repUid));
+            representative = repDoc.exists() ? repDoc.data() : null;
+          } catch (rErr) {
+            console.warn("Direct representative read failed:", rErr);
+          }
+        }
+
+        data = {
+          ...orgData,
+          id: orgDoc.id,
+          stats: {
+            totalMembers,
+            activeMembers,
+            totalAuthRequests
+          },
+          auditLog,
+          representative
+        };
+      }
+
       setOrg(data);
       setLegalData({
         name: data.name,
@@ -76,9 +147,9 @@ export default function AdminOrganizationDetail() {
         city: data.city || "",
         allowedEmailDomains: data.allowedEmailDomains
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Erreur de chargement");
+      toast.error(err.message || "Erreur de chargement");
     } finally {
       setLoading(false);
     }

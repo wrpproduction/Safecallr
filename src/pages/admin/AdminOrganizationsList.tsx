@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
 import OrganizationsTable from "../../components/admin/OrganizationsTable";
-import { auth } from "../../firebase";
+import { auth, db, collection, getDocs, query, orderBy } from "../../firebase";
 
 export default function AdminOrganizationsList() {
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -25,16 +25,33 @@ export default function AdminOrganizationsList() {
     setError(null);
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      const response = await fetch('/api/admin/organizations', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
+      let apiSuccess = false;
+
+      try {
+        const response = await fetch('/api/admin/organizations', {
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          }
+        });
+        const contentType = response.headers.get("content-type");
+        if (response.ok && contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          setOrganizations(data);
+          apiSuccess = true;
+        } else {
+          console.warn("API returned invalid status or content type. Falling back to direct client-side Firestore query.");
         }
-      });
-      if (!response.ok) throw new Error("Erreur lors de la récupération des organisations");
-      const data = await response.json();
-      setOrganizations(data);
+      } catch (apiErr) {
+        console.warn("API fetch error, falling back to direct client-side Firestore query:", apiErr);
+      }
+
+      if (!apiSuccess) {
+        const querySnapshot = await getDocs(query(collection(db, "organizations"), orderBy("createdAt", "desc")));
+        const orgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setOrganizations(orgs);
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erreur lors de la récupération des organisations");
     } finally {
       setLoading(false);
     }
