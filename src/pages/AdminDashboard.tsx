@@ -214,11 +214,22 @@ export default function AdminDashboard() {
           const orgsResponse = await fetch('/api/admin/organizations', {
             headers: { 'Authorization': `Bearer ${idToken}` }
           });
-          if (orgsResponse.ok) {
+          const ct = orgsResponse.headers.get("content-type");
+          if (orgsResponse.ok && ct && ct.includes("application/json")) {
             orgs = await orgsResponse.json();
+          } else {
+            console.warn("Orgs API returned non-json/error, falling back to direct Firestore query.");
+            const querySnapshot = await getDocs(query(collection(db, "organizations"), orderBy("createdAt", "desc")));
+            orgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           }
         } catch (orgsApiErr) {
           console.warn("Orgs API failed, using direct Firestore fallback:", orgsApiErr);
+          try {
+            const querySnapshot = await getDocs(query(collection(db, "organizations"), orderBy("createdAt", "desc")));
+            orgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          } catch (dbErr) {
+            console.error("Direct Firestore fallback also failed:", dbErr);
+          }
         }
 
         // Fetch recent requests for global vision
