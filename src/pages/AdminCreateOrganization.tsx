@@ -145,7 +145,16 @@ export default function AdminCreateOrganization() {
         })
       });
 
-      const result = await response.json();
+      let result: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON Response received:", text);
+        throw new Error(`Le serveur d'arrière-plan a renvoyé une réponse non-JSON (Status ${response.status}). Le serveur a peut-être planté ou n'est pas joignable.`);
+      }
+
       console.log("Create Org Response:", result);
 
       if (!response.ok) {
@@ -179,12 +188,23 @@ export default function AdminCreateOrganization() {
               <AlertCircle size={20} />
               <p className="text-sm font-bold">{error}</p>
             </div>
-            {(error.includes("permissions") || error.includes("JSON") || error.includes("403")) && (
-              <div className="pl-8 text-xs text-error/80 leading-relaxed space-y-1">
-                <p>💡 <strong>Note d'administration :</strong> Le serveur d'arrière-plan ne parvient pas à se connecter à Firebase ou à créer l'utilisateur.</p>
-                <p>Veuillez accorder les rôles <strong>Propriétaire Cloud Datastore</strong>, <strong>Consommateur de Service Usage</strong> et <strong>Administrateur Firebase</strong> au compte de service SafeCallr :</p>
-                <code className="block bg-black/40 p-2 rounded mt-1 select-all font-mono text-[10px] text-white">ais-sandbox@ais-europe-west3-afdcc131abb34.iam.gserviceaccount.com</code>
-                <p className="text-[10px] mt-1">Configurez cette règle sur <a href="https://console.cloud.google.com/iam-admin/iam?project=gen-lang-client-0258611834" target="_blank" rel="noopener noreferrer" className="underline font-bold">la console Google Cloud IAM</a> de votre projet.</p>
+            {(error.includes("permissions") || error.includes("JSON") || error.includes("403") || error.includes("non-JSON") || error.includes("planté")) && (
+              <div className="pl-8 text-xs text-error/80 leading-relaxed space-y-2 mt-2">
+                <p>💡 <strong>Note d'administration importante :</strong> Le serveur d'arrière-plan ou votre plateforme d'authentification a rencontré un problème d'autorisation Firebase.</p>
+                
+                <div className="space-y-1.5 border-l-2 border-error/30 pl-3">
+                  <p className="font-bold text-white">1. Si vous testez depuis l'aperçu AI Studio :</p>
+                  <p>Veuillez accorder les rôles <strong>Propriétaire Cloud Datastore</strong>, <strong>Consommateur de Service Usage</strong> et <strong>Administrateur Firebase</strong> au compte de service de la Sandbox :</p>
+                  <code className="block bg-black/40 p-2 rounded mt-1 select-all font-mono text-[10px] text-white">ais-sandbox@ais-europe-west3-afdcc131abb34.iam.gserviceaccount.com</code>
+                </div>
+
+                <div className="space-y-1.5 border-l-2 border-orange-500/30 pl-3 mt-3">
+                  <p className="font-bold text-orange-400">2. Si vous testez sur votre propre domaine de production ({window.location.hostname}) :</p>
+                  <p>Votre service de production Cloud Run s'exécute sous le <strong>compte de service par défaut de calcul de Google Cloud</strong> de votre projet (généralement <code className="text-white select-all">N_PROJET-compute@developer.gserviceaccount.com</code>).</p>
+                  <p>Vous devez également accorder ces 3 rôles (<strong>Propriétaire Cloud Datastore</strong> et <strong>Administrateur Firebase</strong>) à votre propre compte de service de production.</p>
+                </div>
+
+                <p className="text-[10px] pt-1">Configurez ces autorisations sur <a href="https://console.cloud.google.com/iam-admin/iam?project=gen-lang-client-0258611834" target="_blank" rel="noopener noreferrer" className="underline font-bold text-white hover:text-primary">votre console Google Cloud IAM</a> (ID Projet: <code className="text-white">gen-lang-client-0258611834</code>).</p>
               </div>
             )}
           </div>
