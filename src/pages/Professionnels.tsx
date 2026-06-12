@@ -60,13 +60,19 @@ export default function Professionnels() {
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Prouver son identité à ses clients au téléphone"
-        description="Banquiers, notaires, gestionnaires de patrimoine : prouvez à vos clients que c'est bien vous au téléphone. SafeCallr Pro rend l'usurpation de votre identité professionnelle impossible et complète Sécur'Pass."
+        title="Prouver votre identité professionnelle à vos clients au téléphone"
+        description="Banquiers, notaires, gestionnaires de patrimoine et conseillers : prouvez en temps réel à vos clients que c'est bien vous au téléphone. SafeCallr Pro élimine l'usurpation de votre identité professionnelle."
+        keywords={["usurpation conseiller bancaire", "fraude au faux conseiller", "authentification professionnelle téléphone", "spoofing notaire", "vishing", "sécuriser appels clients", "conseiller financier", "gérant de patrimoine", "SafeCallr Pro"]}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebPage",
           "name": "Professionnels - SafeCallr Pro",
-          "description": "Banquiers, notaires, gestionnaires de patrimoine : prouvez à vos clients que c'est bien vous au téléphone.",
+          "description": "Banquiers, notaires, gestionnaires de patrimoine : prouvez à vos clients de manière infalsifiable que c'est bien vous qui les appelez.",
+          "inLanguage": "fr-FR",
+          "publisher": {
+            "@type": "Organization",
+            "name": "SafeCallr"
+          },
           "keywords": "usurpation conseiller bancaire, fraude au faux conseiller, authentification professionnelle téléphone, spoofing notaire, vishing, sécuriser appels clients"
         }}
       />

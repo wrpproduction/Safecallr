@@ -62,14 +62,20 @@ export default function Particuliers() {
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Vérifier qu'un appel vient bien d'un proche"
-        description="Et si la voix au téléphone n'était pas celle de votre proche ? SafeCallr vous permet de confirmer en un geste l'identité de vos proches lors d'un appel. Protégez votre famille contre l'usurpation et les arnaques téléphoniques."
+        title="Sécuriser vos proches contre l'usurpation & les arnaques vocales"
+        description="Et si la voix au téléphone n'était pas celle de votre proche ? SafeCallr vous permet de confirmer l'dentité de vos proches en un geste lors d'un appel téléphonique. Protégez votre famille contre l'usurpation, la fraude vocale par IA (deepfake) et le spoofing."
+        keywords={["arnaque téléphonique", "usurpation d'identité au téléphone", "vérifier un appel", "protéger ses proches", "fraude au faux proche", "deepfake voix", "spoofing vocal", "sécurité téléphonique", "SafeCallr"]}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebPage",
           "name": "Particuliers - SafeCallr",
-          "description": "Protégez votre famille et vos proches contre le spoofing et la fraude téléphonique de faux conseillers.",
-          "keywords": "arnaque téléphonique, usurpation d'identité au téléphone, vérifier un appel, protéger ses proches, fraude au faux proche, deepfake voix"
+          "description": "Protégez votre famille et vos proches contre le spoofing et la fraude téléphonique de faux conseillers ou faux proches.",
+          "inLanguage": "fr-FR",
+          "publisher": {
+            "@type": "Organization",
+            "name": "SafeCallr"
+          },
+          "keywords": "arnaque téléphonique, usurpation d'identité au téléphone, vérifier un appel, protéger ses proches, fraude au faux proche, deepfake voix, spoofing"
         }}
       />
 

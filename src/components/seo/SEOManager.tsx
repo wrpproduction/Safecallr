@@ -8,6 +8,7 @@ interface SEOProps {
   ogImage?: string;
   noIndex?: boolean;
   jsonLd?: object | object[];
+  keywords?: string | string[];
 }
 
 export default function SEOManager({
@@ -17,7 +18,8 @@ export default function SEOManager({
   ogType = 'website',
   ogImage = 'https://safecallr.com/og-image.png', // Fallback
   noIndex = false,
-  jsonLd
+  jsonLd,
+  keywords
 }: SEOProps) {
   const siteName = "SafeCallr";
   const fullTitle = `${title} | ${siteName}`;
@@ -28,6 +30,9 @@ export default function SEOManager({
       <html lang="fr" />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
+      {keywords && (
+        <meta name="keywords" content={Array.isArray(keywords) ? keywords.join(', ') : keywords} />
+      )}
       <link rel="canonical" href={url} />
       <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow"} />
 

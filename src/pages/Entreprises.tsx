@@ -60,14 +60,20 @@ export default function Entreprises() {
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Stopper la fraude au président en interne"
-        description="Validez en interne l'identité de vos dirigeants et collaborateurs avant tout virement ou décision sensible. SafeCallr Entreprise neutralise la fraude au président et l'usurpation interne en un geste."
+        title="Protéger votre entreprise contre la fraude au président & usurpation"
+        description="Validez en interne l'identité de vos dirigeants et collaborateurs avant tout virement ou décision critique. SafeCallr Entreprise neutralise la fraude au président (FOVI), l'usurpation d'identité interne et l'ingénierie sociale en un geste."
+        keywords={["fraude au président", "arnaque au faux dirigeant", "sécuriser virements internes", "usurpation CEO", "validation trésorerie", "fraude au faux RH", "FOVI", "ingénierie sociale", "sécurité financière entreprise", "SafeCallr Entreprise"]}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebPage",
           "name": "Entreprises - SafeCallr Entreprise",
-          "description": "Validez en interne l'identité de vos dirigeants et collaborateurs avant tout virement ou décision sensible.",
-          "keywords": "fraude au président, arnaque au faux dirigeant, sécuriser virements internes, usurpation CEO, validation trésorerie, fraude au faux RH, FOVI"
+          "description": "Validez en interne l'identité de vos dirigeants et collaborateurs avant tout virement ou décision stratégique.",
+          "inLanguage": "fr-FR",
+          "publisher": {
+            "@type": "Organization",
+            "name": "SafeCallr"
+          },
+          "keywords": "fraude au président, arnaque au faux dirigeant, sécuriser virements internes, usurpation CEO, validation trésorerie, fraude au faux RH, FOVI, ingénierie sociale"
         }}
       />
 
