@@ -134,9 +134,19 @@ export default function AdminOrganizationsList() {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 text-sm">
-            <AlertCircle size={18} />
-            {error}
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col gap-2 text-red-500 text-sm">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={18} />
+              <span className="font-bold">{error}</span>
+            </div>
+            {(error.includes("permissions") || error.includes("JSON") || error.includes("403")) && (
+              <div className="pl-7 text-xs text-red-400/80 leading-relaxed space-y-1">
+                <p>💡 <strong>Note d'administration :</strong> Le serveur d'arrière-plan ne parvient pas à accéder à votre base de données.</p>
+                <p>Veuillez accorder les rôles <strong>Propriétaire Cloud Datastore</strong>, <strong>Consommateur de Service Usage</strong> et <strong>Administrateur Firebase</strong> au compte de service SafeCallr :</p>
+                <code className="block bg-black/40 p-2 rounded mt-1 select-all font-mono text-[10px] text-white">ais-sandbox@ais-europe-west3-afdcc131abb34.iam.gserviceaccount.com</code>
+                <p className="text-[10px] mt-1 text-slate-400">Pour ce faire, rendez-vous sur <a href="https://console.cloud.google.com/iam-admin/iam?project=gen-lang-client-0258611834" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">la console Google Cloud IAM</a> de votre projet et ajoutez ce membre.</p>
+              </div>
+            )}
           </div>
         )}
 

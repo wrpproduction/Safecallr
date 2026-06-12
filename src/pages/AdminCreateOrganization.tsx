@@ -174,9 +174,19 @@ export default function AdminCreateOrganization() {
         </header>
 
         {error && (
-          <div className="bg-error/10 border border-error/20 p-4 rounded-xl flex items-center gap-3 text-error animate-in zoom-in duration-300">
-            <AlertCircle size={20} />
-            <p className="text-sm font-bold">{error}</p>
+          <div className="bg-error/10 border border-error/20 p-5 rounded-2xl flex flex-col gap-2 text-error animate-in zoom-in duration-300">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={20} />
+              <p className="text-sm font-bold">{error}</p>
+            </div>
+            {(error.includes("permissions") || error.includes("JSON") || error.includes("403")) && (
+              <div className="pl-8 text-xs text-error/80 leading-relaxed space-y-1">
+                <p>💡 <strong>Note d'administration :</strong> Le serveur d'arrière-plan ne parvient pas à se connecter à Firebase ou à créer l'utilisateur.</p>
+                <p>Veuillez accorder les rôles <strong>Propriétaire Cloud Datastore</strong>, <strong>Consommateur de Service Usage</strong> et <strong>Administrateur Firebase</strong> au compte de service SafeCallr :</p>
+                <code className="block bg-black/40 p-2 rounded mt-1 select-all font-mono text-[10px] text-white">ais-sandbox@ais-europe-west3-afdcc131abb34.iam.gserviceaccount.com</code>
+                <p className="text-[10px] mt-1">Configurez cette règle sur <a href="https://console.cloud.google.com/iam-admin/iam?project=gen-lang-client-0258611834" target="_blank" rel="noopener noreferrer" className="underline font-bold">la console Google Cloud IAM</a> de votre projet.</p>
+              </div>
+            )}
           </div>
         )}
 

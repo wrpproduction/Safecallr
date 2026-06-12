@@ -155,7 +155,8 @@ service cloud.firestore {
 
     // Organizations
     match /organizations/{orgId} {
-      allow read: if isOrgMember(orgId);
+      allow get: if isOrgMember(orgId);
+      allow list: if isAdmin();
       allow update: if isOrgMember(orgId);
       allow create, delete: if isAdmin();
       

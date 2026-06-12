@@ -76,8 +76,27 @@ const projectId = config.projectId || process.env.FIREBASE_PROJECT_ID || process
 try {
   if (projectId) {
     if (!admin.apps.length) {
+      let credential = undefined;
+      const saKeyPath = path.join(process.cwd(), "firebase-service-account.json");
+      if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        try {
+          credential = admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY));
+          console.log("[Firebase] Initialisation avec clé de compte de service (Env).");
+        } catch (err: any) {
+          console.error("[Firebase] Clé de compte de service dans l'env invalide:", err.message);
+        }
+      } else if (fs.existsSync(saKeyPath)) {
+        try {
+          credential = admin.credential.cert(JSON.parse(fs.readFileSync(saKeyPath, "utf-8")));
+          console.log("[Firebase] Initialisation avec clé de compte de service (Fichier).");
+        } catch (err: any) {
+          console.error("[Firebase] Fichier de compte de service invalide:", err.message);
+        }
+      }
+
       admin.initializeApp({
         projectId: projectId,
+        ...(credential ? { credential } : {})
       });
     }
     const dbId = process.env.FIRESTORE_DB_ID || config.firestoreDatabaseId || "(default)";
