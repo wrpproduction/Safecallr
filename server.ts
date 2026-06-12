@@ -18,6 +18,16 @@ process.on("uncaughtException", (error) => {
   console.error("[Anti-Crash] Uncaught Exception:", error);
 });
 
+// Force NODE_ENV to production if executing the bundled output (CJS) or inside dist folder
+const isProductionBundle = 
+  (typeof __filename !== "undefined" && (__filename.endsWith(".cjs") || __filename.includes("dist"))) ||
+  (process.env.NODE_ENV === "production");
+
+if (isProductionBundle) {
+  process.env.NODE_ENV = "production";
+  console.log("[Environment] Production bundle detected. NODE_ENV has been forced to production.");
+}
+
 // Handle ESM and CommonJS path resolution gracefully
 let resolvedFilename = "";
 let resolvedDirname = "";
