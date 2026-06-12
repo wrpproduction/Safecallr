@@ -18,6 +18,15 @@ process.on("uncaughtException", (error) => {
   console.error("[Anti-Crash] Uncaught Exception:", error);
 });
 
+// Helper function to safely write files on filesystems which may be read-only (e.g., serverless environments)
+function safeWriteFileSync(filePath: string, content: string) {
+  try {
+    fs.writeFileSync(filePath, content);
+  } catch (err: any) {
+    console.warn(`[SafeWrite Warning] Could not write file to ${filePath}: ${err.message}`);
+  }
+}
+
 // Force NODE_ENV to production if executing the bundled output (CJS) or inside dist folder
 const isProductionBundle = 
   (typeof __filename !== "undefined" && (__filename.endsWith(".cjs") || __filename.includes("dist"))) ||
@@ -415,7 +424,7 @@ async function startServer() {
           }
         }
 
-        fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
+        safeWriteFileSync(logPath, JSON.stringify(logData, null, 2));
         console.log("=== STARTUP FIX ULRICH COMPLETED, RESULTS WRITTEN TO ulrich-fix-log.json ===");
       } catch (err: any) {
         console.error("Global Startup Fix Error:", err);
@@ -1139,11 +1148,11 @@ ${pages.map(page => `
       } = req.body;
 
       logSteps.push(`Received payload. OrgName: ${orgData?.name}, Siret: ${orgData?.siret}, RepEmail: ${repData?.email}`);
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       if (!idToken) {
         logSteps.push("Error: No idToken provided");
-        fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+        safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
         return res.status(401).json({ error: "Non authentifié" });
       }
 
@@ -1153,7 +1162,7 @@ ${pages.map(page => `
       const callerUid = decodedToken.uid;
       const callerEmail = decodedToken.email;
       logSteps.push(`Caller verified: ${callerEmail} (UID: ${callerUid})`);
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       const superAdmins = [
         "xdcam10@gmail.com",
@@ -1167,7 +1176,7 @@ ${pages.map(page => `
       
       if (!isAdminEmail && !adminDoc.exists) {
         logSteps.push(`Access denied for ${callerEmail}`);
-        fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+        safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
         return res.status(403).json({ error: "Accès refusé. Réservé aux super-administrateurs." });
       }
 
@@ -1188,7 +1197,7 @@ ${pages.map(page => `
       const siretSnapshot = await db.collection("organizations").where("siret", "==", orgData.siret).limit(1).get();
       if (!siretSnapshot.empty) {
         logSteps.push(`Error: SIRET ${orgData?.siret} already exists`);
-        fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+        safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
         return res.status(400).json({ error: "Une organisation avec ce SIRET existe déjà." });
       }
 
@@ -1197,7 +1206,7 @@ ${pages.map(page => `
       try {
         await admin.auth().getUserByEmail(repData.email);
         logSteps.push(`Error: Representative email ${repData?.email} already exists`);
-        fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+        safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
         return res.status(400).json({ error: "L'email du représentant est déjà utilisé." });
       } catch (authErr: any) {
         // User not found is what we want
@@ -1222,7 +1231,7 @@ ${pages.map(page => `
       });
       const repUid = userRecord.uid;
       logSteps.push(`Auth user created with UID ${repUid}`);
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       // 6. Envoi lien d'activation (Enregistré dans la collection mail pour extension Trigger Email)
       logSteps.push(`Generating password reset link for ${repData?.email}...`);
@@ -1236,7 +1245,7 @@ ${pages.map(page => `
         activationLink = `https://safecallr.com/reset-password?email=${encodeURIComponent(repData.email)}`;
       }
       console.log(`Lien d'activation pour ${repData.email}: ${activationLink}`);
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       logSteps.push("Adding entry to mail collection...");
       try {
@@ -1262,7 +1271,7 @@ ${pages.map(page => `
       } catch (mailErr: any) {
         logSteps.push(`Warning: mail collection add failed: ${mailErr.message}. Continuing transaction anyway...`);
       }
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       // 7. Transactionnelle : Création documents Firestore
       logSteps.push("Setting up batch write...");
@@ -1304,7 +1313,7 @@ ${pages.map(page => `
       logSteps.push("Committing batch write...");
       await batch.commit();
       logSteps.push("Batch transaction committed successfully!");
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       res.json({ success: true, orgId, activationLink });
 
@@ -1312,7 +1321,7 @@ ${pages.map(page => `
       console.error("Create Org Error:", error);
       logSteps.push(`CRITICAL ERROR: ${error.message}`);
       if (error.stack) logSteps.push(`STACK: ${error.stack}`);
-      fs.writeFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps, error: error.message }, null, 2));
+      safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps, error: error.message }, null, 2));
       res.status(500).json({ error: error.message || "Erreur lors de la création de l'organisation" });
     }
   });
