@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { auth, getIdToken, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
 import DynamicList from "../components/DynamicList";
+import { getApiUrl } from "../lib/api";
 
 // Validation Schema
 const schema = z.object({
@@ -116,7 +117,7 @@ export default function AdminCreateOrganization() {
       }
 
       // 2. Call our priviledged API
-      const response = await fetch("/api/admin/create-organization", {
+      const response = await fetch(getApiUrl("/api/admin/create-organization"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
