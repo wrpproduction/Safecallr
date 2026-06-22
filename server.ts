@@ -227,20 +227,39 @@ async function verifyAdmin(idToken: string) {
   ];
 
   const isAdminEmail = superAdmins.includes(callerEmail || "");
-  const adminDoc = await db.collection("admins").doc(callerUid).get();
+  let adminExists = false;
+
+  if (!isAdminEmail) {
+    try {
+      const adminDoc = await db.collection("admins").doc(callerUid).get();
+      adminExists = adminDoc.exists;
+    } catch (dbErr: any) {
+      console.warn("[verifyAdmin] Failed to read admins collection from Firestore:", dbErr.message);
+    }
+  } else {
+    adminExists = true;
+  }
   
-  if (!isAdminEmail && !adminDoc.exists) {
+  if (!isAdminEmail && !adminExists) {
     throw new Error("Accès refusé. Réservé aux super-administrateurs.");
   }
 
-  // Auto-promouvoir en admin si email présent dans la liste
-  if (isAdminEmail && !adminDoc.exists) {
-    await db.collection("admins").doc(callerUid).set({
-      uid: callerUid,
-      email: callerEmail,
-      role: "admin",
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+  // Auto-promouvoir en admin si email présent dans la liste (non bloquant en cas d'erreur de droits)
+  if (isAdminEmail) {
+    try {
+      const adminDoc = await db.collection("admins").doc(callerUid).get();
+      if (!adminDoc.exists) {
+        await db.collection("admins").doc(callerUid).set({
+          uid: callerUid,
+          email: callerEmail,
+          role: "admin",
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log(`Utilisateur ${callerEmail} promu admin dans Firestore.`);
+      }
+    } catch (err: any) {
+      console.warn("[verifyAdmin] Failed code auto-promote admin update (continuing anyway since email is in whitelist):", err.message);
+    }
   }
 
   return { uid: callerUid, email: callerEmail || "" };
@@ -1175,24 +1194,43 @@ ${pages.map(page => `
       ];
 
       const isAdminEmail = superAdmins.includes(callerEmail || "");
-      const adminDoc = await db.collection("admins").doc(callerUid).get();
+      let adminExists = false;
+
+      if (!isAdminEmail) {
+        try {
+          const adminDoc = await db.collection("admins").doc(callerUid).get();
+          adminExists = adminDoc.exists;
+        } catch (dbErr: any) {
+          logSteps.push(`Database check failed for non-admin: ${dbErr.message}`);
+          console.warn("[create-organization] Failed to read admins collection:", dbErr.message);
+        }
+      } else {
+        adminExists = true;
+      }
       
-      if (!isAdminEmail && !adminDoc.exists) {
+      if (!isAdminEmail && !adminExists) {
         logSteps.push(`Access denied for ${callerEmail}`);
         safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
         return res.status(403).json({ error: "Accès refusé. Réservé aux super-administrateurs." });
       }
 
       // Si c'est un super-admin par email mais pas encore dans la collection admins, on l'ajoute
-      if (isAdminEmail && !adminDoc.exists) {
-        logSteps.push(`Adding ${callerEmail} to admins collection...`);
-        await db.collection("admins").doc(callerUid).set({
-          uid: callerUid,
-          email: callerEmail,
-          role: "admin",
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        console.log(`Utilisateur ${callerEmail} promu admin dans Firestore.`);
+      if (isAdminEmail) {
+        try {
+          const adminDoc = await db.collection("admins").doc(callerUid).get();
+          if (!adminDoc.exists) {
+            logSteps.push(`Adding ${callerEmail} to admins collection...`);
+            await db.collection("admins").doc(callerUid).set({
+              uid: callerUid,
+              email: callerEmail,
+              role: "admin",
+              createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`Utilisateur ${callerEmail} promu admin dans Firestore.`);
+          }
+        } catch (err: any) {
+          logSteps.push(`Warning: could not promote admin in Firestore: ${err.message}`);
+        }
       }
 
       // 2. Vérifier si le SIRET existe déjà
@@ -1836,6 +1874,15 @@ ${pages.map(page => `
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Global Error Handler Middleware to guarantee ALL server crashes return a clean JSON payload rather than default Express HTML
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("[Global Error Middleware] Caught uncaught error:", err);
+    res.status(err.status || 500).json({
+      error: err.message || "Erreur serveur interne",
+      code: err.code || "INTERNAL_SERVER_ERROR"
+    });
+  });
 
   if (!process.env.VERCEL) {
     app.listen(PORT, "0.0.0.0", () => {
