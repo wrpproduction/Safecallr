@@ -115,96 +115,102 @@ try {
     console.log(`[Firebase] Initialisé avec Succès. Project: ${projectId}, Database: ${dbId}`);
 
     // CENTRALE SHADOW AUTH: Rendre toutes les requêtes admin.auth() résilientes aux erreurs IAM 403 (Service Usage API / Identity Toolkit)
-    const originalAuth = admin.auth;
-    const shadowAuth = originalAuth();
-    
-    // Sauvegarder les méthodes d'origine
-    const origVerify = shadowAuth.verifyIdToken.bind(shadowAuth);
-    const origGetUser = shadowAuth.getUserByEmail.bind(shadowAuth);
-    const origCreateUser = shadowAuth.createUser.bind(shadowAuth);
-    const origResetLink = shadowAuth.generatePasswordResetLink.bind(shadowAuth);
-    const origDeleteUser = shadowAuth.deleteUser.bind(shadowAuth);
-    const origUpdateUser = shadowAuth.updateUser.bind(shadowAuth);
+    if (!(admin.auth as any).isShadowWrapped) {
+      const originalAuth = admin.auth;
+      const shadowAuth = originalAuth();
+      
+      // Sauvegarder les méthodes d'origine
+      const origVerify = shadowAuth.verifyIdToken.bind(shadowAuth);
+      const origGetUser = shadowAuth.getUserByEmail.bind(shadowAuth);
+      const origCreateUser = shadowAuth.createUser.bind(shadowAuth);
+      const origResetLink = shadowAuth.generatePasswordResetLink.bind(shadowAuth);
+      const origDeleteUser = shadowAuth.deleteUser.bind(shadowAuth);
+      const origUpdateUser = shadowAuth.updateUser.bind(shadowAuth);
 
-    shadowAuth.verifyIdToken = async (token: string, ...args: any[]) => {
-      try {
-        return await origVerify(token, ...args);
-      } catch (err: any) {
-        console.warn("[Shadow Auth] verifyIdToken failed, falling back to offline JWT payload decoding:", err.message);
-        const parts = token.split(".");
-        if (parts.length === 3) {
-          try {
-            const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
-            return {
-              ...payload,
-              uid: payload.user_id || payload.uid,
-              email: payload.email
-            };
-          } catch (jwtErr: any) {
-            console.error("[Shadow Auth] Failed to parse JWT payload:", jwtErr.message);
+      shadowAuth.verifyIdToken = async (token: string, ...args: any[]) => {
+        try {
+          return await origVerify(token, ...args);
+        } catch (err: any) {
+          console.warn("[Shadow Auth] verifyIdToken failed, falling back to offline JWT payload decoding:", err.message);
+          const parts = token.split(".");
+          if (parts.length === 3) {
+            try {
+              const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
+              return {
+                ...payload,
+                uid: payload.user_id || payload.uid,
+                email: payload.email
+              };
+            } catch (jwtErr: any) {
+              console.error("[Shadow Auth] Failed to parse JWT payload:", jwtErr.message);
+            }
           }
+          throw err;
         }
-        throw err;
-      }
-    };
+      };
 
-    shadowAuth.getUserByEmail = async (email: string, ...args: any[]) => {
-      try {
-        return await origGetUser(email, ...args);
-      } catch (err: any) {
-        console.warn("[Shadow Auth] getUserByEmail failed for " + email + ", checking local Firestore index fallback:", err.message);
-        const snap = await db.collection("users").where("email", "==", email).limit(1).get();
-        if (!snap.empty) {
-          const doc = snap.docs[0];
-          return { uid: doc.id, email: doc.data().email } as any;
+      shadowAuth.getUserByEmail = async (email: string, ...args: any[]) => {
+        try {
+          return await origGetUser(email, ...args);
+        } catch (err: any) {
+          console.warn("[Shadow Auth] getUserByEmail failed for " + email + ", checking local Firestore index fallback:", err.message);
+          const snap = await db.collection("users").where("email", "==", email).limit(1).get();
+          if (!snap.empty) {
+            const doc = snap.docs[0];
+            return { uid: doc.id, email: doc.data().email } as any;
+          }
+          throw { code: "auth/user-not-found", message: "User not found (Shadow Auth Fallback)" };
         }
-        throw { code: "auth/user-not-found", message: "User not found (Shadow Auth Fallback)" };
-      }
-    };
+      };
 
-    shadowAuth.createUser = async (properties: any, ...args: any[]) => {
-      try {
-        return await origCreateUser(properties, ...args);
-      } catch (err: any) {
-        console.warn("[Shadow Auth] createUser failed, creating deterministic user representation:", err.message);
-        const uid = "rep_" + Buffer.from(properties.email || `${Date.now()}`).toString("hex").substring(0, 20);
-        return {
-          uid,
-          email: properties.email,
-          displayName: properties.displayName
-        } as any;
-      }
-    };
+      shadowAuth.createUser = async (properties: any, ...args: any[]) => {
+        try {
+          return await origCreateUser(properties, ...args);
+        } catch (err: any) {
+          console.warn("[Shadow Auth] createUser failed, creating deterministic user representation:", err.message);
+          const uid = "rep_" + Buffer.from(properties.email || `${Date.now()}`).toString("hex").substring(0, 20);
+          return {
+            uid,
+            email: properties.email,
+            displayName: properties.displayName
+          } as any;
+        }
+      };
 
-    shadowAuth.generatePasswordResetLink = async (email: string, ...args: any[]) => {
-      try {
-        return await origResetLink(email, ...args);
-      } catch (err: any) {
-        console.warn("[Shadow Auth] generatePasswordResetLink failed, creating a working local fallback URL:", err.message);
-        return `https://safecallr.com/reset-password?email=${encodeURIComponent(email)}&sandbox=true`;
-      }
-    };
+      shadowAuth.generatePasswordResetLink = async (email: string, ...args: any[]) => {
+        try {
+          return await origResetLink(email, ...args);
+        } catch (err: any) {
+          console.warn("[Shadow Auth] generatePasswordResetLink failed, creating a working local fallback URL:", err.message);
+          return `https://safecallr.com/reset-password?email=${encodeURIComponent(email)}&sandbox=true`;
+        }
+      };
 
-    shadowAuth.deleteUser = async (uid: string, ...args: any[]) => {
-      try {
-        await origDeleteUser(uid, ...args);
-      } catch (err: any) {
-        console.warn("[Shadow Auth] deleteUser skipped (sandbox fallback):", err.message);
-      }
-    };
+      shadowAuth.deleteUser = async (uid: string, ...args: any[]) => {
+        try {
+          await origDeleteUser(uid, ...args);
+        } catch (err: any) {
+          console.warn("[Shadow Auth] deleteUser skipped (sandbox fallback):", err.message);
+        }
+      };
 
-    shadowAuth.updateUser = async (uid: string, properties: any, ...args: any[]) => {
-      try {
-        return await origUpdateUser(uid, properties, ...args);
-      } catch (err: any) {
-        console.warn("[Shadow Auth] updateUser skipped (sandbox fallback):", err.message);
-        return {} as any;
-      }
-    };
+      shadowAuth.updateUser = async (uid: string, properties: any, ...args: any[]) => {
+        try {
+          return await origUpdateUser(uid, properties, ...args);
+        } catch (err: any) {
+          console.warn("[Shadow Auth] updateUser skipped (sandbox fallback):", err.message);
+          return {} as any;
+        }
+      };
 
-    // Remplacer centralement admin.auth pour renvoyer le shadow réutilisable
-    admin.auth = (() => shadowAuth) as any;
-    console.log("[Shadow Auth] Le système d'interception d'authentification résilient est parfaitement connecté.");
+      // Remplacer centralement admin.auth pour renvoyer le shadow réutilisable
+      const wrappedAuth = () => shadowAuth;
+      (wrappedAuth as any).isShadowWrapped = true;
+      admin.auth = wrappedAuth as any;
+      console.log("[Shadow Auth] Le système d'interception d'authentification résilient est parfaitement connecté.");
+    } else {
+      console.log("[Shadow Auth] Déjà connecté, saut de l'interception.");
+    }
 
   } else {
     console.warn("[Firebase] Aucun PROJECT ID trouvé. Le SDK Admin Firebase est inactif.");
@@ -2004,12 +2010,18 @@ ${pages.map(page => `
   return app;
 }
 
-let appInstance: any = null;
+let appInstancePromise: Promise<any> | null = null;
+
 export async function getExpressApp() {
-  if (!appInstance) {
-    appInstance = await startServer();
+  if (!appInstancePromise) {
+    appInstancePromise = startServer();
   }
-  return appInstance;
+  return appInstancePromise;
 }
 
-startServer();
+// Seulement en environnement autonome (ex: Cloud Run, Local), on déclenche l'écoute automatique
+if (!process.env.VERCEL) {
+  getExpressApp().catch((err) => {
+    console.error("[Startup] Échec lors du démarrage automatique de l'application Express:", err);
+  });
+}
