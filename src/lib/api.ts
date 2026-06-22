@@ -9,7 +9,7 @@
  * environment variable to point to your Cloud Run active endpoint (e.g., https://safecallr-app-xxx.run.app).
  */
 export function getApiUrl(path: string): string {
-  const baseUrl = (import.meta.env.VITE_API_URL as string) || "";
+  const baseUrl = ((import.meta as any).env?.VITE_API_URL as string) || "";
   
   if (!baseUrl) {
     return path;

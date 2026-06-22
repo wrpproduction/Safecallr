@@ -1832,12 +1832,14 @@ ${pages.map(page => `
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Serveur SafeCallr démarré sur http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Serveur SafeCallr démarré sur http://localhost:${PORT}`);
+    });
+  }
 
   // --- TRIGGERS NOTIFICATIONS ADMIN ---
-  if (firebaseInitialized && db) {
+  if (firebaseInitialized && db && !process.env.VERCEL) {
     const startTime = Date.now();
     console.log("[Triggers] Démarrage des listeners de notification...");
 
@@ -1945,8 +1947,17 @@ ${pages.map(page => `
       }
     }, (err) => console.error("[Trigger Error] Members:", err));
   } else {
-    console.warn("[Triggers] Les listeners de notification Admin ont été désactivés (Firebase inactif).");
+    console.warn("[Triggers] Les listeners de notification Admin ont été désactivés (Firebase inactif / Vercel détecté).");
   }
+  return app;
+}
+
+let appInstance: any = null;
+export async function getExpressApp() {
+  if (!appInstance) {
+    appInstance = await startServer();
+  }
+  return appInstance;
 }
 
 startServer();
