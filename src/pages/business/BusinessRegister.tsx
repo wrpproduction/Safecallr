@@ -132,6 +132,7 @@ export default function BusinessRegister() {
       const userRef = doc(db, "users", user.uid);
       await setDoc(userRef, {
         uid: user.uid,
+        userClass: "professional",
         firstName,
         lastName,
         displayName: `${firstName} ${lastName}`,

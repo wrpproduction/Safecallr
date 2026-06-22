@@ -406,6 +406,7 @@ async function startServer() {
             const newUserData = {
               uid: createdAuth.uid,
               id: createdAuth.uid,
+              userClass: "individual",
               firstName: "Ulrich",
               lastName: "Vidal",
               displayName: "Ulrich Vidal",
@@ -825,6 +826,7 @@ async function startServer() {
           await db.collection("users").doc(targetUid).set({
             uid: targetUid,
             id: targetUid,
+            userClass: "individual",
             firstName: proDocData?.firstName || "Ulrich",
             lastName: proDocData?.lastName || "Vidal",
             displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
@@ -873,6 +875,7 @@ async function startServer() {
         await db.collection("users").doc(createdAuth.uid).set({
           uid: createdAuth.uid,
           id: createdAuth.uid,
+          userClass: "individual",
           firstName: "Ulrich",
           lastName: "Vidal",
           displayName: "Ulrich Vidal",
@@ -1300,6 +1303,7 @@ ${pages.map(page => `
       batch.set(db.collection("users").doc(repUid), {
         uid: repUid,
         orgId: orgId,
+        userClass: "professional",
         firstName: repData.firstName,
         lastName: repData.lastName,
         displayName: `${repData.firstName} ${repData.lastName}`,
@@ -1580,6 +1584,7 @@ ${pages.map(page => `
       batch.set(db.collection("users").doc(memberUid), {
         uid: memberUid,
         orgId: orgId,
+        userClass: "professional",
         firstName: memberData.firstName,
         lastName: memberData.lastName,
         displayName: `${memberData.firstName} ${memberData.lastName}`,

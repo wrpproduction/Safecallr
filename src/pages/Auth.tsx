@@ -41,6 +41,7 @@ export default function Auth() {
         try {
           await setDoc(doc(db, "users", user.uid), {
             uid: user.uid,
+            userClass: "individual",
             firstName,
             lastName,
             displayName: `${firstName} ${lastName}`,
@@ -111,6 +112,7 @@ export default function Auth() {
       try {
         await setDoc(doc(db, "users", result.user.uid), {
           uid: result.user.uid,
+          userClass: "individual",
           displayName: result.user.displayName || "Utilisateur SafeCallr",
           email: result.user.email,
           photoURL: result.user.photoURL,
