@@ -258,7 +258,7 @@ async function createAuditLog(orgId: string, actor: { uid: string, email: string
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  const PORT = 3000;
 
   // AUTO-RUN STARTUP FIX FOR ULRICH VIDAL (Déclenché en arrière-plan pour ne pas bloquer le démarrage du serveur)
   if (firebaseInitialized && db) {
