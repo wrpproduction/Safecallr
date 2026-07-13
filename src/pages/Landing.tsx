@@ -94,6 +94,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             <a href="#solution" className="hover:text-primary transition-colors">Solution</a>
             <a href="#for-whom" className="hover:text-primary transition-colors">Pour qui</a>
             <a href="#differentiation" className="hover:text-primary transition-colors">Différence</a>
+            <Link to="/actualite" className="hover:text-primary transition-colors">Actualités</Link>
           </div>
           <div className="flex items-center gap-3 md:gap-6">
             {/* Connexion Dropdown */}
