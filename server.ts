@@ -5,9 +5,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import { Resend } from "resend";
-import { sendAdminNotification } from "./server/notify.js";
-import { getPlatformStats } from "./server/stats.js";
-import { EmailData } from "./src/lib/emailTemplates.js";
+import { sendAdminNotification } from "./server/notify";
+import { getPlatformStats } from "./server/stats";
+import { EmailData } from "./src/lib/emailTemplates";
 
 // Global process exception handlers to prevent any unhandled error from crashing the server
 process.on("unhandledRejection", (reason, promise) => {
@@ -283,7 +283,7 @@ async function createAuditLog(orgId: string, actor: { uid: string, email: string
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // AUTO-RUN STARTUP FIX FOR ULRICH VIDAL (Déclenché en arrière-plan pour ne pas bloquer le démarrage du serveur)
   if (firebaseInitialized && db) {
@@ -469,6 +469,74 @@ async function startServer() {
   // API: Status of Resend configuration
   app.get("/api/resend-status", (req, res) => {
     res.json({ configured: !!process.env.RESEND_API_KEY });
+  });
+
+  // API: AI-powered blog post generation with Gemini (SEO & GEO optimized)
+  app.post("/api/generate-blog-post", async (req, res) => {
+    try {
+      const { topic, category, targetLocation, keywords } = req.body;
+      if (!topic) {
+        return res.status(400).json({ error: "Le champ 'topic' (sujet) est requis." });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ 
+          error: "La clé API Gemini (GEMINI_API_KEY) n'est pas configurée. Veuillez l'ajouter dans les paramètres secrets." 
+        });
+      }
+
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({ apiKey });
+
+      const prompt = `Vous êtes un expert de haut niveau en cybersécurité, en référencement naturel (SEO) et en marketing de contenu géolocalisé pour SafeCallr.
+SafeCallr est une solution révolutionnaire d'authentification humaine d'appels téléphoniques (double authentification humaine / 2FA par téléphone pour lutter contre le spoofing, l'usurpation d'identité et les fraudes de type "faux conseiller bancaire" ou "fraude au président").
+
+Rédigez un article de blog complet, captivant et extrêmement informatif sur le sujet suivant : "${topic}".
+La catégorie ciblée est : ${category === "grand_public" ? "Grand Public (Particuliers)" : "Professionnels & Entreprises"}.
+${targetLocation ? `La zone géographique ciblée (pour optimisation GEO SEO locale) est : ${targetLocation}. Intégrez des mentions, anecdotes locales ou conseils spécifiques à cette région/ville de façon naturelle et experte.` : ""}
+${keywords ? `Intégrez de manière fluide et optimale pour le référencement ces mots-clés : ${keywords}.` : ""}
+
+Consignes de rédaction :
+- Rédigez le contenu complet en Markdown propre avec des titres clairs (H2, H3), des listes à puces et des paragraphes espacés.
+- Le ton doit être professionnel, rassurant, expert et didactique. Expliquez comment SafeCallr résout le problème posé dans l'article.
+- La "metaTitle" sera optimisée pour le SEO (moins de 60 caractères) et servira d'URL/slug.
+- La "metaDescription" doit faire moins de 160 caractères et inciter au clic sur les moteurs de recherche.
+
+Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              title: { type: 'STRING', description: "Titre SEO accrocheur de l'article" },
+              content: { type: 'STRING', description: "Contenu complet au format Markdown avec des titres (H2, H3) et paragraphes." },
+              summary: { type: 'STRING', description: "Résumé court (2-3 phrases) pour l'affichage des cartes d'aperçu" },
+              metaTitle: { type: 'STRING', description: "Titre SEO optimal (moins de 60 caractères)" },
+              metaDescription: { type: 'STRING', description: "Description SEO optimale (moins de 160 caractères)" },
+              seoKeywords: { type: 'STRING', description: "Mots-clés SEO séparés par des virgules" },
+              geoTargeting: { type: 'STRING', description: "Zone géographique ou portée ciblée" }
+            },
+            required: ['title', 'content', 'summary', 'metaTitle', 'metaDescription', 'seoKeywords', 'geoTargeting']
+          }
+        }
+      });
+
+      const text = response.text;
+      if (!text) {
+        throw new Error("Aucune réponse générée par l'IA.");
+      }
+
+      const articleData = JSON.parse(text);
+      return res.json(articleData);
+    } catch (err: any) {
+      console.error("[Gemini Generate Article Error]:", err);
+      return res.status(500).json({ error: `Erreur d'IA : ${err.message}` });
+    }
   });
 
   // API: Secure server-side Proxy for sending emails using Resend with direct Firestore /mail fallback
@@ -1280,7 +1348,7 @@ ${pages.map(page => `
       logSteps.push(`Auth user created with UID ${repUid}`);
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
-      // 6. Envoi lien d'activation (Enregistré dans la collection mail pour extension Trigger Email)
+      // 6. Envoi lien d'activation (En Resend direct avec fallback en collection mail pour Firestore extension)
       logSteps.push(`Generating password reset link for ${repData?.email}...`);
       let activationLink = "";
       try {
@@ -1294,29 +1362,79 @@ ${pages.map(page => `
       console.log(`Lien d'activation pour ${repData.email}: ${activationLink}`);
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
-      logSteps.push("Adding entry to mail collection...");
-      try {
-        await db.collection("mail").add({
-          to: repData.email,
-          message: {
-            subject: `Bienvenue sur SafeCallr - Activation de votre compte ${orgData.name}`,
-            html: `
-              <h1>Bienvenue sur SafeCallr</h1>
-              <p>Bonjour ${repData.firstName},</p>
-              <p>Votre organisation <strong>${orgData.name}</strong> a été enregistrée avec succès sur le protocole SafeCallr.</p>
-              <p>Pour activer votre compte de représentant et définir votre mot de passe, veuillez cliquer sur le lien ci-dessous :</p>
-              <p><a href="${activationLink}">${activationLink}</a></p>
-              <p>Ce lien expirera prochainement.</p>
-              <p>L'équipe SafeCallr</p>
-            `,
-          },
-          orgId: orgId,
-          type: "invitation",
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        logSteps.push("Mail document successfully added.");
-      } catch (mailErr: any) {
-        logSteps.push(`Warning: mail collection add failed: ${mailErr.message}. Continuing transaction anyway...`);
+      const orgMailSubject = `Bienvenue sur SafeCallr - Activation de votre compte ${orgData.name}`;
+      const orgMailHtml = `
+        <div style="font-family: sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+          <h1 style="color: #10b981; font-size: 24px; margin-bottom: 20px;">Bienvenue sur SafeCallr</h1>
+          <p>Bonjour ${repData.firstName},</p>
+          <p>Votre organisation <strong>${orgData.name}</strong> a été enregistrée avec succès sur le protocole SafeCallr.</p>
+          <p>Pour activer votre compte de représentant et définir votre mot de passe, veuillez cliquer sur le bouton ci-dessous :</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${activationLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Activer mon compte</a>
+          </div>
+          <p style="font-size: 13px; color: #666; margin-top: 30px;">Si le bouton ne fonctionne pas, vous pouvez copier-coller ce lien de secours dans votre navigateur :</p>
+          <p style="font-size: 13px; color: #10b981; word-break: break-all;"><a href="${activationLink}" style="color: #10b981;">${activationLink}</a></p>
+          <p style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #999;">L'équipe SafeCallr</p>
+        </div>
+      `;
+      const orgMailText = `
+        Bienvenue sur SafeCallr
+        
+        Bonjour ${repData.firstName},
+        
+        Votre organisation ${orgData.name} a été enregistrée avec succès sur le protocole SafeCallr.
+        
+        Pour activer votre compte de représentant et définir votre mot de passe, veuillez ouvrir le lien ci-dessous dans votre navigateur :
+        ${activationLink}
+        
+        L'équipe SafeCallr
+      `;
+
+      // Dual sending system (Resend API first, Firestore mail collection fallback)
+      logSteps.push("Attempting to send activation email...");
+      const apiKey = process.env.RESEND_API_KEY;
+      let emailSentDirectly = false;
+
+      if (apiKey) {
+        try {
+          const resend = new Resend(apiKey);
+          const fromAddress = process.env.EMAIL_FROM_ADDRESS || "contact@safecallr.com";
+          const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
+
+          await resend.emails.send({
+            from: `${fromName} <${fromAddress}>`,
+            to: repData.email,
+            subject: orgMailSubject,
+            html: orgMailHtml,
+            text: orgMailText
+          });
+          logSteps.push(`Success: Activation email sent directly via Resend to ${repData.email}`);
+          console.log(`[Create Org Mail] Mail envoyé directement avec succès à ${repData.email} via Resend.`);
+          emailSentDirectly = true;
+        } catch (resendErr: any) {
+          logSteps.push(`Warning: Resend direct email failed: ${resendErr.message}. Falling back to Firestore mail collection...`);
+          console.error("[Create Org Mail] Échec Resend, repli vers Firestore mail...", resendErr);
+        }
+      }
+
+      if (!emailSentDirectly) {
+        logSteps.push("Adding entry to Firestore 'mail' collection as fallback...");
+        try {
+          await db.collection("mail").add({
+            to: repData.email,
+            message: {
+              subject: orgMailSubject,
+              html: orgMailHtml,
+              text: orgMailText
+            },
+            orgId: orgId,
+            type: "invitation",
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          logSteps.push("Fallback: Mail document successfully added to Firestore.");
+        } catch (mailErr: any) {
+          logSteps.push(`Warning: mail collection add fallback failed: ${mailErr.message}. Continuing transaction anyway...`);
+        }
       }
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 

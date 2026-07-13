@@ -19,9 +19,11 @@ import {
   BarChart3,
   Check,
   XCircle,
-  ChevronDown
+  ChevronDown,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { db, collection, getDocs, query, where } from "../firebase";
 
 export default function Landing({ persona, legal }: { persona?: string; legal?: string }) {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -40,6 +42,40 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const [latestArticles, setLatestArticles] = useState<any[]>([]);
+  const [blogLoading, setBlogLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestArticles = async () => {
+      try {
+        const q = query(
+          collection(db, "articles"),
+          where("published", "==", true)
+        );
+        const querySnapshot = await getDocs(q);
+        const items: any[] = [];
+        querySnapshot.forEach((doc) => {
+          items.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Sort by date manually and take first 3
+        items.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+
+        setLatestArticles(items.slice(0, 3));
+      } catch (err) {
+        console.error("Error loading latest articles:", err);
+      } finally {
+        setBlogLoading(false);
+      }
+    };
+
+    fetchLatestArticles();
   }, []);
 
   return (
@@ -652,6 +688,91 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             <div className="text-xs font-black uppercase tracking-widest">La confiance doit se prouver</div>
             <div className="text-xs font-black uppercase tracking-widest">Chaque appel mérite une preuve</div>
           </div>
+        </div>
+      </section>
+
+      {/* Blog / Actualités Section */}
+      <section className="py-32 px-6 border-t border-white/5 bg-[#08080a]">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-4 max-w-xl">
+              <span className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-widest text-primary">
+                Actualités & Vigilance
+              </span>
+              <h2 className="font-headline font-black text-4xl md:text-6xl tracking-tight text-white">
+                Dossiers & <span className="text-primary">Prévention</span>
+              </h2>
+              <p className="text-slate-400 text-sm md:text-base">
+                Découvrez nos derniers décryptages d'arnaques téléphoniques et conseils d'experts pour vous protéger, vous et votre organisation.
+              </p>
+            </div>
+            <Link 
+              to="/actualite" 
+              className="text-sm font-bold uppercase tracking-widest text-primary hover:text-white flex items-center gap-2 transition-colors shrink-0"
+            >
+              Voir tous les articles <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {blogLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : latestArticles.length === 0 ? (
+            <div className="text-center py-12 bg-surface-container-low border border-white/5 rounded-3xl text-slate-500 text-sm">
+              Aucun article de vigilance n'est publié pour le moment.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {latestArticles.map((art) => (
+                <div 
+                  key={art.id}
+                  className="bg-surface-container-low border border-white/5 hover:border-white/10 rounded-3xl overflow-hidden shadow-xl flex flex-col group transition-all duration-300"
+                >
+                  <Link to={`/actualite/${art.metaTitle}`} className="flex flex-col h-full">
+                    <div className="h-48 relative overflow-hidden bg-slate-950">
+                      <img 
+                        src={art.imageUrl || "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80"} 
+                        alt={art.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                        art.category === "grand_public" 
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" 
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                      }`}>
+                        {art.category === "grand_public" ? "Grand Public" : "Professionnel"}
+                      </span>
+                    </div>
+
+                    <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                      <div>
+                        <h3 className="font-bold text-lg text-white leading-snug line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+                          {art.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                          {art.summary}
+                        </p>
+                      </div>
+
+                      <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-medium shrink-0">
+                        {art.geoTargeting ? (
+                          <span className="flex items-center gap-1 text-primary font-bold uppercase">
+                            <Globe size={10} /> {art.geoTargeting}
+                          </span>
+                        ) : (
+                          <span></span>
+                        )}
+                        <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-primary font-bold uppercase tracking-wider">
+                          Lire <ArrowRight size={10} />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

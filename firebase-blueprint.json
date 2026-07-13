@@ -267,9 +267,33 @@
         "details": { "type": "object" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "articles": {
+      "title": "Article de Blog/Actualités",
+      "description": "Article rédigé et publié pour le blog/actualités de SafeCallr, optimisé pour le référencement SEO/GEO.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "summary": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string", "enum": ["grand_public", "professionnel"] },
+        "published": { "type": "boolean" },
+        "metaTitle": { "type": "string" },
+        "metaDescription": { "type": "string" },
+        "seoKeywords": { "type": "string" },
+        "geoTargeting": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "summary", "category", "published", "metaTitle", "metaDescription"]
     }
   },
   "firestore": {
+    "/articles/{articleId}": {
+      "schema": "articles",
+      "description": "Articles du blog d'actualités SafeCallr pour le SEO/GEO."
+    },
     "/users/{userId}": {
       "schema": "users",
       "description": "Données privées de l'utilisateur."

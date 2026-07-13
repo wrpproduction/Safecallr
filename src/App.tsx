@@ -27,6 +27,9 @@ import AdminAlerts from "./pages/AdminAlerts";
 import AdminOrganizationsList from "./pages/admin/AdminOrganizationsList";
 import AdminCreateOrganization from "./pages/AdminCreateOrganization";
 import AdminOrganizationDetail from "./pages/AdminOrganizationDetail";
+import AdminBlog from "./pages/admin/AdminBlog";
+import Actualites from "./pages/Actualites";
+import ArticleDetail from "./pages/ArticleDetail";
 import RepDashboard from "./pages/RepDashboard";
 import MeDashboard from "./pages/me/MeDashboard";
 import MeHistory from "./pages/me/MeHistory";
@@ -225,6 +228,9 @@ export default function App() {
             </>
           } />
 
+          <Route path="/actualite" element={<Actualites />} />
+          <Route path="/actualite/:slug" element={<ArticleDetail />} />
+
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/auth" element={user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Auth />} />
@@ -256,6 +262,7 @@ export default function App() {
           <Route path="/admin/requests" element={<AdminProtectedRoute><AdminRequests /></AdminProtectedRoute>} />
           <Route path="/admin/pros" element={<AdminProtectedRoute><AdminPros /></AdminProtectedRoute>} />
           <Route path="/admin/alerts" element={<AdminProtectedRoute><AdminAlerts /></AdminProtectedRoute>} />
+          <Route path="/admin/blog" element={<AdminProtectedRoute><AdminBlog /></AdminProtectedRoute>} />
           <Route path="/admin/organizations" element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/new" element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
