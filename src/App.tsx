@@ -54,8 +54,10 @@ import Particuliers from "./pages/Particuliers";
 import Professionnels from "./pages/Professionnels";
 import Entreprises from "./pages/Entreprises";
 
+import { Capacitor } from "@capacitor/core";
+
 // Register Service Worker
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
   registerSW({
     onNeedRefresh() {
       console.log('App needs refresh');
@@ -119,6 +121,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fail-safe timeout to dismiss the splash loading spinner after 6 seconds
+    const timeoutId = setTimeout(() => {
+      setLoading((prevLoading) => {
+        if (prevLoading) {
+          console.warn("[SafeCallr] Startup loading timed out. Forcing app initialization.");
+          return false;
+        }
+        return prevLoading;
+      });
+    }, 6000);
+
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       try {
         if (authUser) {
@@ -136,9 +149,14 @@ export default function App() {
         setUser(authUser ? { ...authUser } : null);
       } finally {
         setLoading(false);
+        clearTimeout(timeoutId);
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   if (loading) {

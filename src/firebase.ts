@@ -1,8 +1,9 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, getIdToken } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup as fbSignInWithPopup, signOut, onAuthStateChanged, getIdToken } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
+import { Capacitor } from "@capacitor/core";
 
 // Configuration Firebase
 // Note: Dans cet environnement, on utilise le fichier de config injecté
@@ -14,23 +15,89 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Safe wrapper for Google popup sign in to prevent crashes on native Capacitor platforms
+export const signInWithPopup = async (authInstance: any, provider: any) => {
+  if (Capacitor.isNativePlatform()) {
+    throw new Error(
+      "La connexion par popup Google n'est pas prise en charge sur l'application mobile native. " +
+      "Veuillez utiliser la connexion par e-mail et mot de passe."
+    );
+  }
+  return fbSignInWithPopup(authInstance, provider);
+};
+
 // Messaging (FCM)
 let fcmMessaging: any = null;
-if (typeof window !== "undefined") {
+
+const canUseWebFCM = async (): Promise<boolean> => {
+  if (typeof window === "undefined") return false;
+  
+  // Guard 1: Skip if native platform (iOS/Android Capacitor shell)
   try {
-    fcmMessaging = getMessaging(app);
-  } catch (err) {
-    console.warn("FCM or service workers are not supported in this browser:", err);
+    if (Capacitor.isNativePlatform()) {
+      console.log("[SafeCallr] Native platform. Skipping Web FCM.");
+      return false;
+    }
+  } catch (e) {
+    console.warn("Failed platform check:", e);
   }
+
+  // Guard 2: Verify service worker support in the browser
+  if (!('serviceWorker' in navigator)) {
+    console.warn("[SafeCallr] Service workers not supported in this environment.");
+    return false;
+  }
+
+  // Guard 3: Use official Firebase SDK isSupported() check
+  try {
+    const supported = await isSupported();
+    return supported;
+  } catch (err) {
+    console.warn("[SafeCallr] FCM isSupported() check failed:", err);
+    return false;
+  }
+};
+
+// Asynchronously initialize FCM Messaging so it doesn't block module load
+if (typeof window !== "undefined") {
+  canUseWebFCM().then((supported) => {
+    if (supported) {
+      try {
+        fcmMessaging = getMessaging(app);
+      } catch (err) {
+        console.warn("[SafeCallr] Error getting Messaging instance:", err);
+      }
+    }
+  }).catch((err) => {
+    console.warn("[SafeCallr] Error checking FCM support:", err);
+  });
 }
+
 export const messaging = fcmMessaging;
 
 export const requestFCMToken = async (userId: string) => {
-  if (!messaging) return null;
   try {
+    if (typeof window === "undefined" || Capacitor.isNativePlatform()) {
+      return null;
+    }
+
+    const supported = await canUseWebFCM();
+    if (!supported) return null;
+
+    if (!fcmMessaging) {
+      try {
+        fcmMessaging = getMessaging(app);
+      } catch (err) {
+        console.error("[SafeCallr] Lazy init getMessaging failed:", err);
+        return null;
+      }
+    }
+
+    if (!fcmMessaging) return null;
+
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      const token = await getToken(messaging, {
+      const token = await getToken(fcmMessaging, {
         vapidKey: (import.meta as any).env.VITE_FCM_VAPID_PUBLIC_KEY,
       });
       if (token) {
@@ -39,13 +106,12 @@ export const requestFCMToken = async (userId: string) => {
       }
     }
   } catch (error) {
-    console.error("FCM Token Error:", error);
+    console.error("[SafeCallr] FCM Token Error:", error);
   }
   return null;
 };
 
 export { 
-  signInWithPopup, 
   signOut, 
   onAuthStateChanged, 
   getIdToken,

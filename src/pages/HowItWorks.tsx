@@ -116,10 +116,10 @@ export default function HowItWorks() {
       <div className="bg-surface-container-low p-8 md:p-10 rounded-[32px] border border-white/5 space-y-6">
         <div className="flex items-center gap-3">
           <Shield className="text-primary w-8 h-8" />
-          <h2 className="font-headline font-bold text-2xl text-on-surface">Sécurité & Conformité Bancaire</h2>
+          <h2 className="font-headline font-bold text-2xl text-on-surface">Sécurité & confidentialité</h2>
         </div>
         <p className="text-slate-400 text-base leading-relaxed">
-          Le protocole SafeCallr repose sur un chiffrement de bout en bout conforme aux exigences de l'ACPR et de la Banque de France. Contrairement aux solutions basées sur la voix, notre authentification par code dynamique est immunisée contre l'intelligence artificielle et les deepfakes vocaux.
+          SafeCallr chiffre les échanges en AES-256. L'authentification repose sur un code à usage unique transmis hors bande, jamais par la voix : elle est conçue pour résister à l'usurpation de numéro et au clonage vocal par IA. Aucune donnée biométrique n'est traitée. Nous mettons en œuvre les mesures de sécurité nécessaires ; aucun système ne peut toutefois garantir un risque nul.
         </p>
         <div className="flex gap-4">
           <div className="text-center">
@@ -127,8 +127,8 @@ export default function HowItWorks() {
             <p className="text-xl font-headline font-bold text-primary">AES-256</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Score Sécurité</p>
-            <p className="text-xl font-headline font-bold text-primary">A+++</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Méthode</p>
+            <p className="text-xl font-headline font-bold text-primary">Code hors-bande</p>
           </div>
         </div>
       </div>
