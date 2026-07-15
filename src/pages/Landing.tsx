@@ -462,7 +462,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
                 <p className="text-xl text-slate-400 mb-12 leading-relaxed">
                   Ne prenez plus jamais un appel "à l'aveugle". Avec SafeCallr, vous protégez vos proches, vérifiez un conseiller bancaire et sécurisez un appel suspect.
                 </p>
-                <Link to="/auth" className="inline-flex bg-primary text-on-primary px-10 py-5 rounded-2xl font-headline font-black text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                <Link to="/register" className="inline-flex bg-primary text-on-primary px-10 py-5 rounded-2xl font-headline font-black text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
                   S'inscrire maintenant
                 </Link>
               </div>
@@ -669,7 +669,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           </h2>
           
           <div className="flex flex-col items-center gap-6">
-            <Link to="/auth" className="w-full sm:w-auto bg-primary text-on-primary px-12 py-8 rounded-[32px] font-headline font-black text-2xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
+            <Link to="/register" className="w-full sm:w-auto bg-primary text-on-primary px-12 py-8 rounded-[32px] font-headline font-black text-2xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4">
               Particulier : Inscrivez-vous
               <ArrowRight className="w-8 h-8" />
             </Link>

@@ -103,7 +103,7 @@ export default function Register() {
             </p>
           </div>
           <div className="pt-8">
-            <Link to="/auth" className="text-primary font-bold hover:underline">
+            <Link to="/auth?mode=login" className="text-primary font-bold hover:underline">
               Retour à la connexion
             </Link>
           </div>
@@ -195,7 +195,7 @@ export default function Register() {
 
         <p className="text-slate-400 text-sm">
           Déjà un compte ?
-          <Link to="/auth" className="text-primary font-bold ml-2">
+          <Link to="/auth?mode=login" className="text-primary font-bold ml-2">
             Se connecter
           </Link>
         </p>

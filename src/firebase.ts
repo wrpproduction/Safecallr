@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup as fbSignInWithPopup, signOut, onAuthStateChanged, getIdToken } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
+import { initializeFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
@@ -11,7 +11,9 @@ import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 

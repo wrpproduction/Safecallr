@@ -12,7 +12,7 @@ export default function Auth() {
   const searchParams = new URLSearchParams(location.search);
   const mode = searchParams.get("mode");
   const verified = searchParams.get("verified") === "true";
-  const [isLogin, setIsLogin] = useState(mode === "login" || verified);
+  const [isLogin, setIsLogin] = useState(mode !== "register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");

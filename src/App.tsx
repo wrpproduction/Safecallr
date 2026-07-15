@@ -135,10 +135,21 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       try {
         if (authUser) {
-          const userDoc = await getDoc(doc(db, "users", authUser.uid));
-          if (userDoc.exists()) {
-            setUser({ ...authUser, ...userDoc.data() });
-          } else {
+          // Wrap the profile document fetch in a 15-second safety timeout
+          const getProfilePromise = getDoc(doc(db, "users", authUser.uid));
+          const timeoutPromise = new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout profile retrieval")), 15000)
+          );
+
+          try {
+            const userDoc = await Promise.race([getProfilePromise, timeoutPromise]);
+            if (userDoc && userDoc.exists()) {
+              setUser({ ...authUser, ...userDoc.data() });
+            } else {
+              setUser({ ...authUser });
+            }
+          } catch (profileErr) {
+            console.warn("[SafeCallr] User profile fetch timed out or failed, using auth fallback:", profileErr);
             setUser({ ...authUser });
           }
         } else {

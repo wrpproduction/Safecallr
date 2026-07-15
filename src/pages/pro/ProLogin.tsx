@@ -24,8 +24,13 @@ export default function ProLogin() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // TODO: FIREBASE - connecter ici pour vérifier le rôle et le statut
-      const proDoc = await getDoc(doc(db, "pros", uid));
+      // Wrap getDoc in a 15-second timeout
+      const proDocPromise = getDoc(doc(db, "pros", uid));
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error("La récupération de votre profil professionnel a expiré (timeout de 15 secondes). Veuillez vérifier votre connexion.")), 15000)
+      );
+      
+      const proDoc = await Promise.race([proDocPromise, timeoutPromise]);
       
       if (!proDoc.exists()) {
         setError("Ce compte n'a pas encore de profil professionnel complet. Veuillez terminer votre inscription sur la page d'inscription.");

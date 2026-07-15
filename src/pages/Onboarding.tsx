@@ -56,7 +56,7 @@ export default function Onboarding() {
 
         {/* Actions */}
         <div className="w-full space-y-4 pt-8">
-          <Link to="/auth" className="w-full bg-primary text-on-primary font-headline font-bold text-xl py-5 rounded-2xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+          <Link to="/register" className="w-full bg-primary text-on-primary font-headline font-bold text-xl py-5 rounded-2xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3">
             Commencer
             <ArrowRight className="w-6 h-6" />
           </Link>
