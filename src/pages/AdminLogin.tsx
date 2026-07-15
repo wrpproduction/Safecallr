@@ -4,6 +4,7 @@ import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -47,11 +48,33 @@ export default function AdminLogin() {
     setLoading(true);
     setError("");
 
+    console.log("[Login] début");
+    console.log("[Login] avant signIn");
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await checkAdminRole(userCredential.user);
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error("La tentative de connexion a expiré (timeout de 15 secondes). Veuillez vérifier votre connexion.")), 15000)
+      );
+
+      const loginProcessPromise = (async () => {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        console.log("[Login] signIn OK");
+        
+        console.log("[Login] lecture profil Firestore");
+        await checkAdminRole(userCredential.user);
+        console.log("[Login] profil OK");
+        
+        return userCredential;
+      })();
+
+      await Promise.race([loginProcessPromise, timeoutPromise]);
     } catch (err: any) {
-      setError("Identifiants invalides ou erreur de connexion.");
+      console.error("Admin login error:", err);
+      if (err.message && err.message.includes("timeout de 15 secondes")) {
+        setError(err.message);
+      } else {
+        setError("Identifiants invalides ou erreur de connexion.");
+      }
     } finally {
       setLoading(false);
     }
@@ -139,30 +162,34 @@ export default function AdminLogin() {
             )}
           </button>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#2e2e34]"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#1e1e22] px-2 text-[#9a9a9f]">Ou continuer avec</span>
-            </div>
-          </div>
+          {!Capacitor.isNativePlatform() && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#2e2e34]"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-[#1e1e22] px-2 text-[#9a9a9f]">Ou continuer avec</span>
+                </div>
+              </div>
 
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={googleLoading}
-            className="w-full bg-[#111113] border border-[#2e2e34] text-[#e4e4e8] font-bold py-3.5 rounded-xl hover:bg-[#1e1e22] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {googleLoading ? (
-              <div className="w-5 h-5 border-2 border-[#4ade80] border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <Chrome size={20} className="text-[#4ade80]" />
-                <span>Google Admin Access</span>
-              </>
-            )}
-          </button>
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={googleLoading}
+                className="w-full bg-[#111113] border border-[#2e2e34] text-[#e4e4e8] font-bold py-3.5 rounded-xl hover:bg-[#1e1e22] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {googleLoading ? (
+                  <div className="w-5 h-5 border-2 border-[#4ade80] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Chrome size={20} className="text-[#4ade80]" />
+                    <span>Google Admin Access</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
         </form>
 
         <div className="mt-8 text-center">

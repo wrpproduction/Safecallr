@@ -20,17 +20,27 @@ export default function ProLogin() {
     setError(null);
     setStatusMessage(null);
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const uid = userCredential.user.uid;
+    console.log("[Login] début");
+    console.log("[Login] avant signIn");
 
-      // Wrap getDoc in a 15-second timeout
-      const proDocPromise = getDoc(doc(db, "pros", uid));
+    try {
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("La récupération de votre profil professionnel a expiré (timeout de 15 secondes). Veuillez vérifier votre connexion.")), 15000)
+        setTimeout(() => reject(new Error("La tentative de connexion a expiré (timeout de 15 secondes). Veuillez vérifier votre connexion.")), 15000)
       );
-      
-      const proDoc = await Promise.race([proDocPromise, timeoutPromise]);
+
+      const loginProcessPromise = (async () => {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        console.log("[Login] signIn OK");
+        const uid = userCredential.user.uid;
+
+        console.log("[Login] lecture profil Firestore");
+        const proDoc = await getDoc(doc(db, "pros", uid));
+        console.log("[Login] profil OK");
+        
+        return { userCredential, proDoc };
+      })();
+
+      const { userCredential, proDoc } = await Promise.race([loginProcessPromise, timeoutPromise]);
       
       if (!proDoc.exists()) {
         setError("Ce compte n'a pas encore de profil professionnel complet. Veuillez terminer votre inscription sur la page d'inscription.");
@@ -66,12 +76,14 @@ export default function ProLogin() {
       navigate("/pro");
     } catch (err: any) {
       console.error("Login error:", err);
-      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+      if (err.message && err.message.includes("timeout de 15 secondes")) {
+        setError(err.message);
+      } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
         setError("Email ou mot de passe incorrect.");
       } else if (err.code === "auth/invalid-credential") {
         setError("Identifiants invalides.");
       } else {
-        setError("Une erreur est survenue lors de la connexion.");
+        setError(err.message || "Une erreur est survenue lors de la connexion.");
       }
     } finally {
       setIsLoading(false);

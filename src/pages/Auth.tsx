@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { auth, signInWithPopup, googleProvider, db, setDoc, doc, serverTimestamp } from "../firebase";
+import { auth, signInWithPopup, googleProvider, db, setDoc, doc, getDoc, serverTimestamp } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-react";
@@ -29,7 +29,27 @@ export default function Auth() {
     try {
       let userCredential;
       if (isLogin) {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        console.log("[Login] début");
+        console.log("[Login] avant signIn");
+        
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("La tentative de connexion a expiré (timeout de 15 secondes). Veuillez vérifier votre connexion.")), 15000)
+        );
+
+        const signInPromise = (async () => {
+          const creds = await signInWithEmailAndPassword(auth, email, password);
+          console.log("[Login] signIn OK");
+          console.log("[Login] lecture profil Firestore");
+          try {
+            await getDoc(doc(db, "users", creds.user.uid));
+            console.log("[Login] profil OK");
+          } catch (dbErr) {
+            console.warn("[Login] avertissement: impossible de charger le profil Firestore", dbErr);
+          }
+          return creds;
+        })();
+
+        userCredential = await Promise.race([signInPromise, timeoutPromise]);
         navigate("/dashboard");
       } else {
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
