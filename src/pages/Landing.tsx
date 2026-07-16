@@ -796,7 +796,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             © 2026 SafeCallr Technologies. Tous droits réservés.
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            <a href="#" className="hover:text-primary transition-colors">Confidentialité</a>
+            <Link id="footer-privacy-link" to="/confidentialite" className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
             <a href="#" className="hover:text-primary transition-colors">Conditions</a>
             <a href="#" className="hover:text-primary transition-colors">Mentions légales</a>
           </div>

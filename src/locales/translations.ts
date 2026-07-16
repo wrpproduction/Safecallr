@@ -23,7 +23,8 @@ export const translations = {
       pending: "En attente",
       verified: "Vérifié",
       refused: "Refusé",
-      expired: "Expiré"
+      expired: "Expiré",
+      privacyPolicy: "Politique de confidentialité"
     },
     navigation: {
       home: "Accueil",
@@ -111,13 +112,13 @@ export const translations = {
     },
     howItWorks: {
       title: "Comment ça marche ?",
-      subtitle: "SafeCallr sécurise vos appels en 3 étapes simples et inviolables.",
+      subtitle: "SafeCallr sécurise vos appels en 3 étapes simples et robustes.",
       step1: "1. Déclenchement",
       step1Desc: "Un conseiller professionnel ou un proche initie une demande d'authentification sécurisée.",
       step2: "2. Notification",
       step2Desc: "Vous recevez instantanément une notification push sur votre écran avec un code unique de sécurité.",
       step3: "3. Validation",
-      step3Desc: "Comparez le code reçu avec celui annoncé de vive voix par votre interlocuteur. S'ils correspondent, l'identité est garantie."
+      step3Desc: "Comparez le code reçu avec celui annoncé de vive voix par votre interlocuteur. S'ils correspondent, l'identité est confirmée."
     }
   },
   en: {
@@ -126,7 +127,7 @@ export const translations = {
       confirm: "Confirm",
       validate: "Validate",
       accept: "Accept",
-      refuse: "Refuse",
+      refuse: "Decline",
       close: "Close",
       save: "Save",
       back: "Back",
@@ -143,8 +144,9 @@ export const translations = {
       active: "Active",
       pending: "Pending",
       verified: "Verified",
-      refused: "Refused",
-      expired: "Expired"
+      refused: "Declined",
+      expired: "Expired",
+      privacyPolicy: "Privacy Policy"
     },
     navigation: {
       home: "Home",
@@ -156,9 +158,9 @@ export const translations = {
     },
     landing: {
       heroTitle: "Human authentication against fraud",
-      heroSub: "Protect your relatives and collaborators against phone spoofing and voice AI identity theft.",
-      ctaPro: "Business Space",
-      ctaUser: "Personal Space",
+      heroSub: "Protect your loved ones and colleagues against phone spoofing and AI voice impersonation.",
+      ctaPro: "For Professionals",
+      ctaUser: "For Individuals",
       learnMore: "Learn More",
       featuresTitle: "Why choose SafeCallr?",
       feature1Title: "Anti-Voice Deepfake",
@@ -202,7 +204,7 @@ export const translations = {
       verifyCode: "Verify the code with your caller",
       noPending: "No pending authentication requests",
       noPendingSub: "Your line is secure. Safety checks will appear here in real time.",
-      newRequestBtn: "Initiate Verification",
+      newRequestBtn: "Start Verification",
       recentActivity: "Recent Activity",
       notificationBanner: "Priority Notification",
       viewCode: "View Code",
@@ -227,18 +229,18 @@ export const translations = {
       searchPlaceholder: "Search contact...",
       verificationWith: "Verification with {name}",
       statusSuccess: "Identity confirmed",
-      statusFailed: "Doubt / Refused",
+      statusFailed: "Not verified / Declined",
       date: "Date"
     },
     howItWorks: {
       title: "How does it work?",
-      subtitle: "SafeCallr secures your calls in 3 simple, un-hackable steps.",
+      subtitle: "SafeCallr secures your calls in 3 simple, robust steps.",
       step1: "1. Trigger",
       step1Desc: "A business representative or relative initiates a secure verification request.",
       step2: "2. Notification",
       step2Desc: "You instantly receive a push notification on your screen with a unique security code.",
       step3: "3. Validation",
-      step3Desc: "Compare the code received with the one stated by your caller. If they match, their identity is guaranteed."
+      step3Desc: "Compare the code received with the one stated by your caller. If they match, the identity is confirmed."
     }
   },
   es: {
@@ -265,7 +267,8 @@ export const translations = {
       pending: "Pendiente",
       verified: "Verificado",
       refused: "Rechazado",
-      expired: "Expirado"
+      expired: "Expirado",
+      privacyPolicy: "Política de privacidad"
     },
     navigation: {
       home: "Inicio",
@@ -285,7 +288,7 @@ export const translations = {
       feature1Title: "Anti-Deepfake de Voz",
       feature1Desc: "La verificación no se basa en la voz (que se clona en 3 segundos), sino en un código criptográfico único.",
       feature2Title: "Protección contra Spoofing",
-      feature2Desc: "Se acabaron las dudas sobre los números ocultos o usurpados. Solo el asesor real tiene su código.",
+      feature2Desc: "Se acabaron las dudas sobre los números ocultos o suplantados. Solo el verdadero asesor tiene su código.",
       feature3Title: "Cero Datos Sensibles",
       feature3Desc: "Sin grabaciones de voz ni análisis biométricos. Sus datos se mantienen completamente privados y seguros."
     },
@@ -348,18 +351,18 @@ export const translations = {
       searchPlaceholder: "Buscar contacto...",
       verificationWith: "Verificación con {name}",
       statusSuccess: "Identidad confirmada",
-      statusFailed: "Duda / Rechazado",
+      statusFailed: "No verificado / Rechazado",
       date: "Fecha"
     },
     howItWorks: {
-      title: "How does it work?",
-      subtitle: "SafeCallr asegura sus llamadas en 3 sencillos pasos inviolables.",
-      step1: "1. Desencadenador",
-      step1Desc: "Un representante comercial o familiar inicia una solicitud de verificación segura.",
+      title: "¿Cómo funciona?",
+      subtitle: "SafeCallr asegura sus llamadas en 3 pasos sencillos y robustos.",
+      step1: "1. Activación",
+      step1Desc: "Un asesor profesional o un allegado inicia una solicitud de verificación segura.",
       step2: "2. Notificación",
       step2Desc: "Recibe instantáneamente una notificación push en su pantalla con un código de seguridad único.",
       step3: "3. Validación",
-      step3Desc: "Compare el código recibido con el anunciado por su interlocutor. Si coinciden, su identidad está garantizada."
+      step3Desc: "Compare el código recibido con el anunciado por su interlocutor. Si coinciden, la identidad queda confirmada."
     }
   }
 };

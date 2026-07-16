@@ -29,6 +29,7 @@ import AdminCreateOrganization from "./pages/AdminCreateOrganization";
 import AdminOrganizationDetail from "./pages/AdminOrganizationDetail";
 import AdminBlog from "./pages/admin/AdminBlog";
 import Actualites from "./pages/Actualites";
+import Confidentialite from "./pages/Confidentialite";
 import ArticleDetail from "./pages/ArticleDetail";
 import RepDashboard from "./pages/RepDashboard";
 import MeDashboard from "./pages/me/MeDashboard";
@@ -257,7 +258,7 @@ export default function App() {
           <Route path="/confidentialite" element={
             <>
               <SEOManager title="Politique de Confidentialité" description="Découvrez comment SafeCallr protège vos données personnelles et respecte le RGPD." noIndex />
-              <Landing legal="privacy" />
+              <Confidentialite />
             </>
           } />
 

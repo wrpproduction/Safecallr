@@ -289,6 +289,30 @@ export default function Profile({ user }: { user: any }) {
         </div>
       </motion.div>
 
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-surface-container-low p-8 rounded-[32px] border border-white/5 shadow-xl space-y-4 animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
+        <div className="flex items-start gap-3">
+          <Shield className="text-primary w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-headline font-bold text-lg text-on-surface">{t("common.privacyPolicy")}</h3>
+            <p className="text-slate-400 text-xs mt-1">
+              Consultez notre politique de confidentialité pour comprendre comment vos données sont protégées.
+            </p>
+          </div>
+        </div>
+        <Link 
+          id="profile-privacy-link"
+          to="/confidentialite" 
+          className="bg-surface-container-highest hover:bg-primary hover:text-on-primary text-slate-300 py-2.5 px-5 rounded-xl font-bold text-sm transition-all text-center self-start md:self-auto"
+        >
+          {t("common.privacyPolicy")}
+        </Link>
+      </motion.div>
+
       <button 
         onClick={handleSignOut}
         className="w-full bg-surface-container-low text-slate-500 py-4 rounded-2xl border border-white/5 font-bold flex items-center justify-center gap-3 hover:bg-error/10 hover:text-error hover:border-error/20 transition-all active:scale-95 cursor-pointer"
