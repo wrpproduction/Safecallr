@@ -24,8 +24,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, collection, getDocs, query, where } from "../firebase";
+import { useLanguage } from "../contexts/LanguageContext";
+import LanguageSelector from "../components/LanguageSelector";
 
 export default function Landing({ persona, legal }: { persona?: string; legal?: string }) {
+  const { t } = useLanguage();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);

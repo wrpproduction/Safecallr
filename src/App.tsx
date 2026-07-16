@@ -48,6 +48,7 @@ import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Layout from "./components/Layout";
 import SEOManager from "./components/seo/SEOManager";
 import ScrollToTop from "./components/ScrollToTop";
+import NotificationController from "./components/NotificationController";
 import { registerSW } from 'virtual:pwa-register';
 
 import Particuliers from "./pages/Particuliers";
@@ -55,6 +56,7 @@ import Professionnels from "./pages/Professionnels";
 import Entreprises from "./pages/Entreprises";
 
 import { Capacitor } from "@capacitor/core";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 // Register Service Worker
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
@@ -190,10 +192,12 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <Toaster position="top-right" richColors />
-      <Router>
-        <ScrollToTop />
-        <Routes>
+      <LanguageProvider user={user}>
+        <Toaster position="top-right" richColors />
+        <Router>
+          <ScrollToTop />
+          <NotificationController user={user} />
+          <Routes>
           <Route path="/" element={
             <>
               <SEOManager 
@@ -325,6 +329,7 @@ export default function App() {
           <Route path="/organization-inactive" element={<InstitutionErrorPage type="inactive" />} />
         </Routes>
       </Router>
+     </LanguageProvider>
     </ErrorBoundary>
   );
 }

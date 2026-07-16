@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { db, collection, query, where, onSnapshot } from "../firebase";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { useLanguage } from "../contexts/LanguageContext";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -12,6 +13,7 @@ function cn(...inputs: ClassValue[]) {
 export default function Layout({ user }: { user: any }) {
   const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!user || !user.uid) return;
@@ -30,11 +32,11 @@ export default function Layout({ user }: { user: any }) {
   }, [user]);
 
   const navItems = [
-    { path: "/dashboard", icon: Home, label: "Accueil" },
-    { path: "/contacts", icon: Users, label: "Contacts", badge: pendingCount > 0 },
-    { path: "/new-request", icon: PlusCircle, label: "Vérifier", primary: true },
-    { path: "/history", icon: History, label: "Historique" },
-    { path: "/how-it-works", icon: HelpCircle, label: "Aide" },
+    { path: "/dashboard", icon: Home, label: t("navigation.home") },
+    { path: "/contacts", icon: Users, label: t("navigation.contacts"), badge: pendingCount > 0 },
+    { path: "/new-request", icon: PlusCircle, label: t("navigation.verify"), primary: true },
+    { path: "/history", icon: History, label: t("navigation.history") },
+    { path: "/how-it-works", icon: HelpCircle, label: t("navigation.help") },
   ];
 
   return (
@@ -47,11 +49,13 @@ export default function Layout({ user }: { user: any }) {
           </div>
           <span className="font-headline font-black text-xl tracking-tighter text-primary">SafeCallr</span>
         </div>
-        {user && (
-          <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">
-            <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" />
-          </Link>
-        )}
+        <div className="flex items-center gap-4">
+          {user && (
+            <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">
+              <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" />
+            </Link>
+          )}
+        </div>
       </header>
 
       {/* Main Content */}

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { auth, db } from "../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import LanguageSelector from "../../components/LanguageSelector";
 
 export default function ProLogin() {
   const [email, setEmail] = useState("");
@@ -191,9 +192,12 @@ export default function ProLogin() {
         </div>
       </div>
       
-      <p className="mt-8 text-on-surface-variant/50 text-xs">
+      <p className="mt-8 text-on-surface-variant/50 text-xs text-center">
         &copy; 2026 SafeCallr Platform. Tous droits réservés.
       </p>
+      <div className="mt-4 flex justify-center">
+        <LanguageSelector />
+      </div>
     </div>
   );
 }

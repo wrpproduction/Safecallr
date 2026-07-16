@@ -116,7 +116,11 @@ export const requestFCMToken = async (userId: string) => {
         vapidKey: (import.meta as any).env.VITE_FCM_VAPID_PUBLIC_KEY,
       });
       if (token) {
-        await setDoc(doc(db, "users", userId), { fcmToken: token }, { merge: true });
+        await setDoc(doc(db, "users", userId), { 
+          fcmToken: token, 
+          platform: "web",
+          tokenUpdatedAt: serverTimestamp()
+        }, { merge: true });
         return token;
       }
     }

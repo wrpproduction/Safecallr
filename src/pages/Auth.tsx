@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-react";
 import { linkPendingConnections } from "../lib/connections";
 import { emailService } from "../services/emailService";
+import LanguageSelector from "../components/LanguageSelector";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -265,13 +266,16 @@ export default function Auth() {
           <div className="h-px flex-grow bg-white/10"></div>
         </div>
 
-        <div className="flex flex-col gap-4 w-full">
+        <div className="flex flex-col gap-4 w-full items-center">
           <button 
             onClick={() => setIsLogin(!isLogin)}
             className="text-slate-400 text-sm hover:text-primary transition-colors"
           >
             {isLogin ? "Pas encore de compte ? S'inscrire" : "Déjà un compte ? Se connecter"}
           </button>
+          <div className="pt-2">
+            <LanguageSelector />
+          </div>
         </div>
       </div>
     </div>

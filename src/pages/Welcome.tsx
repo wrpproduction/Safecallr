@@ -3,10 +3,14 @@ import { motion } from 'framer-motion';
 import { Bell, ShieldCheck, Smartphone, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { requestFCMToken, auth } from '../firebase';
+import { setupNotifications } from '../services/notifications';
+import { Capacitor } from '@capacitor/core';
 import { Toaster, toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Check if running in standalone mode
@@ -21,22 +25,28 @@ export default function Welcome() {
 
   const handleEnableNotifications = async () => {
     if (!auth.currentUser) {
-      toast.error("Veuillez vous connecter pour activer les notifications");
+      toast.error(t("auth.noAccount"));
       navigate('/auth');
       return;
     }
 
     try {
-      const token = await requestFCMToken(auth.currentUser.uid);
-      if (token) {
-        toast.success("Notifications activées avec succès !");
-        setTimeout(() => navigate('/dashboard'), 1500);
+      if (Capacitor.isNativePlatform()) {
+        await setupNotifications(auth.currentUser.uid, navigate);
+        toast.success(t("welcome.enableBtn") + "...");
+        setTimeout(() => navigate('/dashboard'), 2000);
       } else {
-        toast.error("Impossible d'activer les notifications. Vérifiez les réglages de votre navigateur.");
+        const token = await requestFCMToken(auth.currentUser.uid);
+        if (token) {
+          toast.success(t("common.success"));
+          setTimeout(() => navigate('/dashboard'), 1500);
+        } else {
+          toast.error(t("welcome.deniedDesc"));
+        }
       }
     } catch (error) {
       console.error(error);
-      toast.error("Une erreur est survenue lors de l'activation.");
+      toast.error(t("common.error"));
     }
   };
 
@@ -61,7 +71,7 @@ export default function Welcome() {
         transition={{ delay: 0.2 }}
         className="text-3xl font-extrabold mb-4 tracking-tight leading-tight"
       >
-        Bienvenue sur l'App <span className="text-[#3DFFA0]">SafeCallr</span>
+        {t("welcome.title")} <span className="text-[#3DFFA0]">SafeCallr</span>
       </motion.h1>
 
       <motion.p
@@ -70,7 +80,7 @@ export default function Welcome() {
         transition={{ delay: 0.3 }}
         className="text-white/70 text-lg mb-10 max-w-sm mx-auto"
       >
-        Vous avez installé avec succès le protocole de sécurité sur votre téléphone.
+        {t("welcome.sub")}
       </motion.p>
 
       <motion.div
@@ -84,9 +94,9 @@ export default function Welcome() {
             <Bell size={24} className="text-[#3DFFA0]" />
           </div>
           <div>
-            <h3 className="font-bold mb-1">Notifications Critiques</h3>
+            <h3 className="font-bold mb-1">{t("welcome.notifTitle")}</h3>
             <p className="text-sm text-white/50">
-              SafeCallr a besoin des notifications pour vous authentifier les appels en temps réel. Sans elles, le service ne peut fonctionner.
+              {t("welcome.notifDesc")}
             </p>
           </div>
         </div>
@@ -100,17 +110,17 @@ export default function Welcome() {
       >
         <button
           onClick={handleEnableNotifications}
-          className="w-full bg-[#3DFFA0] text-[#0F1B3D] font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-transform text-lg shadow-lg shadow-[#3DFFA0]/20"
+          className="w-full bg-[#3DFFA0] text-[#0F1B3D] font-bold py-4 rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-transform text-lg shadow-lg shadow-[#3DFFA0]/20 cursor-pointer"
         >
-          Activer les notifications
+          {t("welcome.enableBtn")}
           <ArrowRight size={20} />
         </button>
 
         <button
           onClick={() => navigate('/dashboard')}
-          className="w-full bg-transparent text-white/50 font-medium py-3 rounded-2xl hover:text-white transition-colors"
+          className="w-full bg-transparent text-white/50 font-medium py-3 rounded-2xl hover:text-white transition-colors cursor-pointer"
         >
-          Remettre à plus tard
+          {t("welcome.skipBtn")}
         </button>
       </motion.div>
 

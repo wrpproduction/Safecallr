@@ -3,8 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { db, collection, query, where, onSnapshot, orderBy, auth, signOut, updateDoc, doc, serverTimestamp, getDocs, addDoc } from "../firebase";
 import { Shield, PlusCircle, History, HelpCircle, LogOut, CheckCircle, AlertTriangle, Clock, XCircle, UserPlus, Check, X, Users, User, Building2, ShieldQuestion, ArrowRight, MonitorSmartphone } from "lucide-react";
 import { motion } from "motion/react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function Dashboard({ user }: { user: any }) {
+  const { t } = useLanguage();
   const [requests, setRequests] = useState<any[]>([]);
   const [authRequests, setAuthRequests] = useState<any[]>([]);
   const [personalRequests, setPersonalRequests] = useState<any[]>([]);
@@ -436,7 +438,7 @@ export default function Dashboard({ user }: { user: any }) {
         <section className="space-y-4">
           <div className="flex justify-between items-center">
             <h1 className="font-headline font-extrabold text-2xl tracking-tight text-on-surface">
-              Bonjour, <span className="text-primary truncate">
+              {t("dashboard.welcome")}, <span className="text-primary truncate">
                 {user.firstName ? `${user.firstName} ${user.lastName || ""}` : (user.displayName || "Utilisateur")}
               </span>
             </h1>
@@ -445,7 +447,7 @@ export default function Dashboard({ user }: { user: any }) {
             </Link>
           </div>
           <p className="text-slate-400 text-sm leading-relaxed">
-            Protégez vos échanges. Vérifiez l'identité de votre interlocuteur en un clic.
+            {t("dashboard.subtitle")}
           </p>
         </section>
 
@@ -479,13 +481,13 @@ export default function Dashboard({ user }: { user: any }) {
           <button 
             className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-primary text-on-primary shadow-lg"
           >
-            Accueil
+            {t("navigation.home")}
           </button>
           <Link 
             to="/contacts"
             className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-500 flex items-center justify-center gap-2"
           >
-            Mes contacts
+            {t("navigation.contacts")}
             {myContacts.length > 0 && (
               <span className="w-2 h-2 rounded-full bg-primary-container" />
             )}
@@ -502,8 +504,10 @@ export default function Dashboard({ user }: { user: any }) {
               <PlusCircle className="text-on-primary w-10 h-10" />
             </div>
             <div className="text-center">
-              <h3 className="font-headline font-bold text-xl text-on-primary">Demander une vérification</h3>
-              <p className="text-on-primary/80 text-xs font-medium uppercase tracking-widest mt-1">Lancer le protocole sécurisé</p>
+              <h3 className="font-headline font-bold text-xl text-on-primary">{t("dashboard.newRequestBtn")}</h3>
+              <p className="text-on-primary/80 text-xs font-medium uppercase tracking-widest mt-1">
+                {t("welcome.notifTitle") === "Critical Notifications" ? "Start the secure protocol" : t("welcome.notifTitle") === "Notificaciones Críticas" ? "Iniciar el protocolo seguro" : "Lancer le protocole sécurisé"}
+              </p>
             </div>
           </Link>
         </motion.div>
