@@ -30,6 +30,8 @@ import AdminOrganizationDetail from "./pages/AdminOrganizationDetail";
 import AdminBlog from "./pages/admin/AdminBlog";
 import Actualites from "./pages/Actualites";
 import Confidentialite from "./pages/Confidentialite";
+import Privacy from "./pages/Privacy";
+import Privacidad from "./pages/Privacidad";
 import ArticleDetail from "./pages/ArticleDetail";
 import RepDashboard from "./pages/RepDashboard";
 import MeDashboard from "./pages/me/MeDashboard";
@@ -259,6 +261,18 @@ export default function App() {
             <>
               <SEOManager title="Politique de Confidentialité" description="Découvrez comment SafeCallr protège vos données personnelles et respecte le RGPD." noIndex />
               <Confidentialite />
+            </>
+          } />
+          <Route path="/privacy" element={
+            <>
+              <SEOManager title="Privacy Policy" description="Learn how SafeCallr protects your personal data and respects GDPR." noIndex />
+              <Privacy />
+            </>
+          } />
+          <Route path="/privacidad" element={
+            <>
+              <SEOManager title="Política de Privacidad" description="Descubra cómo SafeCallr protege sus datos personales y respeta el RGPD." noIndex />
+              <Privacidad />
             </>
           } />
 

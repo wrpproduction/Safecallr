@@ -7,7 +7,12 @@ import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelector from "../components/LanguageSelector";
 
 export default function Profile({ user }: { user: any }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const getPrivacyPath = () => {
+    if (lang === "es") return "/privacidad";
+    if (lang === "en") return "/privacy";
+    return "/confidentialite";
+  };
   const [formData, setFormData] = useState({
     firstName: user.firstName || "",
     lastName: user.lastName || "",
@@ -300,13 +305,17 @@ export default function Profile({ user }: { user: any }) {
           <div>
             <h3 className="font-headline font-bold text-lg text-on-surface">{t("common.privacyPolicy")}</h3>
             <p className="text-slate-400 text-xs mt-1">
-              Consultez notre politique de confidentialité pour comprendre comment vos données sont protégées.
+              {lang === "en"
+                ? "Read our privacy policy to understand how your data is protected."
+                : lang === "es"
+                ? "Consulte nuestra política de privacidad para comprender cómo se protegen sus datos."
+                : "Consultez notre politique de confidentialité pour comprendre comment vos données sont protégées."}
             </p>
           </div>
         </div>
         <Link 
           id="profile-privacy-link"
-          to="/confidentialite" 
+          to={getPrivacyPath()} 
           className="bg-surface-container-highest hover:bg-primary hover:text-on-primary text-slate-300 py-2.5 px-5 rounded-xl font-bold text-sm transition-all text-center self-start md:self-auto"
         >
           {t("common.privacyPolicy")}

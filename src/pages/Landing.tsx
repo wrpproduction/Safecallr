@@ -28,7 +28,12 @@ import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelector from "../components/LanguageSelector";
 
 export default function Landing({ persona, legal }: { persona?: string; legal?: string }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const getPrivacyPath = () => {
+    if (lang === "es") return "/privacidad";
+    if (lang === "en") return "/privacy";
+    return "/confidentialite";
+  };
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);
@@ -796,7 +801,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             © 2026 SafeCallr Technologies. Tous droits réservés.
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            <Link id="footer-privacy-link" to="/confidentialite" className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
+            <Link id="footer-privacy-link" to={getPrivacyPath()} className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
             <a href="#" className="hover:text-primary transition-colors">Conditions</a>
             <a href="#" className="hover:text-primary transition-colors">Mentions légales</a>
           </div>
