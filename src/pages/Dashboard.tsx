@@ -272,13 +272,13 @@ export default function Dashboard({ user }: { user: any }) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case "pending": return { label: "En attente", color: "text-slate-400", icon: Clock };
-      case "accepted": return { label: "Handshake 1/2", color: "text-primary", icon: ShieldQuestion };
-      case "step1_verified": return { label: "Handshake 2/2", color: "text-primary", icon: ShieldQuestion };
-      case "refused": return { label: "Refusée", color: "text-error", icon: XCircle };
-      case "verified": return { label: "Vérifiée", color: "text-primary", icon: Shield };
-      case "caution": return { label: "Vigilance", color: "text-tertiary-container", icon: AlertTriangle };
-      default: return { label: "Inconnu", color: "text-slate-400", icon: Clock };
+      case "pending": return { label: t("request.pending"), color: "text-slate-400", icon: Clock };
+      case "accepted": return { label: t("request.handshake1"), color: "text-primary", icon: ShieldQuestion };
+      case "step1_verified": return { label: t("request.handshake2"), color: "text-primary", icon: ShieldQuestion };
+      case "refused": return { label: t("common.refused"), color: "text-error", icon: XCircle };
+      case "verified": return { label: t("common.verified"), color: "text-primary", icon: Shield };
+      case "caution": return { label: t("request.caution"), color: "text-tertiary-container", icon: AlertTriangle };
+      default: return { label: t("request.unknown"), color: "text-slate-400", icon: Clock };
     }
   };
 
@@ -600,11 +600,11 @@ export default function Dashboard({ user }: { user: any }) {
                             {req.fromUserName}
                           </h4>
                           <span className="bg-[#38bdf8] text-[#111113] text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
-                            Nouveau
+                            {t("dashboard.new")}
                           </span>
                         </div>
                         <p className="text-slate-400 text-xs font-bold">
-                          Souhaite vous ajouter à ses contacts personnels
+                          {t("dashboard.contactRequestSubtitle")}
                         </p>
                       </div>
                     </div>
@@ -614,14 +614,14 @@ export default function Dashboard({ user }: { user: any }) {
                         className="flex-1 bg-[#38bdf8] text-[#111113] py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[#38bdf8]/20"
                       >
                         <Check size={16} />
-                        Accepter
+                        {t("common.accept")}
                       </button>
                       <button 
                         onClick={() => handleRejectPersonalRequest(req.id)}
                         className="flex-1 bg-surface-container-highest text-slate-400 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-error/10 hover:text-error active:scale-95 transition-all"
                       >
                         <X size={16} />
-                        Décliner
+                        {t("request.decline")}
                       </button>
                     </div>
                   </motion.div>
@@ -634,9 +634,9 @@ export default function Dashboard({ user }: { user: any }) {
           {authRequests.filter(r => r.status === "pending" || r.status === "code_generated").length > 0 && (
             <section className="space-y-4 animate-in slide-in-from-top duration-500">
               <div className="flex justify-between items-center px-2">
-                <h3 className="font-headline font-bold text-lg text-on-surface">Vérification en cours</h3>
+                <h3 className="font-headline font-bold text-lg text-on-surface">{t("dashboard.activeVerification")}</h3>
                 <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">
-                  En direct
+                  {t("dashboard.live")}
                 </span>
               </div>
               <div className="flex flex-col gap-3">
@@ -651,7 +651,7 @@ export default function Dashboard({ user }: { user: any }) {
                           {req.fromCompanyName}
                         </h4>
                         <p className="text-on-primary/80 text-xs font-medium">
-                          Contact : {req.fromProName}
+                          {t("dashboard.contact")} : {req.fromProName}
                         </p>
                         {req.fromCompanyCategory && (
                           <span className="inline-block mt-1 text-[9px] font-bold bg-on-primary/20 text-on-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
@@ -665,10 +665,10 @@ export default function Dashboard({ user }: { user: any }) {
                     </div>
                     <div className="flex items-center justify-between px-1">
                       <p className="text-on-primary/80 text-xs font-medium">
-                        Souhaite confirmer son identité
+                        {t("dashboard.wantsToConfirm")}
                       </p>
                       <span className="text-on-primary text-[10px] font-black uppercase tracking-widest bg-on-primary/20 px-2 py-1 rounded-lg">
-                        Voir le code
+                        {t("dashboard.viewCode")}
                       </span>
                     </div>
                   </Link>
@@ -683,13 +683,13 @@ export default function Dashboard({ user }: { user: any }) {
               <div className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                 <History className="text-primary w-6 h-6" />
               </div>
-              <h3 className="font-headline font-bold text-on-surface text-sm">Mes demandes</h3>
+              <h3 className="font-headline font-bold text-on-surface text-sm">{t("dashboard.myRequests")}</h3>
             </Link>
             <Link to="/how-it-works" className="bg-surface-container-low p-6 rounded-2xl border border-white/5 flex flex-col gap-3 group active:scale-95 transition-all">
               <div className="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                 <HelpCircle className="text-primary w-6 h-6" />
               </div>
-              <h3 className="font-headline font-bold text-on-surface text-sm">Aide</h3>
+              <h3 className="font-headline font-bold text-on-surface text-sm">{t("dashboard.help")}</h3>
             </Link>
           </div>
 
@@ -698,8 +698,8 @@ export default function Dashboard({ user }: { user: any }) {
           {/* Latest Requests */}
           <section className="space-y-4">
             <div className="flex justify-between items-center px-2">
-              <h3 className="font-headline font-bold text-lg text-on-surface">Dernières vérifications</h3>
-              <Link to="/history" className="text-primary text-xs font-bold uppercase tracking-widest">Voir tout</Link>
+              <h3 className="font-headline font-bold text-lg text-on-surface">{t("dashboard.lastVerifications")}</h3>
+              <Link to="/history" className="text-primary text-xs font-bold uppercase tracking-widest">{t("dashboard.viewAll")}</Link>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -710,7 +710,7 @@ export default function Dashboard({ user }: { user: any }) {
               ) : requests.length === 0 ? (
                 <div className="text-center py-12 bg-surface-container-low rounded-3xl border border-dashed border-white/10">
                   <Shield className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                  <p className="text-slate-500 text-sm">Aucune demande en cours</p>
+                  <p className="text-slate-500 text-sm">{t("dashboard.noActiveRequests")}</p>
                 </div>
               ) : (
                 requests.slice(0, 5).map((req) => {
@@ -757,7 +757,7 @@ export default function Dashboard({ user }: { user: any }) {
                       // C. Look up in personalContacts (manual personal)
                       const matchedPerso = personalContacts.find(p => p.phone && normalizePhone(p.phone) === cleanTargetPhone);
                       if (matchedPerso) {
-                        displayName = matchedPerso.name;
+                        displayName = matchedPerso.firstName ? `${matchedPerso.firstName} ${matchedPerso.name}` : matchedPerso.name;
                       }
                     }
                   }
@@ -782,7 +782,7 @@ export default function Dashboard({ user }: { user: any }) {
                               </p>
                             )}
                             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                              {isSent ? `Envoi • ${req.type}` : `Réception • ${req.type}`}
+                              {isSent ? `${t("dashboard.sent")} • ${req.type}` : `${t("dashboard.received")} • ${req.type}`}
                             </p>
                           </div>
                         </div>

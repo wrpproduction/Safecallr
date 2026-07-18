@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { db, collection, addDoc, serverTimestamp, query, where, onSnapshot } from "../firebase";
 import { Shield, Phone, User, ChevronRight, AlertCircle, Banknote, Home, MoreHorizontal, Users, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function NewRequest({ user }: { user: any }) {
+  const { t } = useLanguage();
   const [validatedContacts, setValidatedContacts] = useState<any[]>([]);
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,7 @@ export default function NewRequest({ user }: { user: any }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContact) {
-      setError("Veuillez sélectionner un contact.");
+      setError(t("request.selectContactError"));
       return;
     }
     setError("");
@@ -116,7 +118,7 @@ export default function NewRequest({ user }: { user: any }) {
       navigate(`/request/${docRef.id}`);
     } catch (err: any) {
       console.error("New request error:", err);
-      setError(`Une erreur est survenue lors de l'envoi de la demande : ${err.message || err.toString()}`);
+      setError(t("request.sendError", { error: err.message || err.toString() }));
     } finally {
       setLoading(false);
     }
@@ -134,10 +136,14 @@ export default function NewRequest({ user }: { user: any }) {
     <div className="space-y-8 pb-12">
       <section className="space-y-4">
         <h1 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface leading-tight">
-          Nouvelle <span className="text-primary">vérification</span>
+          {t("request.title").includes("vérification") || t("request.title").includes("verificación") || t("request.title").includes("Verification") ? (
+            t("request.title").includes("vérification") ? <>Nouvelle <span className="text-primary">vérification</span></> : 
+            t("request.title").includes("Verification") ? <>New <span className="text-primary">Verification</span></> : 
+            <>Nueva <span className="text-primary">verificación</span></>
+          ) : t("request.title")}
         </h1>
         <p className="text-slate-400 text-sm leading-relaxed">
-          Saisissez les informations de votre interlocuteur pour lancer le protocole.
+          {t("request.subtitle")}
         </p>
       </section>
 
@@ -145,13 +151,13 @@ export default function NewRequest({ user }: { user: any }) {
         {/* Contact Selection */}
         <div className="group">
           <label className="block text-[11px] uppercase tracking-widest text-slate-500 font-bold mb-3 px-1">
-            Sélectionner un contact validé
+            {t("request.selectContact")}
           </label>
           
           {fetchingContacts ? (
             <div className="bg-surface-container-low p-8 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
-              <p className="text-slate-500 text-xs">Chargement de vos contacts...</p>
+              <p className="text-slate-500 text-xs">{t("request.loadingContacts")}</p>
             </div>
           ) : validatedContacts.length === 0 ? (
             <div className="bg-surface-container-low p-8 rounded-2xl border border-white/5 flex flex-col items-center justify-center text-center gap-4">
@@ -159,9 +165,9 @@ export default function NewRequest({ user }: { user: any }) {
                 <Users className="w-8 h-8" />
               </div>
               <div>
-                <h4 className="text-on-surface font-bold text-sm mb-1">Aucun contact validé</h4>
+                <h4 className="text-on-surface font-bold text-sm mb-1">{t("request.noContactsTitle")}</h4>
                 <p className="text-slate-500 text-xs leading-relaxed max-w-[240px]">
-                  Vous devez d'abord ajouter et valider des contacts dans l'onglet "Contacts" pour effectuer une vérification.
+                  {t("request.noContactsDesc")}
                 </p>
               </div>
               <button 
@@ -169,7 +175,7 @@ export default function NewRequest({ user }: { user: any }) {
                 onClick={() => navigate("/contacts")}
                 className="text-primary text-xs font-bold uppercase tracking-widest hover:underline"
               >
-                Gérer mes contacts
+                {t("request.manageContacts")}
               </button>
             </div>
           ) : (
@@ -215,9 +221,9 @@ export default function NewRequest({ user }: { user: any }) {
               <Shield className="text-primary w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-on-surface font-bold text-sm mb-1">Sécurité Vault-Level</h4>
+              <h4 className="text-on-surface font-bold text-sm mb-1">{t("request.secureExchange")}</h4>
               <p className="text-slate-500 text-xs leading-relaxed">
-                Une fois envoyée, nous vérifierons la signature numérique de l'appelant contre notre base de données sécurisée.
+                {t("request.secureExchangeDesc")}
               </p>
             </div>
           </div>
@@ -233,13 +239,13 @@ export default function NewRequest({ user }: { user: any }) {
           >
             {loading ? <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-on-primary"></div> : (
               <>
-                Envoyer la demande
+                {t("request.sendRequest")}
                 <ChevronRight className="w-6 h-6" />
               </>
             )}
           </button>
           <p className="text-center mt-6 text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">
-            Sécurisé par SafeCallr Biometric Protocol 4.0
+            {t("request.securedBy")}
           </p>
         </div>
       </form>

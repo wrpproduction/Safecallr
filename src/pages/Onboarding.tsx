@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Shield, CheckCircle, AlertTriangle, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
+import AppLogo from "../components/AppLogo";
 
 export default function Onboarding() {
   return (
@@ -16,12 +17,13 @@ export default function Onboarding() {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="flex items-center gap-3"
         >
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <Shield className="text-on-primary w-8 h-8" />
-          </div>
-          <h1 className="font-headline font-black text-3xl tracking-tighter text-primary">SafeCallr</h1>
+          <AppLogo 
+            size={48} 
+            className="gap-3 justify-center" 
+            textClassName="text-3xl" 
+            iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+          />
         </motion.div>
 
         {/* Hero Text */}

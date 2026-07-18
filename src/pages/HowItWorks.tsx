@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Shield, Smartphone, Bell, CheckCircle, Share, Plus, ArrowUpSquare, Laptop } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import SEOManager from "../components/seo/SEOManager";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function HowItWorks() {
+  const { t } = useLanguage();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isReadyToInstall, setIsReadyToInstall] = useState(false);
   const [activeTab, setActiveTab] = useState<'ios' | 'android'>('ios');
@@ -39,7 +41,7 @@ export default function HowItWorks() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      alert("L'installation directe n'est pas supportée sur ce navigateur ou l'application est déjà installée. Veuillez utiliser l'installation manuelle ou vérifier vos paramètres de navigateur.");
+      alert(t("howItWorks.pwaAlertNotSupported"));
       return;
     }
     deferredPrompt.prompt();
@@ -54,39 +56,39 @@ export default function HowItWorks() {
   const steps = [
     {
       icon: Smartphone,
-      title: "Demandez une vérification",
-      description: "Saisissez le numéro de téléphone de votre interlocuteur et le type d'échange (Banque, Immobilier, etc.).",
+      title: t("howItWorks.step1Title"),
+      description: t("howItWorks.step1Desc"),
     },
     {
       icon: Bell,
-      title: "Notification instantanée",
-      description: "Votre interlocuteur reçoit une notification push sécurisée sur son téléphone via l'application SafeCallr.",
+      title: t("howItWorks.step2Title"),
+      description: t("howItWorks.step2Desc"),
     },
     {
       icon: CheckCircle,
-      title: "Confirmation d'identité",
-      description: "L'interlocuteur ouvre la demande et confirme officiellement son identité en un clic.",
+      title: t("howItWorks.step3Title"),
+      description: t("howItWorks.step3Desc"),
     },
     {
       icon: Shield,
-      title: "Statut en temps réel",
-      description: "Vous recevez instantanément le statut de vérification : Vérifié, Refusé ou Vigilance.",
+      title: t("howItWorks.step4Title"),
+      description: t("howItWorks.step4Desc"),
     },
   ];
 
   return (
     <div className="space-y-12 pb-12 w-full max-w-2xl mx-auto">
       <SEOManager 
-        title="Comment ça marche ? | Authentification Humaine"
-        description="Découvrez comment SafeCallr sécurise vos communications en 10 secondes. Un protocole simple et infaillible contre les deepfakes."
+        title={t("howItWorks.seoTitle")}
+        description={t("howItWorks.seoDesc")}
       />
       
       <section className="space-y-4 pt-8">
         <h1 className="font-headline font-extrabold text-3xl md:text-5xl tracking-tight text-on-surface leading-tight">
-          Comment ça <span className="text-primary">marche ?</span>
+          {t("howItWorks.titlePart1")}<span className="text-primary">{t("howItWorks.titlePart2")}</span>
         </h1>
         <p className="text-slate-400 text-base md:text-lg leading-relaxed">
-          Découvrez le protocole SafeCallr : une solution d'authentification hors-bande qui permet de vérifier l'identité d'un appelant professionnel en moins de 10 secondes.
+          {t("howItWorks.subtitle")}
         </p>
       </section>
 
@@ -116,19 +118,19 @@ export default function HowItWorks() {
       <div className="bg-surface-container-low p-8 md:p-10 rounded-[32px] border border-white/5 space-y-6">
         <div className="flex items-center gap-3">
           <Shield className="text-primary w-8 h-8" />
-          <h2 className="font-headline font-bold text-2xl text-on-surface">Sécurité & confidentialité</h2>
+          <h2 className="font-headline font-bold text-2xl text-on-surface">{t("howItWorks.securityTitle")}</h2>
         </div>
         <p className="text-slate-400 text-base leading-relaxed">
-          SafeCallr chiffre les échanges en AES-256. L'authentification repose sur un code à usage unique transmis hors bande, jamais par la voix : elle est conçue pour résister à l'usurpation de numéro et au clonage vocal par IA. Aucune donnée biométrique n'est traitée. Nous mettons en œuvre les mesures de sécurité nécessaires ; aucun système ne peut toutefois garantir un risque nul.
+          {t("howItWorks.securityDesc")}
         </p>
         <div className="flex gap-4">
           <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Chiffrement</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">{t("howItWorks.securityEncryption")}</p>
             <p className="text-xl font-headline font-bold text-primary">AES-256</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">Méthode</p>
-            <p className="text-xl font-headline font-bold text-primary">Code hors-bande</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">{t("howItWorks.securityMethod")}</p>
+            <p className="text-xl font-headline font-bold text-primary">{t("howItWorks.securityMethodValue")}</p>
           </div>
         </div>
       </div>
@@ -140,9 +142,9 @@ export default function HowItWorks() {
             <Smartphone className="text-[#22c55e] w-7 h-7" />
           </div>
           <div className="space-y-1">
-            <h2 className="font-headline font-bold text-2xl text-on-surface text-left">Installer l'application</h2>
+            <h2 className="font-headline font-bold text-2xl text-on-surface text-left">{t("howItWorks.pwaTitle")}</h2>
             <p className="text-slate-400 text-sm leading-relaxed text-left">
-              Ajoutez SafeCallr à votre écran d'accueil d'iPhone, iPad ou Android pour valider en un clic à tout instant et recevoir des alertes.
+              {t("howItWorks.pwaSubtitle")}
             </p>
           </div>
         </div>
@@ -157,7 +159,7 @@ export default function HowItWorks() {
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span className="text-base leading-none">📱</span> iPhone / iPad
+            {t("howItWorks.pwaIosTab")}
           </button>
           <button
             onClick={() => setActiveTab('android')}
@@ -167,7 +169,7 @@ export default function HowItWorks() {
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Laptop className="w-4 h-4" /> Android / Navigateur
+            <Laptop className="w-4 h-4" /> {t("howItWorks.pwaAndroidTab")}
           </button>
         </div>
 
@@ -183,7 +185,7 @@ export default function HowItWorks() {
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 text-left">Guide d'installation Safari (iPhone & iPad)</p>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 text-left">{t("howItWorks.pwaIosTitle")}</p>
                 
                 <div className="space-y-3">
                   <div className="flex gap-4 items-start text-left">
@@ -191,7 +193,7 @@ export default function HowItWorks() {
                       <span className="text-xs font-bold text-white leading-none">1</span>
                     </div>
                     <p className="text-slate-300 text-sm leading-relaxed pt-0.5">
-                      Ouvrez ce site dans le navigateur <strong className="text-white">Safari</strong> de votre iPhone/iPad.
+                      {t("howItWorks.pwaIosStep1")}
                     </p>
                   </div>
 
@@ -200,11 +202,11 @@ export default function HowItWorks() {
                       <span className="text-xs font-bold text-white leading-none">2</span>
                     </div>
                     <div className="text-slate-300 text-sm leading-relaxed pt-0.5 flex flex-wrap items-center gap-1.5">
-                      <span>Appuyez sur le bouton de partage</span>
+                      <span>{t("howItWorks.pwaIosStep2Part1")}</span>
                       <span className="inline-flex items-center gap-1 bg-white/10 border border-white/10 rounded px-1.5 py-0.5 text-xs text-white uppercase font-bold tracking-tight">
-                        <Share className="w-3 h-3" /> Partager
+                        <Share className="w-3 h-3" /> {t("howItWorks.pwaIosStep2Part2")}
                       </span>
-                      <span>dans la barre de Safari.</span>
+                      <span>{t("howItWorks.pwaIosStep2Part3")}</span>
                     </div>
                   </div>
 
@@ -213,9 +215,9 @@ export default function HowItWorks() {
                       <span className="text-xs font-bold text-white leading-none">3</span>
                     </div>
                     <div className="text-slate-300 text-sm leading-relaxed pt-0.5 flex flex-wrap items-center gap-1.5">
-                      <span>Sélectionnez l'option</span>
+                      <span>{t("howItWorks.pwaIosStep3Part1")}</span>
                       <span className="inline-flex items-center gap-1 bg-white/10 border border-white/10 rounded px-1.5 py-0.5 text-xs font-medium text-white uppercase tracking-tight">
-                        <Plus className="w-3 h-3" /> Sur l'écran d'accueil
+                        <Plus className="w-3 h-3" /> {t("howItWorks.pwaIosStep3Part2")}
                       </span>
                     </div>
                   </div>
@@ -231,16 +233,16 @@ export default function HowItWorks() {
                 className="space-y-4 flex flex-col justify-between h-full"
               >
                 <div className="text-left">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Installation facile Android & Chrome</p>
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">{t("howItWorks.pwaAndroidTitle")}</p>
                   <p className="text-slate-300 text-sm leading-relaxed">
-                    Si votre navigateur prend en charge l'installation directe des applications web (PWA), vous pouvez l'installer en un clic.
+                    {t("howItWorks.pwaAndroidDesc")}
                   </p>
                 </div>
 
                 <div className="pt-2">
                   {isInstalled ? (
                     <div className="inline-flex items-center gap-2 text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/20 px-4 py-2.5 rounded-xl w-full justify-center">
-                      <span className="text-sm font-bold">✓ Application SafeCallr installée</span>
+                      <span className="text-sm font-bold">{t("howItWorks.pwaInstalled")}</span>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -249,12 +251,12 @@ export default function HowItWorks() {
                         className="w-full relative flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-[#22c55e] hover:bg-[#22c55e]/90 text-black font-extrabold text-sm md:text-base tracking-wide transition-all duration-300 shadow-[0_4px_20px_rgba(34,197,94,0.3)] hover:scale-[1.01]"
                       >
                         <Plus className="w-5 h-5 stroke-[px]" />
-                        Installer SafeCallr
+                        {t("howItWorks.pwaInstallBtn")}
                       </button>
 
                       <div className="text-center">
                         <p className="text-[11px] text-slate-500 italic">
-                          Ou appuyez sur <strong className="text-white">Ajouter à l'écran d'accueil</strong> dans le menu de votre navigateur (Chrome, Edge ou Firefox).
+                          {t("howItWorks.pwaAndroidFallback")}
                         </p>
                       </div>
                     </div>

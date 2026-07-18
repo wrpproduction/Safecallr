@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import QuickResponse from "../components/seo/QuickResponse";
 import FAQSection from "../components/seo/FAQSection";
+import AppLogo from "../components/AppLogo";
 import { 
   Shield, 
   CheckCircle, 
@@ -91,12 +92,12 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-              <Shield className="text-on-primary w-6 h-6" />
-            </div>
-            <span className="font-headline font-black text-xl md:text-2xl tracking-tighter text-primary hidden min-[400px]:block">SafeCallr</span>
-          </div>
+          <AppLogo 
+            size={40} 
+            textClassName="hidden min-[400px]:block md:text-2xl" 
+            className="gap-2 md:gap-3" 
+            iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+          />
           <div className="hidden md:flex items-center gap-8 text-sm font-bold uppercase tracking-widest text-slate-400">
             <a href="#problem" className="hover:text-primary transition-colors">Problème</a>
             <a href="#solution" className="hover:text-primary transition-colors">Solution</a>
@@ -791,12 +792,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
       {/* Footer */}
       <footer className="py-20 px-6 border-t border-white/5 bg-surface-container-lowest">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Shield className="text-on-primary w-5 h-5" />
-            </div>
-            <span className="font-headline font-black text-xl tracking-tighter text-primary">SafeCallr</span>
-          </div>
+          <AppLogo className="gap-3" />
           <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
             © 2026 SafeCallr Technologies. Tous droits réservés.
           </div>

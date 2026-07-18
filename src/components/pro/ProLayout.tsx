@@ -14,6 +14,7 @@ import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { auth, db } from "../../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import AppLogo from "../AppLogo";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/pro" },
@@ -60,11 +61,9 @@ export default function ProLayout() {
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-[220px] bg-[#1e1e22] flex-col fixed h-full z-50 border-r border-[#2e2e34]">
         <div className="p-6">
-          <div className="flex items-center gap-2 text-white">
-            <div className="w-8 h-8 bg-[#4ade80] rounded-lg flex items-center justify-center shadow-lg shadow-[#4ade80]/20">
-              <ShieldCheck className="text-black w-5 h-5" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">SafeCallr <span className="text-xs font-normal text-[#9a9a9f] uppercase tracking-widest">PRO</span></span>
+          <div className="flex items-center gap-2">
+            <AppLogo />
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">PRO</span>
           </div>
         </div>
 
@@ -111,8 +110,8 @@ export default function ProLayout() {
       {/* Mobile Header */}
       <header className="md:hidden bg-[#1e1e22] text-[#e4e4e8] p-4 flex items-center justify-between sticky top-0 z-50 border-b border-[#2e2e34]">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="text-[#4ade80] w-6 h-6" />
-          <span className="font-bold text-lg">SafeCallr PRO</span>
+          <AppLogo />
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">PRO</span>
         </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

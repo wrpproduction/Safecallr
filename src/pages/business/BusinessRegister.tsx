@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth, db } from "../../firebase";
+import AppLogo from "../../components/AppLogo";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { 
   collection, 
@@ -173,11 +174,13 @@ export default function BusinessRegister() {
         
         {/* Header containing unified professional logo */}
         <div className="flex flex-col items-center text-center space-y-3">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Shield className="text-on-primary w-5 h-5" />
-            </div>
-            <span className="font-headline font-black text-2xl tracking-tighter text-primary">SafeCallr</span>
+          <Link to="/">
+            <AppLogo 
+              size={40} 
+              className="gap-2" 
+              textClassName="text-2xl" 
+              iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+            />
           </Link>
           <div>
             <h2 className="font-headline font-extrabold text-2xl tracking-tight text-white">

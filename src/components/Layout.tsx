@@ -5,6 +5,7 @@ import { db, collection, query, where, onSnapshot } from "../firebase";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useLanguage } from "../contexts/LanguageContext";
+import AppLogo from "./AppLogo";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -43,12 +44,7 @@ export default function Layout({ user }: { user: any }) {
     <div className="min-h-screen bg-background text-on-background font-body pb-24">
       {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-surface-container-low/80 backdrop-blur-xl border-b border-white/5 px-6 h-16 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-primary text-xl">security</span>
-          </div>
-          <span className="font-headline font-black text-xl tracking-tighter text-primary">SafeCallr</span>
-        </div>
+        <AppLogo />
         <div className="flex items-center gap-4">
           {user && (
             <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">

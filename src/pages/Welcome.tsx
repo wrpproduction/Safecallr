@@ -7,6 +7,7 @@ import { setupNotifications } from '../services/notifications';
 import { Capacitor } from '@capacitor/core';
 import { Toaster, toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
+import AppLogo from '../components/AppLogo';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -58,20 +59,22 @@ export default function Welcome() {
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        className="mb-8 flex justify-center"
       >
-        <div className="w-24 h-24 bg-[#3DFFA0] rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(61,255,160,0.3)]">
-          <ShieldCheck size={48} className="text-[#0F1B3D]" />
-        </div>
+        <AppLogo 
+          size={96} 
+          showText={false} 
+          iconContainerClassName="shadow-[0_0_40px_rgba(61,255,160,0.3)] rounded-3xl" 
+        />
       </motion.div>
 
       <motion.h1
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="text-3xl font-extrabold mb-4 tracking-tight leading-tight"
+        className="text-3xl font-extrabold mb-4 tracking-tight leading-tight flex items-center justify-center gap-2 flex-wrap"
       >
-        {t("welcome.title")} <span className="text-[#3DFFA0]">SafeCallr</span>
+        {t("welcome.title")} <AppLogo size={32} showText={true} className="inline-flex" />
       </motion.h1>
 
       <motion.p

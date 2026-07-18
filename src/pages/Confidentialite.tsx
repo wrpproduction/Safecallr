@@ -1,6 +1,7 @@
 import React from "react";
 import { Shield, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import AppLogo from "../components/AppLogo";
 
 export default function Confidentialite() {
   const scrollToId = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -12,10 +13,10 @@ export default function Confidentialite() {
   };
 
   return (
-    <div id="privacy-policy-page" className="min-h-screen bg-[#FAFBFD] text-[#0F1B3D] font-sans">
+    <div id="privacy-policy-page" className="min-h-screen bg-[#0A1128] text-[#E8ECF7] font-sans">
       {/* Header Bar */}
-      <header id="privacy-header" className="bg-[#0F1B3D] text-white py-14 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0F1B3D] to-[#1E2E5D] opacity-90 z-0"></div>
+      <header id="privacy-header" className="bg-[#0F1B3D] text-white py-14 px-6 relative overflow-hidden border-b border-[#263462]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0F1B3D] to-[#0A1128] opacity-90 z-0"></div>
         
         <div className="max-w-3xl mx-auto relative z-10">
           <div className="flex justify-between items-center mb-8">
@@ -24,19 +25,14 @@ export default function Confidentialite() {
               Retour à l'accueil
             </Link>
             
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#3DFFA0] flex items-center justify-center shrink-0">
-                <Shield className="text-[#0F1B3D] w-5 h-5" />
-              </div>
-              <span className="font-headline font-black text-lg tracking-tighter text-[#3DFFA0]">SafeCallr</span>
-            </div>
+            <AppLogo />
           </div>
 
-          <h1 id="privacy-main-title" className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
+          <h1 id="privacy-main-title" className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 text-[#FFFFFF]">
             Politique de confidentialité
           </h1>
-          <p className="text-[#B9C3DC] text-sm">
-            Dernière mise à jour : <strong className="text-[#3DFFA0] font-semibold">16 juillet 2026</strong> · Version 1.0
+          <p className="text-[#9FACD1] text-sm">
+            Dernière mise à jour : <strong className="text-[#FFFFFF] font-semibold">16 juillet 2026</strong> · Version 1.0
           </p>
         </div>
       </header>
@@ -45,80 +41,80 @@ export default function Confidentialite() {
       <main id="privacy-main-content" className="max-w-3xl mx-auto px-6 py-10 md:py-16">
         
         {/* Intro */}
-        <div id="privacy-intro-card" className="border-l-4 border-[#3DFFA0] pl-6 py-2 mb-10 text-[#2A3A66] text-lg leading-relaxed italic">
+        <div id="privacy-intro-card" className="border-l-4 border-[#3DFFA0] pl-6 py-2 mb-10 text-[#9FACD1] text-lg leading-relaxed italic">
           <p>
             SafeCallr est un service d'authentification des interlocuteurs lors d'appels téléphoniques, conçu pour lutter contre la fraude et l'usurpation d'identité. La protection de vos données personnelles est au cœur de notre mission : cette politique explique de manière transparente quelles données nous collectons, pourquoi, combien de temps nous les conservons, et quels sont vos droits.
           </p>
         </div>
 
         {/* Table of Contents */}
-        <nav id="privacy-toc" className="bg-white border border-[#E3E8F2] rounded-xl p-6 mb-12 shadow-sm">
-          <h2 className="text-xs uppercase tracking-widest font-bold text-[#2A3A66] mb-4">
+        <nav id="privacy-toc" className="bg-[#131E42] border border-[#263462] rounded-xl p-6 mb-12 shadow-sm">
+          <h2 className="text-xs uppercase tracking-widest font-bold text-[#9FACD1] mb-4">
             Sommaire
           </h2>
           <ol className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <li>
-              <a href="#responsable" onClick={(e) => scrollToId(e, "responsable")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#responsable" onClick={(e) => scrollToId(e, "responsable")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 1. Responsable de traitement
               </a>
             </li>
             <li>
-              <a href="#donnees" onClick={(e) => scrollToId(e, "donnees")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#donnees" onClick={(e) => scrollToId(e, "donnees")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 2. Données que nous collectons
               </a>
             </li>
             <li>
-              <a href="#non-collecte" onClick={(e) => scrollToId(e, "non-collecte")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#non-collecte" onClick={(e) => scrollToId(e, "non-collecte")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 3. Ce que SafeCallr ne collecte pas
               </a>
             </li>
             <li>
-              <a href="#finalites" onClick={(e) => scrollToId(e, "finalites")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#finalites" onClick={(e) => scrollToId(e, "finalites")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 4. Finalités et bases légales
               </a>
             </li>
             <li>
-              <a href="#conservation" onClick={(e) => scrollToId(e, "conservation")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#conservation" onClick={(e) => scrollToId(e, "conservation")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 5. Durées de conservation
               </a>
             </li>
             <li>
-              <a href="#destinataires" onClick={(e) => scrollToId(e, "destinataires")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#destinataires" onClick={(e) => scrollToId(e, "destinataires")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 6. Destinataires et sous-traitants
               </a>
             </li>
             <li>
-              <a href="#transferts" onClick={(e) => scrollToId(e, "transferts")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#transferts" onClick={(e) => scrollToId(e, "transferts")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 7. Transferts hors Union européenne
               </a>
             </li>
             <li>
-              <a href="#securite" onClick={(e) => scrollToId(e, "securite")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#securite" onClick={(e) => scrollToId(e, "securite")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 8. Sécurité
               </a>
             </li>
             <li>
-              <a href="#droits" onClick={(e) => scrollToId(e, "droits")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#droits" onClick={(e) => scrollToId(e, "droits")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 9. Vos droits
               </a>
             </li>
             <li>
-              <a href="#age" onClick={(e) => scrollToId(e, "age")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#age" onClick={(e) => scrollToId(e, "age")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 10. Âge minimum
               </a>
             </li>
             <li>
-              <a href="#cookies" onClick={(e) => scrollToId(e, "cookies")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#cookies" onClick={(e) => scrollToId(e, "cookies")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 11. Cookies
               </a>
             </li>
             <li>
-              <a href="#modifications" onClick={(e) => scrollToId(e, "modifications")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#modifications" onClick={(e) => scrollToId(e, "modifications")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 12. Modifications de cette politique
               </a>
             </li>
             <li>
-              <a href="#contact" onClick={(e) => scrollToId(e, "contact")} className="hover:text-[#0E9C5C] hover:underline transition-colors block py-0.5">
+              <a href="#contact" onClick={(e) => scrollToId(e, "contact")} className="text-[#3DFFA0] hover:text-white hover:underline transition-colors block py-0.5">
                 13. Contact
               </a>
             </li>
@@ -129,20 +125,20 @@ export default function Confidentialite() {
         <div className="space-y-12 leading-relaxed text-base">
           
           <section id="responsable" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               1. Responsable de traitement
             </h2>
             <div className="space-y-3">
               <p>Le responsable du traitement des données personnelles collectées via l'application et le site SafeCallr est :</p>
-              <p className="bg-white border border-[#E3E8F2] rounded-xl p-4 shadow-sm">
-                <strong>MOTIOON</strong>, société par actions simplifiée unipersonnelle (SASU)<br />
+              <div className="bg-[#131E42] border border-[#263462] rounded-xl p-4 shadow-sm">
+                <strong className="text-[#FFFFFF]">MOTIOON</strong>, société par actions simplifiée unipersonnelle (SASU)<br />
                 Siège social : 60 rue François I<sup>er</sup>, 75008 Paris, France<br />
                 Immatriculée au RCS de Paris sous le numéro 930 280 086<br />
                 Représentée par son président, Rémi Prével
-              </p>
+              </div>
               <p>
                 Pour toute question relative à vos données personnelles :{" "}
-                <a href="mailto:contact@safecallr.com" className="text-[#0E9C5C] hover:underline font-medium">
+                <a href="mailto:contact@safecallr.com" className="text-[#3DFFA0] hover:underline font-medium">
                   contact@safecallr.com
                 </a>
               </p>
@@ -153,76 +149,76 @@ export default function Confidentialite() {
           </section>
 
           <section id="donnees" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               2. Données que nous collectons
             </h2>
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-bold text-[#0F1B3D] mb-2">2.1 Données de compte (tous utilisateurs)</h3>
+                <h3 className="text-lg font-bold text-[#FFFFFF] mb-2">2.1 Données de compte (tous utilisateurs)</h3>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li><strong>Identité :</strong> nom complet ;</li>
-                  <li><strong>Coordonnées :</strong> adresse e-mail, numéro de téléphone ;</li>
-                  <li><strong>Authentification :</strong> mot de passe (stocké exclusivement sous forme chiffrée/hachée — nous n'avons jamais accès à votre mot de passe en clair) ;</li>
-                  <li><strong>Type de compte :</strong> particulier ou professionnel.</li>
+                  <li><strong className="text-[#FFFFFF]">Identité :</strong> nom complet ;</li>
+                  <li><strong className="text-[#FFFFFF]">Coordonnées :</strong> adresse e-mail, numéro de téléphone ;</li>
+                  <li><strong className="text-[#FFFFFF]">Authentification :</strong> mot de passe (stocké exclusivement sous forme chiffrée/hachée — nous n'avons jamais accès à votre mot de passe en clair) ;</li>
+                  <li><strong className="text-[#FFFFFF]">Type de compte :</strong> particulier ou professionnel.</li>
                 </ul>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-[#0F1B3D] mb-2">2.2 Données de vérification professionnelle (comptes professionnels uniquement)</h3>
+                <h3 className="text-lg font-bold text-[#FFFFFF] mb-2">2.2 Données de vérification professionnelle (comptes professionnels uniquement)</h3>
                 <p>
                   Afin de garantir que seuls des professionnels légitimes peuvent revendiquer un statut professionnel vérifié — ce qui constitue le fondement de la protection offerte par SafeCallr — nous demandons aux professionnels un justificatif d'existence de leur entreprise ou de leur activité (extrait Kbis ou document équivalent attestant de l'existence légale de la structure).
                 </p>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-[#0F1B3D] mb-2">2.3 Données d'utilisation du service</h3>
+                <h3 className="text-lg font-bold text-[#FFFFFF] mb-2">2.3 Données d'utilisation du service</h3>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li><strong>Contacts sécurisés :</strong> la liste des utilisateurs SafeCallr avec lesquels vous avez établi une relation de vérification ;</li>
-                  <li><strong>Historique des vérifications :</strong> date, interlocuteur concerné et résultat (identité confirmée ou non) de chaque demande d'authentification ;</li>
-                  <li><strong>Codes de vérification :</strong> les codes à usage unique générés lors d'une demande d'authentification, qui expirent automatiquement à brève échéance ;</li>
-                  <li><strong>Préférences :</strong> langue de l'application.</li>
+                  <li><strong className="text-[#FFFFFF]">Contacts sécurisés :</strong> la liste des utilisateurs SafeCallr avec lesquels vous avez établi une relation de vérification ;</li>
+                  <li><strong className="text-[#FFFFFF]">Historique des vérifications :</strong> date, interlocuteur concerné et résultat (identité confirmée ou non) de chaque demande d'authentification ;</li>
+                  <li><strong className="text-[#FFFFFF]">Codes de vérification :</strong> les codes à usage unique générés lors d'une demande d'authentification, qui expirent automatiquement à brève échéance ;</li>
+                  <li><strong className="text-[#FFFFFF]">Préférences :</strong> langue de l'application.</li>
                 </ul>
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-[#0F1B3D] mb-2">2.4 Données techniques</h3>
+                <h3 className="text-lg font-bold text-[#FFFFFF] mb-2">2.4 Données techniques</h3>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li><strong>Jeton de notification push (token FCM) :</strong> identifiant technique permettant de vous transmettre les notifications d'authentification sur votre appareil ;</li>
-                  <li><strong>Plateforme utilisée :</strong> iOS, Android ou web ;</li>
-                  <li><strong>Journaux techniques :</strong> journaux de connexion et d'erreurs strictement nécessaires au fonctionnement, à la sécurité et à la maintenance du service.</li>
+                  <li><strong className="text-[#FFFFFF]">Jeton de notification push (token FCM) :</strong> identifiant technique permettant de vous transmettre les notifications d'authentification sur votre appareil ;</li>
+                  <li><strong className="text-[#FFFFFF]">Plateforme utilisée :</strong> iOS, Android ou web ;</li>
+                  <li><strong className="text-[#FFFFFF]">Journaux techniques :</strong> journaux de connexion et d'erreurs strictement nécessaires au fonctionnement, à la sécurité et à la maintenance du service.</li>
                 </ul>
               </div>
             </div>
           </section>
 
           <section id="non-collecte" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               3. Ce que SafeCallr ne collecte pas
             </h2>
-            <div className="bg-white border border-[#E3E8F2] border-l-4 border-l-[#3DFFA0] rounded-xl p-6 shadow-sm">
-              <p className="font-semibold text-lg text-[#0F1B3D] mb-3">
+            <div className="bg-[#3DFFA0]/12 border-l-4 border-l-[#3DFFA0] rounded-xl p-6 shadow-sm">
+              <p className="font-semibold text-lg text-[#3DFFA0] mb-3">
                 SafeCallr n'enregistre pas vos appels, ne collecte aucune donnée vocale et ne pratique aucune analyse biométrique.
               </p>
-              <p className="text-sm text-[#2A3A66] mb-0">
+              <p className="text-sm text-[#9FACD1] mb-0">
                 Le service fonctionne exclusivement par échange de codes de vérification : nous n'avons accès ni au contenu, ni à l'audio de vos conversations téléphoniques, qui se déroulent en dehors de l'application. SafeCallr n'accède pas au répertoire de votre téléphone sans votre autorisation et ne collecte pas votre localisation.
               </p>
             </div>
           </section>
 
           <section id="finalites" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               4. Finalités et bases légales
             </h2>
-            <div className="overflow-x-auto border border-[#E3E8F2] rounded-xl shadow-sm bg-white">
+            <div className="overflow-x-auto border border-[#263462] rounded-xl shadow-sm bg-[#131E42]">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-[#0F1B3D] text-white">
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Finalité</th>
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Données concernées</th>
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Base légale (art. 6 RGPD)</th>
+                  <tr className="bg-[#182550] text-[#3DFFA0]">
+                    <th className="p-4 font-semibold border-b border-[#263462]">Finalité</th>
+                    <th className="p-4 font-semibold border-b border-[#263462]">Données concernées</th>
+                    <th className="p-4 font-semibold border-b border-[#263462]">Base légale (art. 6 RGPD)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E3E8F2] text-[#2A3A66]">
+                <tbody className="divide-y divide-[#263462] text-[#E8ECF7]">
                   <tr>
                     <td className="p-4 align-top">Création et gestion de votre compte, fourniture du service d'authentification</td>
                     <td className="p-4 align-top">Données de compte, contacts sécurisés, codes de vérification, token FCM</td>
@@ -256,24 +252,24 @@ export default function Confidentialite() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-sm text-[#2A3A66]">
+            <p className="mt-4 text-sm text-[#9FACD1]">
               Nous n'utilisons pas vos données à des fins de publicité ciblée et nous ne vendons pas vos données à des tiers.
             </p>
           </section>
 
           <section id="conservation" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               5. Durées de conservation
             </h2>
-            <div className="overflow-x-auto border border-[#E3E8F2] rounded-xl shadow-sm bg-white">
+            <div className="overflow-x-auto border border-[#263462] rounded-xl shadow-sm bg-[#131E42]">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-[#0F1B3D] text-white">
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Données</th>
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Durée de conservation</th>
+                  <tr className="bg-[#182550] text-[#3DFFA0]">
+                    <th className="p-4 font-semibold border-b border-[#263462]">Données</th>
+                    <th className="p-4 font-semibold border-b border-[#263462]">Durée de conservation</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E3E8F2] text-[#2A3A66]">
+                <tbody className="divide-y divide-[#263462] text-[#E8ECF7]">
                   <tr>
                     <td className="p-4 align-top">Données de compte</td>
                     <td className="p-4 align-top">Pendant toute la durée de vie du compte, puis suppression dans un délai de 30 jours après la clôture du compte</td>
@@ -301,27 +297,27 @@ export default function Confidentialite() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-sm text-[#2A3A66]">
+            <p className="mt-4 text-sm text-[#9FACD1]">
               Certaines données peuvent être conservées au-delà de ces durées lorsque la loi l'exige ou pour la constatation, l'exercice ou la défense de droits en justice, pendant les délais de prescription applicables.
             </p>
           </section>
 
           <section id="destinataires" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               6. Destinataires et sous-traitants
             </h2>
             <p className="mb-4">
               Vos données sont accessibles uniquement au personnel habilité de MOTIOON et aux prestataires techniques strictement nécessaires au fonctionnement du service, agissant en qualité de sous-traitants au sens du RGPD :
             </p>
-            <div className="overflow-x-auto border border-[#E3E8F2] rounded-xl shadow-sm bg-white mb-6">
+            <div className="overflow-x-auto border border-[#263462] rounded-xl shadow-sm bg-[#131E42] mb-6">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-[#0F1B3D] text-white">
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Prestataire</th>
-                    <th className="p-4 font-semibold border-b border-[#E3E8F2]">Rôle</th>
+                  <tr className="bg-[#182550] text-[#3DFFA0]">
+                    <th className="p-4 font-semibold border-b border-[#263462]">Prestataire</th>
+                    <th className="p-4 font-semibold border-b border-[#263462]">Rôle</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E3E8F2] text-[#2A3A66]">
+                <tbody className="divide-y divide-[#263462] text-[#E8ECF7]">
                   <tr>
                     <td className="p-4 align-top">Google Ireland Ltd / Google LLC — Firebase</td>
                     <td className="p-4 align-top">Authentification des comptes, base de données, envoi des notifications push (FCM)</td>
@@ -346,7 +342,7 @@ export default function Confidentialite() {
           </section>
 
           <section id="transferts" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               7. Transferts hors Union européenne
             </h2>
             <p className="mb-3">
@@ -358,7 +354,7 @@ export default function Confidentialite() {
           </section>
 
           <section id="securite" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               8. Sécurité
             </h2>
             <p className="mb-4">
@@ -377,31 +373,31 @@ export default function Confidentialite() {
           </section>
 
           <section id="droits" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               9. Vos droits
             </h2>
             <p className="mb-4">
               Conformément au RGPD et à la loi Informatique et Libertés, vous disposez des droits suivants sur vos données personnelles :
             </p>
             <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li><strong>Droit d'accès :</strong> obtenir une copie des données que nous détenons sur vous ;</li>
-              <li><strong>Droit de rectification :</strong> faire corriger des données inexactes ou incomplètes ;</li>
-              <li><strong>Droit à l'effacement :</strong> demander la suppression de vos données, notamment via la suppression de votre compte ;</li>
-              <li><strong>Droit à la limitation :</strong> demander le gel temporaire du traitement de vos données ;</li>
-              <li><strong>Droit à la portabilité :</strong> recevoir vos données dans un format structuré et couramment utilisé ;</li>
-              <li><strong>Droit d'opposition :</strong> vous opposer aux traitements fondés sur notre intérêt légitime, pour des raisons tenant à votre situation particulière ;</li>
-              <li><strong>Directives post mortem :</strong> définir des directives relatives au sort de vos données après votre décès.</li>
+              <li><strong className="text-[#FFFFFF]">Droit d'accès :</strong> obtenir une copie des données que nous détenons sur vous ;</li>
+              <li><strong className="text-[#FFFFFF]">Droit de rectification :</strong> faire corriger des données inexactes ou incomplètes ;</li>
+              <li><strong className="text-[#FFFFFF]">Droit à l'effacement :</strong> demander la suppression de vos données, notamment via la suppression de votre compte ;</li>
+              <li><strong className="text-[#FFFFFF]">Droit à la limitation :</strong> demander le gel temporaire du traitement de vos données ;</li>
+              <li><strong className="text-[#FFFFFF]">Droit à la portabilité :</strong> recevoir vos données dans un format structuré et couramment utilisé ;</li>
+              <li><strong className="text-[#FFFFFF]">Droit d'opposition :</strong> vous opposer aux traitements fondés sur notre intérêt légitime, pour des raisons tenant à votre situation particulière ;</li>
+              <li><strong className="text-[#FFFFFF]">Directives post mortem :</strong> définir des directives relatives au sort de vos données après votre décès.</li>
             </ul>
             <p className="mb-3">
               Pour exercer ces droits, contactez-nous à{" "}
-              <a href="mailto:contact@safecallr.com" className="text-[#0E9C5C] hover:underline font-medium">
+              <a href="mailto:contact@safecallr.com" className="text-[#3DFFA0] hover:underline font-medium">
                 contact@safecallr.com
               </a>
               . Nous pourrons vous demander un justificatif d'identité en cas de doute raisonnable sur l'identité du demandeur. Nous répondons dans un délai d'un mois, prolongeable de deux mois pour les demandes complexes.
             </p>
             <p>
               Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la Commission nationale de l'informatique et des libertés (CNIL) :{" "}
-              <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-[#0E9C5C] hover:underline font-medium">
+              <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-[#3DFFA0] hover:underline font-medium">
                 www.cnil.fr
               </a>{" "}
               — CNIL, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.
@@ -409,16 +405,16 @@ export default function Confidentialite() {
           </section>
 
           <section id="age" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               10. Âge minimum
             </h2>
             <p>
-              SafeCallr est réservé aux personnes âgées de <strong>18 ans ou plus</strong>. En créant un compte, vous confirmez avoir au moins 18 ans. Si nous constatons qu'un compte a été créé par une personne mineure, nous procéderons à sa suppression.
+              SafeCallr est réservé aux personnes âgées de <strong className="text-[#FFFFFF]">18 ans ou plus</strong>. En créant un compte, vous confirmez avoir au moins 18 ans. Si nous constatons qu'un compte a été créé par une personne mineure, nous procéderons à sa suppression.
             </p>
           </section>
 
           <section id="cookies" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               11. Cookies
             </h2>
             <p className="mb-3">
@@ -430,7 +426,7 @@ export default function Confidentialite() {
           </section>
 
           <section id="modifications" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               12. Modifications de cette politique
             </h2>
             <p>
@@ -439,24 +435,24 @@ export default function Confidentialite() {
           </section>
 
           <section id="contact" className="scroll-mt-6">
-            <h2 className="text-xl md:text-2xl font-extrabold text-[#0F1B3D] mb-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-[#FFFFFF] mb-4">
               13. Contact
             </h2>
             <p className="mb-3">Pour toute question relative à cette politique ou à vos données personnelles :</p>
-            <p className="bg-white border border-[#E3E8F2] rounded-xl p-4 shadow-sm">
-              <strong>MOTIOON — SafeCallr</strong><br />
+            <div className="bg-[#131E42] border border-[#263462] rounded-xl p-4 shadow-sm">
+              <strong className="text-[#FFFFFF]">MOTIOON — SafeCallr</strong><br />
               60 rue François I<sup>er</sup>, 75008 Paris, France<br />
-              <a href="mailto:contact@safecallr.com" className="text-[#0E9C5C] hover:underline font-medium">
+              <a href="mailto:contact@safecallr.com" className="text-[#3DFFA0] hover:underline font-medium">
                 contact@safecallr.com
               </a>
-            </p>
+            </div>
           </section>
 
         </div>
       </main>
 
       {/* Footer */}
-      <footer id="privacy-footer" className="border-t border-[#E3E8F2] py-8 px-6 text-center text-sm text-[#2A3A66] bg-white">
+      <footer id="privacy-footer" className="border-t border-[#263462] py-8 px-6 text-center text-sm text-[#9FACD1] bg-[#0A1128]">
         <div className="max-w-3xl mx-auto">
           © 2026 MOTIOON SASU — SafeCallr. Tous droits réservés.
         </div>

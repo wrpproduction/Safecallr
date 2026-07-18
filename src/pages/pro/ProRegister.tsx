@@ -18,6 +18,7 @@ import { auth, db, storage } from "../../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import AppLogo from "../../components/AppLogo";
 import { emailService } from "../../services/emailService";
 
 import { handleFirestoreError, OperationType } from "../../lib/firestore-errors";
@@ -375,10 +376,13 @@ export default function ProRegister() {
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-            <ShieldCheck className="text-on-primary w-7 h-7" />
-          </div>
-          <h1 className="text-xl font-black text-primary font-headline tracking-tighter">SafeCallr <span className="text-xs font-normal text-on-surface-variant uppercase tracking-widest">Pro</span></h1>
+          <AppLogo 
+            size={48} 
+            className="flex-col gap-3" 
+            textClassName="text-xl font-headline" 
+            iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+          />
+          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1 block">PRO</span>
         </div>
 
         {/* Stepper */}

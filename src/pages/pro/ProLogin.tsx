@@ -5,6 +5,7 @@ import { auth, db } from "../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import LanguageSelector from "../../components/LanguageSelector";
+import AppLogo from "../../components/AppLogo";
 
 export default function ProLogin() {
   const [email, setEmail] = useState("");
@@ -95,10 +96,13 @@ export default function ProLogin() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 font-body">
       <div className="w-full max-w-md bg-surface-container rounded-3xl shadow-2xl border border-surface-container-highest p-8 md:p-10">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
-            <ShieldCheck className="text-on-primary w-10 h-10" />
-          </div>
-          <h1 className="text-2xl font-black text-primary tracking-tighter font-headline">SafeCallr <span className="text-sm font-normal text-on-surface-variant opacity-70">PRO</span></h1>
+          <AppLogo 
+            size={64} 
+            className="flex-col gap-4" 
+            textClassName="text-2xl font-headline" 
+            iconContainerClassName="shadow-lg shadow-primary/20 rounded-2xl" 
+          />
+          <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mt-2 block">PRO</span>
           <p className="text-on-surface-variant mt-2 text-center">Espace professionnel sécurisé</p>
         </div>
 

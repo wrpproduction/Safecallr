@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 import { db, collection, query, where, onSnapshot, orderBy } from "../firebase";
 import { Shield, CheckCircle, AlertTriangle, Clock, XCircle, ShieldCheck, ShieldAlert, ShieldQuestion } from "lucide-react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { fr, enUS, es } from "date-fns/locale";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function History({ user }: { user: any }) {
+  const { t, language } = useLanguage();
+  const dateLocale = language === "en" ? enUS : language === "es" ? es : fr;
   const [requests, setRequests] = useState<any[]>([]);
   const [userConnections, setUserConnections] = useState<any[]>([]);
   const [personalContacts, setPersonalContacts] = useState<any[]>([]);
@@ -85,12 +88,13 @@ export default function History({ user }: { user: any }) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case "pending": return { label: "En attente", color: "text-slate-400", icon: Clock };
-      case "accepted": return { label: "Acceptée", color: "text-primary", icon: CheckCircle };
-      case "refused": return { label: "Refusée", color: "text-error", icon: XCircle };
-      case "verified": return { label: "Vérifiée", color: "text-primary", icon: ShieldCheck };
-      case "caution": return { label: "Vigilance", color: "text-tertiary-container", icon: ShieldAlert };
-      default: return { label: "Inconnu", color: "text-slate-400", icon: ShieldQuestion };
+      case "pending": return { label: t("request.pending"), color: "text-slate-400", icon: Clock };
+      case "accepted": return { label: t("request.handshake1"), color: "text-primary", icon: CheckCircle };
+      case "step1_verified": return { label: t("request.handshake2"), color: "text-primary", icon: CheckCircle };
+      case "refused": return { label: t("common.refused"), color: "text-error", icon: XCircle };
+      case "verified": return { label: t("common.verified"), color: "text-primary", icon: ShieldCheck };
+      case "caution": return { label: t("request.caution"), color: "text-tertiary-container", icon: ShieldAlert };
+      default: return { label: t("request.unknown"), color: "text-slate-400", icon: ShieldQuestion };
     }
   };
 
@@ -98,10 +102,10 @@ export default function History({ user }: { user: any }) {
     <div className="space-y-8 pb-12">
       <section className="space-y-4">
         <h1 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface leading-tight">
-          Historique des <span className="text-primary">vérifications</span>
+          {t("history.titlePart1")}<span className="text-primary">{t("history.titlePart2")}</span>
         </h1>
         <p className="text-slate-400 text-sm leading-relaxed">
-          Consultez l'historique de vos échanges sécurisés et identifiez les menaces potentielles.
+          {t("history.subtitle")}
         </p>
       </section>
 
@@ -113,7 +117,7 @@ export default function History({ user }: { user: any }) {
         ) : requests.length === 0 ? (
           <div className="text-center py-20 bg-surface-container-low rounded-3xl border border-dashed border-white/10">
             <Shield className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-500 text-sm">Aucun historique disponible</p>
+            <p className="text-slate-500 text-sm">{t("history.empty")}</p>
           </div>
         ) : (
           requests.map((req) => {
@@ -159,7 +163,7 @@ export default function History({ user }: { user: any }) {
                 // C. Look up in personalContacts (manual personal)
                 const matchedPerso = personalContacts.find(p => p.phone && normalizePhone(p.phone) === cleanTargetPhone);
                 if (matchedPerso) {
-                  displayName = matchedPerso.name;
+                  displayName = matchedPerso.firstName ? `${matchedPerso.firstName} ${matchedPerso.name}` : matchedPerso.name;
                 }
               }
             }
@@ -191,7 +195,7 @@ export default function History({ user }: { user: any }) {
                 </div>
                 <div className="text-right">
                   <p className="text-on-surface font-semibold text-sm">
-                    {req.createdAt?.toDate ? format(req.createdAt.toDate(), "d MMM", { locale: fr }) : "Aujourd'hui"}
+                    {req.createdAt?.toDate ? format(req.createdAt.toDate(), "d MMM", { locale: dateLocale }) : t("common.today")}
                   </p>
                   <p className={`text-xs font-bold uppercase tracking-widest ${status.color}`}>{status.label}</p>
                 </div>
@@ -203,7 +207,7 @@ export default function History({ user }: { user: any }) {
 
       <div className="mt-12 mb-8 flex flex-col items-center">
         <div className="w-12 h-1 bg-surface-container-highest rounded-full mb-4"></div>
-        <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">Fin du journal — Chiffré</p>
+        <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">{t("history.endOfLog")}</p>
       </div>
     </div>
   );

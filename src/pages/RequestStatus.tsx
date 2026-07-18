@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db, doc, onSnapshot, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, addDoc } from "../firebase";
-import { Shield, CheckCircle, AlertTriangle, Clock, XCircle, Phone, User, ShieldCheck, ShieldAlert, ShieldQuestion } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Clock, XCircle, Phone, User, ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function RequestStatus({ user }: { user: any }) {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -88,13 +90,13 @@ export default function RequestStatus({ user }: { user: any }) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case "pending": return { label: "En attente", color: "text-slate-400", icon: Clock, bg: "bg-slate-400/10", border: "border-slate-400/20" };
-      case "accepted": return { label: "Handshake 1/2", color: "text-primary", icon: ShieldQuestion, bg: "bg-primary/10", border: "border-primary/20" };
-      case "step1_verified": return { label: "Handshake 2/2", color: "text-primary", icon: ShieldQuestion, bg: "bg-primary/10", border: "border-primary/20" };
-      case "verified": return { label: "Vérifiée", color: "text-primary", icon: ShieldCheck, bg: "bg-primary/10", border: "border-primary/20" };
-      case "refused": return { label: "Refusée", color: "text-error", icon: XCircle, bg: "bg-error/10", border: "border-error/20" };
-      case "caution": return { label: "Vigilance", color: "text-tertiary-container", icon: ShieldAlert, bg: "bg-tertiary-container/10", border: "border-tertiary-container/20" };
-      default: return { label: "Inconnu", color: "text-slate-400", icon: ShieldQuestion, bg: "bg-slate-400/10", border: "border-slate-400/20" };
+      case "pending": return { label: t("request.pending"), color: "text-slate-400", icon: Clock, bg: "bg-slate-400/10", border: "border-slate-400/20" };
+      case "accepted": return { label: t("request.handshake1"), color: "text-primary", icon: ShieldQuestion, bg: "bg-primary/10", border: "border-primary/20" };
+      case "step1_verified": return { label: t("request.handshake2"), color: "text-primary", icon: ShieldQuestion, bg: "bg-primary/10", border: "border-primary/20" };
+      case "verified": return { label: t("request.identityConfirmed"), color: "text-primary", icon: ShieldCheck, bg: "bg-primary/10", border: "border-primary/20" };
+      case "refused": return { label: t("request.requestRefused"), color: "text-error", icon: XCircle, bg: "bg-error/10", border: "border-error/20" };
+      case "caution": return { label: t("request.caution"), color: "text-tertiary-container", icon: ShieldAlert, bg: "bg-tertiary-container/10", border: "border-tertiary-container/20" };
+      default: return { label: t("request.unknown"), color: "text-slate-400", icon: ShieldQuestion, bg: "bg-slate-400/10", border: "border-slate-400/20" };
     }
   };
 
@@ -209,10 +211,10 @@ export default function RequestStatus({ user }: { user: any }) {
           <div className="bg-[#ef4444]/20 border border-[#ef4444]/50 text-[#ef4444] px-5 py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest text-center shadow-lg animate-pulse flex flex-col items-center justify-center gap-2">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-6 h-6" />
-              <span>DANGER : SUSPICION D'ARNAQUE</span>
+              <span>{t("request.dangerScam")}</span>
             </div>
             <p className="text-[10px] font-bold text-[#ef4444]/80 tracking-normal normal-case font-sans mt-1">
-              Délai expiré. Raccrochez immédiatement, ne donnez aucun code !
+              {t("request.warningExpired")}
             </p>
           </div>
         ),
@@ -240,28 +242,28 @@ export default function RequestStatus({ user }: { user: any }) {
 
         <div className="space-y-2">
           <h2 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface">
-            {request.status === "pending" && (isRequester ? "En attente de B..." : "Demande reçue")}
-            {request.status === "accepted" && "Handshake en cours"}
-            {request.status === "step1_verified" && "Handshake final"}
-            {request.status === "verified" && "Identité confirmée"}
-            {request.status === "refused" && "Demande refusée"}
+            {request.status === "pending" && (isRequester ? t("request.waitingForAnswer") : t("request.requestReceived"))}
+            {request.status === "accepted" && t("request.handshakeInProgress")}
+            {request.status === "step1_verified" && t("request.handshakeFinal")}
+            {request.status === "verified" && t("request.identityConfirmed")}
+            {request.status === "refused" && t("request.requestRefused")}
           </h2>
           <p className="text-slate-400 text-sm max-w-[280px] mx-auto">
             {request.status === "pending" && (
               isRequester ? (
-                timeLeft > 0 ? "Attendez que votre interlocuteur accepte." : "Session interrompue par sécurité."
+                timeLeft > 0 ? t("request.waitingForAccept") : t("request.sessionInterrupted")
               ) : (
-                "Acceptez pour voir le code de sécurité."
+                t("request.acceptToSee")
               )
             )}
             {request.status === "accepted" && (
               timeLeft > 0 ? (
-                isRequester ? "Votre interlocuteur doit vous donner le code." : "Donnez ce code à votre interlocuteur."
+                isRequester ? t("request.callerMustSayCode") : t("request.sayCodeToCaller")
               ) : (
-                "Session interrompue par sécurité."
+                t("request.sessionInterrupted")
               )
             )}
-            {request.status === "step1_verified" && (isRequester ? "Donnez ce nouveau code à votre interlocuteur." : "Votre interlocuteur doit vous donner le code.")}
+            {request.status === "step1_verified" && (isRequester ? t("request.sayNewCodeToCaller") : t("request.callerMustSayCode"))}
           </p>
         </div>
 
@@ -270,7 +272,7 @@ export default function RequestStatus({ user }: { user: any }) {
           <div className="w-full space-y-4">
             <div className={`p-8 rounded-3xl border text-center space-y-4 transition-colors duration-500 ${timerThemeArgs.bgClass} ${timerThemeArgs.borderClass}`}>
               <p className={`text-[10px] uppercase tracking-widest font-bold ${timerThemeArgs.colorClass}`}>
-                {timeLeft > 0 ? "Votre code de sécurité" : "Code de sécurité expiré"}
+                {timeLeft > 0 ? t("request.yourSecurityCode") : t("request.codeExpired")}
               </p>
               
               {timerThemeArgs.showCode ? (
@@ -302,9 +304,9 @@ export default function RequestStatus({ user }: { user: any }) {
             <div className={`p-8 rounded-3xl border text-center space-y-4 transition-colors duration-500 ${timerThemeArgs.bgClass} ${timerThemeArgs.borderClass}`}>
               <p className={`text-[10px] uppercase tracking-widest font-bold ${timerThemeArgs.colorClass}`}>
                 {timeLeft > 0 ? (
-                  isTarget ? "Dites ce code à votre interlocuteur" : "Votre interlocuteur doit dire ce code"
+                  isTarget ? t("request.sayCodeToCaller") : t("request.callerMustSayCode")
                 ) : (
-                  "Code de sécurité expiré"
+                  t("request.codeExpired")
                 )}
               </p>
               
@@ -335,7 +337,7 @@ export default function RequestStatus({ user }: { user: any }) {
                 onClick={() => handleAction("step1_verified")}
                 className="w-full bg-primary-gradient text-on-primary font-headline font-extrabold text-xl py-6 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all"
               >
-                Code Correct
+                {t("request.codeCorrect")}
               </button>
             )}
           </div>
@@ -346,7 +348,7 @@ export default function RequestStatus({ user }: { user: any }) {
           <div className="w-full space-y-4">
             <div className="bg-primary/5 p-8 rounded-3xl border border-primary/20 text-center space-y-4">
               <p className="text-[10px] uppercase tracking-widest text-primary font-bold">
-                {isRequester ? "Dites ce nouveau code à votre interlocuteur" : "Votre interlocuteur doit dire ce code"}
+                {isRequester ? t("request.sayNewCodeToCaller") : t("request.callerMustSayCode")}
               </p>
               <div className="text-6xl font-black tracking-[0.2em] text-primary font-mono">
                 {request.codeB}
@@ -358,7 +360,7 @@ export default function RequestStatus({ user }: { user: any }) {
                 onClick={() => handleAction("verified")}
                 className="w-full bg-primary-gradient text-on-primary font-headline font-extrabold text-xl py-6 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all"
               >
-                Code Correct
+                {t("request.codeCorrect")}
               </button>
             )}
           </div>
@@ -401,14 +403,14 @@ export default function RequestStatus({ user }: { user: any }) {
             className="bg-surface-container-highest text-error font-headline font-bold py-5 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <XCircle className="w-5 h-5" />
-            Refuser
+            {t("request.decline")}
           </button>
           <button 
             onClick={() => handleAction("accepted")}
             className="bg-primary-gradient text-on-primary font-headline font-bold py-5 rounded-2xl shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <CheckCircle className="w-5 h-5" />
-            Accepter
+            {t("request.accept")}
           </button>
         </div>
       )}

@@ -17,6 +17,7 @@ import { db, collection, getDocs, query, where } from "../firebase";
 import SEOManager from "../components/seo/SEOManager";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { toast } from "sonner";
+import AppLogo from "../components/AppLogo";
 
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -150,11 +151,13 @@ export default function ArticleDetail() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-              <Shield className="text-on-primary w-6 h-6" />
-            </div>
-            <span className="font-headline font-black text-xl md:text-2xl tracking-tighter text-primary">SafeCallr</span>
+          <Link to="/" className="flex items-center">
+            <AppLogo 
+              size={40} 
+              textClassName="md:text-2xl" 
+              className="gap-3" 
+              iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+            />
           </Link>
           <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap">
             <Link to="/" className="hover:text-primary transition-colors shrink-0">Accueil</Link>
@@ -326,12 +329,7 @@ export default function ArticleDetail() {
       {/* Footer */}
       <footer className="py-20 px-6 border-t border-white/5 bg-surface-container-lowest mt-20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Shield className="text-on-primary w-5 h-5" />
-            </div>
-            <span className="font-headline font-black text-xl tracking-tighter text-primary">SafeCallr</span>
-          </div>
+          <AppLogo className="gap-3" />
           <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
             © 2026 SafeCallr Technologies. Tous droits réservés.
           </div>

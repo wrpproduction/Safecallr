@@ -6,6 +6,7 @@ import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-r
 import { linkPendingConnections } from "../lib/connections";
 import { emailService } from "../services/emailService";
 import LanguageSelector from "../components/LanguageSelector";
+import AppLogo from "../components/AppLogo";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -152,12 +153,11 @@ export default function Auth() {
     <div className="min-h-screen bg-background text-on-background font-body flex flex-col items-center justify-center px-8 relative overflow-hidden">
       <div className="z-10 w-full max-w-md flex flex-col items-center text-center space-y-8">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <Shield className="text-on-primary w-6 h-6" />
-          </div>
-          <h1 className="font-headline font-black text-2xl tracking-tighter text-primary">SafeCallr</h1>
-        </div>
+        <AppLogo 
+          size={40} 
+          className="gap-3" 
+          iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+        />
 
         <div className="space-y-2">
           <h2 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface">

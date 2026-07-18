@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import AppLogo from "../components/AppLogo";
 
 export default function CompanyContact() {
   const [formData, setFormData] = useState({
@@ -107,12 +108,12 @@ export default function CompanyContact() {
           <span className="text-sm font-bold uppercase tracking-widest text-slate-500 group-hover:text-on-surface">Retour</span>
         </Link>
         
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <Shield className="text-on-primary w-6 h-6" />
-          </div>
-          <span className="font-headline font-black text-2xl tracking-tighter text-primary">SafeCallr</span>
-        </div>
+        <AppLogo 
+          size={40} 
+          className="gap-3" 
+          textClassName="text-2xl" 
+          iconContainerClassName="shadow-lg shadow-primary/20 rounded-xl" 
+        />
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-12 md:py-20 lg:flex items-start gap-20">
@@ -259,12 +260,7 @@ export default function CompanyContact() {
 
       <footer className="py-20 px-6 border-t border-white/5 bg-surface-container-lowest mt-20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Shield className="text-on-primary w-5 h-5" />
-            </div>
-            <span className="font-headline font-black text-xl tracking-tighter text-primary">SafeCallr</span>
-          </div>
+          <AppLogo className="gap-3" />
           <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
             © 2026 SafeCallr Technologies.
           </div>

@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { db, collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, addDoc, deleteDoc, getDocs } from "../firebase";
 import { UserPlus, Check, X, Shield, Building2, Phone, Mail, Clock, Search, User, Plus, Trash2, MapPin, Globe, CheckCircle2, ShieldCheck, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function Contacts({ user }: { user: any }) {
+  const { t } = useLanguage();
   const [connections, setConnections] = useState<any[]>([]);
   const [validatedAuthRequests, setValidatedAuthRequests] = useState<any[]>([]);
   const [userConnections, setUserConnections] = useState<any[]>([]);
@@ -14,7 +16,7 @@ export default function Contacts({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newContact, setNewContact] = useState({ name: "", phone: "", email: "", description: "" });
+  const [newContact, setNewContact] = useState({ firstName: "", name: "", phone: "", email: "", description: "" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState("");
@@ -133,7 +135,7 @@ export default function Contacts({ user }: { user: any }) {
 
   const handleAddContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newContact.name || !newContact.phone || !newContact.email) return;
+    if (!newContact.firstName || !newContact.name || !newContact.phone || !newContact.email) return;
     setAdding(true);
     setAddError("");
     setAddSuccess("");
@@ -158,6 +160,8 @@ export default function Contacts({ user }: { user: any }) {
         }
       });
 
+      const contactFullName = `${newContact.firstName} ${newContact.name}`;
+
       if (targetUser) {
         currentStep = "ajout_demande_contact_personnel";
         // Person is in the base, send a validation request
@@ -176,27 +180,33 @@ export default function Contacts({ user }: { user: any }) {
           description: newContact.description,
           createdAt: serverTimestamp()
         });
-        setAddSuccess("Demande de validation envoyée à " + newContact.name);
+        setAddSuccess(t("contacts.successRequest").replace("{name}", contactFullName));
         setTimeout(() => setShowAddModal(false), 2000);
       } else {
         currentStep = "ajout_contact_local";
         // Person not in base, add as local contact
         await addDoc(collection(db, "personalContacts"), {
           ownerId: user.uid || "",
+          firstName: newContact.firstName,
           name: newContact.name,
           phone: newContact.phone,
           email: newContact.email,
           description: newContact.description,
           createdAt: serverTimestamp()
         });
-        setAddSuccess("Contact ajouté localement (non inscrit sur SafeCallr)");
+        setAddSuccess(t("contacts.successLocal"));
         setTimeout(() => setShowAddModal(false), 2000);
       }
       
-      setNewContact({ name: "", phone: "", email: "", description: "" });
+      setNewContact({ firstName: "", name: "", phone: "", email: "", description: "" });
     } catch (err: any) {
       console.error(`Add contact error during step [${currentStep}]:`, err);
-      setAddError(`Erreur lors de l'ajout (Étape: ${currentStep}, UID: ${user?.uid || 'absent'}) : ${err.message}`);
+      setAddError(
+        t("contacts.errorAdd")
+          .replace("{step}", currentStep)
+          .replace("{uid}", user?.uid || 'absent')
+          .replace("{error}", err.message)
+      );
     } finally {
       setAdding(false);
     }
@@ -408,25 +418,19 @@ export default function Contacts({ user }: { user: any }) {
   });
 
   const getCategoryLabel = (cat: string) => {
-    const categories: Record<string, string> = {
-      "banque": "Banque",
-      "notaire": "Notaire",
-      "avocat": "Avocat",
-      "courtier": "Courtier",
-      "agent immobilier": "Agent Immobilier",
-      "autres": "Autres"
-    };
-    return categories[cat] || cat;
+    const key = cat.toLowerCase();
+    const localized = t(`contacts.categories.${key}`);
+    return localized !== `contacts.categories.${key}` ? localized : (cat.charAt(0).toUpperCase() + cat.slice(1));
   };
 
   return (
     <div className="space-y-8 pb-12">
       <section className="space-y-2">
         <h1 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface">
-          Mes contacts <span className="text-primary">vérifiés</span>
+          {t("contacts.titlePart1")}<span className="text-primary">{t("contacts.titlePart2")}</span>
         </h1>
         <p className="text-slate-400 text-sm leading-relaxed">
-          Gérez vos relations avec les professionnels et particuliers certifiés SafeCallr.
+          {t("contacts.subtitle")}
         </p>
       </section>
 
@@ -435,7 +439,7 @@ export default function Contacts({ user }: { user: any }) {
         <section className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-            <h3 className="font-headline font-bold text-lg text-on-surface">Nouvelles demandes</h3>
+            <h3 className="font-headline font-bold text-lg text-on-surface">{t("contacts.newRequests")}</h3>
           </div>
           <div className="flex flex-col gap-3">
             {/* Pro Requests */}
@@ -456,7 +460,7 @@ export default function Contacts({ user }: { user: any }) {
                       {conn.companyName}
                     </h4>
                     <p className="text-slate-400 text-xs font-medium">
-                      Contact : {conn.proName}
+                      {t("dashboard.contact")} : {conn.proName}
                     </p>
                     {conn.companyCategory && (
                       <span className="inline-block mt-1 text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
@@ -466,7 +470,7 @@ export default function Contacts({ user }: { user: any }) {
                   </div>
                 </div>
                 <p className="text-slate-400 text-xs leading-relaxed px-1">
-                  Ce professionnel souhaite vous ajouter à sa base de clients pour sécuriser vos futurs échanges.
+                  {t("contacts.proRequestDesc")}
                 </p>
                 <div className="flex gap-3 mt-1">
                   <button 
@@ -474,14 +478,14 @@ export default function Contacts({ user }: { user: any }) {
                     className="flex-1 bg-primary text-on-primary py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
                   >
                     <Check size={16} />
-                    Autoriser
+                    {t("contacts.authorize")}
                   </button>
                   <button 
                     onClick={() => handleUpdateStatus(conn.id, "rejected")}
                     className="flex-1 bg-surface-container-highest text-slate-400 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-error/10 hover:text-error active:scale-95 transition-all"
                   >
                     <X size={16} />
-                    Refuser
+                    {t("contacts.refuse")}
                   </button>
                 </div>
               </motion.div>
@@ -505,7 +509,7 @@ export default function Contacts({ user }: { user: any }) {
                       {req.fromUserName}
                     </h4>
                     <p className="text-slate-400 text-xs font-medium">
-                      Souhaite vous ajouter à ses contacts personnels
+                      {t("dashboard.contactRequestSubtitle")}
                     </p>
                     {req.description && (
                       <p className="mt-2 text-[10px] text-slate-500 italic bg-white/5 p-2 rounded-xl border border-white/5">
@@ -520,14 +524,14 @@ export default function Contacts({ user }: { user: any }) {
                     className="flex-1 bg-secondary text-on-secondary py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
                   >
                     <Check size={16} />
-                    Accepter
+                    {t("common.accept")}
                   </button>
                   <button 
                     onClick={() => handleRejectRequest(req.id)}
                     className="flex-1 bg-surface-container-highest text-slate-400 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-error/10 hover:text-error active:scale-95 transition-all"
                   >
                     <X size={16} />
-                    Décliner
+                    {t("request.decline")}
                   </button>
                 </div>
               </motion.div>
@@ -542,7 +546,7 @@ export default function Contacts({ user }: { user: any }) {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within:text-primary transition-colors" />
           <input
             type="text"
-            placeholder="Rechercher un contact..."
+            placeholder={t("contacts.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-surface-container-low border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-all"
@@ -562,7 +566,7 @@ export default function Contacts({ user }: { user: any }) {
         {(filteredUserConnections.length > 0 || filteredPersonal.length > 0) && (
           <section className="space-y-4">
             <div className="flex items-center justify-between px-2">
-              <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts personnels</h3>
+              <h3 className="font-headline font-bold text-lg text-on-surface">{t("contacts.personalContactsTitle")}</h3>
               <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-full uppercase tracking-widest">
                 {filteredUserConnections.length + filteredPersonal.length}
               </span>
@@ -585,7 +589,7 @@ export default function Contacts({ user }: { user: any }) {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-headline font-bold text-on-surface text-lg leading-tight">
-                        {otherName || "Utilisateur Vérifié"}
+                        {otherName || t("contacts.verifiedUser")}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
                         <Phone size={12} className="text-slate-500" />
@@ -596,7 +600,7 @@ export default function Contacts({ user }: { user: any }) {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
-                        Vérifié
+                        {t("contacts.verified")}
                       </span>
                     </div>
                   </motion.div>
@@ -606,7 +610,7 @@ export default function Contacts({ user }: { user: any }) {
               {/* Manual Personal Contacts */}
               {filteredPersonal.map((contact) => (
                 <motion.div 
-                  layout
+                   layout
                   key={contact.id}
                   className="bg-surface-container-low p-4 rounded-3xl border border-white/5 flex items-center justify-between hover:border-secondary/30 transition-all"
                 >
@@ -616,7 +620,7 @@ export default function Contacts({ user }: { user: any }) {
                     </div>
                     <div>
                       <h4 className="font-headline font-bold text-on-surface text-lg leading-tight">
-                        {contact.name}
+                        {contact.firstName ? `${contact.firstName} ${contact.name}` : contact.name}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
                         <Phone size={12} className="text-slate-500" />
@@ -648,7 +652,7 @@ export default function Contacts({ user }: { user: any }) {
         {/* Professional Contacts */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h3 className="font-headline font-bold text-lg text-on-surface">Mes contacts professionnels</h3>
+            <h3 className="font-headline font-bold text-lg text-on-surface">{t("contacts.proContactsTitle")}</h3>
             <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-full uppercase tracking-widest">
               {acceptedPros.length}
             </span>
@@ -661,7 +665,7 @@ export default function Contacts({ user }: { user: any }) {
           ) : acceptedPros.length === 0 ? (
             <div className="text-center py-12 bg-surface-container-low rounded-3xl border border-dashed border-white/10">
               <Building2 className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-              <p className="text-slate-500 text-xs">Aucun professionnel autorisé</p>
+              <p className="text-slate-500 text-xs">{t("contacts.noProContacts")}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -681,7 +685,7 @@ export default function Contacts({ user }: { user: any }) {
                         {conn.companyName}
                       </h4>
                       <p className="text-slate-400 text-xs font-medium">
-                        Contact : {conn.proName}
+                        {t("dashboard.contact")} : {conn.proName}
                       </p>
                       {conn.companyCategory && (
                         <span className="inline-block mt-1 text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest">
@@ -724,17 +728,28 @@ export default function Contacts({ user }: { user: any }) {
                   <UserPlus size={24} />
                 </div>
                 <div>
-                  <h3 className="font-headline font-bold text-xl text-on-surface">Ajouter un contact</h3>
-                  <p className="text-slate-500 text-xs">Sécurisez vos échanges personnels</p>
+                  <h3 className="font-headline font-bold text-xl text-on-surface">{t("contacts.addTitle")}</h3>
+                  <p className="text-slate-500 text-xs">{t("contacts.addSubtitle")}</p>
                 </div>
               </div>
 
               <form onSubmit={handleAddContact} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">Nom du contact</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.firstNameLabel")}</label>
                   <input 
                     type="text" 
-                    placeholder="Ex: Maman"
+                    placeholder={t("contacts.firstNamePlaceholder")}
+                    required
+                    value={newContact.firstName}
+                    onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
+                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.lastNameLabel")}</label>
+                  <input 
+                    type="text" 
+                    placeholder={t("contacts.lastNamePlaceholder")}
                     required
                     value={newContact.name}
                     onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
@@ -742,7 +757,7 @@ export default function Contacts({ user }: { user: any }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">Numéro de téléphone</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.phoneLabel")}</label>
                   <input 
                     type="tel" 
                     placeholder="+33 6 00 00 00 00"
@@ -754,7 +769,7 @@ export default function Contacts({ user }: { user: any }) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">Email</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.emailLabel")}</label>
                   <input 
                     type="email" 
                     placeholder="email@exemple.com"
@@ -766,9 +781,9 @@ export default function Contacts({ user }: { user: any }) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">Description / Contexte</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.descriptionLabel")}</label>
                   <textarea 
-                    placeholder="Ex: Ma soeur, rencontré à la conférence..."
+                    placeholder={t("contacts.descriptionPlaceholder")}
                     value={newContact.description}
                     onChange={(e) => setNewContact({ ...newContact, description: e.target.value })}
                     rows={2}
@@ -785,14 +800,14 @@ export default function Contacts({ user }: { user: any }) {
                     onClick={() => setShowAddModal(false)}
                     className="flex-1 py-4 rounded-2xl font-bold text-sm text-slate-400 hover:bg-white/5 transition-all"
                   >
-                    Annuler
+                    {t("contacts.cancel")}
                   </button>
                   <button 
                     type="submit"
                     disabled={adding}
                     className="flex-[2] bg-primary text-on-primary py-4 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50"
                   >
-                    {adding ? "Ajout..." : "Ajouter le contact"}
+                    {adding ? t("contacts.adding") : t("contacts.addBtn")}
                   </button>
                 </div>
               </form>
@@ -826,7 +841,7 @@ export default function Contacts({ user }: { user: any }) {
                 </div>
                 <div>
                   <h3 className="font-headline font-black text-on-surface text-2xl tracking-tight uppercase leading-tight">
-                    {selectedPro.companyName || selectedPro.company?.name || "Fiche Entreprise"}
+                    {selectedPro.companyName || selectedPro.company?.name || t("contacts.proCardTitle")}
                   </h3>
                   {selectedPro.companyCategory && (
                     <span className="inline-block mt-2 text-[10px] font-bold bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-widest border border-primary/25">
@@ -841,7 +856,7 @@ export default function Contacts({ user }: { user: any }) {
                 {/* Contact Section */}
                 <div className="bg-surface-container-low p-5 rounded-2xl border border-white/5 space-y-3">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">
-                    Contact Professionnel
+                    {t("contacts.proContactSecTitle")}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-secondary">
@@ -849,10 +864,10 @@ export default function Contacts({ user }: { user: any }) {
                     </div>
                     <div>
                       <p className="font-bold text-on-surface text-base leading-tight">
-                        {selectedPro.proName || "Contact indéfini"}
+                        {selectedPro.proName || t("contacts.undefinedContact")}
                       </p>
                       <p className="text-slate-400 text-xs mt-1">
-                        {selectedPro.pro?.jobTitle || "Professionnel Qualifié"}
+                        {selectedPro.pro?.jobTitle || t("contacts.qualifiedPro")}
                       </p>
                     </div>
                   </div>
@@ -861,16 +876,16 @@ export default function Contacts({ user }: { user: any }) {
                 {/* Coordinates Block */}
                 <div className="bg-surface-container-low p-5 rounded-2xl border border-white/5 space-y-4">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">
-                    Coordonnées Professionnelles
+                    {t("contacts.proCoordsTitle")}
                   </div>
 
                   {/* Address */}
                   <div className="flex gap-3 items-start">
                     <MapPin className="text-primary shrink-0 mt-0.5" size={16} />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Adresse de l'établissement</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("contacts.establishmentAddress")}</p>
                       <p className="text-on-surface text-sm font-medium mt-0.5 whitespace-pre-line leading-relaxed">
-                        {selectedPro.company?.address || "Adresse non renseignée"}
+                        {selectedPro.company?.address || t("contacts.addressNotSpecified")}
                       </p>
                     </div>
                   </div>
@@ -879,7 +894,7 @@ export default function Contacts({ user }: { user: any }) {
                   <div className="flex gap-3 items-start">
                     <Phone className="text-primary shrink-0 mt-0.5" size={16} />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Téléphone professionnel (Appels)</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("contacts.proPhone")}</p>
                       {selectedPro.company?.phone || selectedPro.pro?.phone ? (
                         <a 
                           href={`tel:${selectedPro.company?.phone || selectedPro.pro?.phone}`}
@@ -888,7 +903,7 @@ export default function Contacts({ user }: { user: any }) {
                           {selectedPro.company?.phone || selectedPro.pro?.phone}
                         </a>
                       ) : (
-                        <p className="text-slate-400 text-xs italic mt-0.5">Non spécifié</p>
+                        <p className="text-slate-400 text-xs italic mt-0.5">{t("contacts.notSpecified")}</p>
                       )}
                     </div>
                   </div>
@@ -897,7 +912,7 @@ export default function Contacts({ user }: { user: any }) {
                   <div className="flex gap-3 items-start">
                     <Mail className="text-primary shrink-0 mt-0.5" size={16} />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Email de contact</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("contacts.contactEmail")}</p>
                       {selectedPro.company?.email || selectedPro.pro?.email ? (
                         <a 
                           href={`mailto:${selectedPro.company?.email || selectedPro.pro?.email}`}
@@ -906,7 +921,7 @@ export default function Contacts({ user }: { user: any }) {
                           {selectedPro.company?.email || selectedPro.pro?.email}
                         </a>
                       ) : (
-                        <p className="text-slate-400 text-xs italic mt-0.5">Non spécifié</p>
+                        <p className="text-slate-400 text-xs italic mt-0.5">{t("contacts.notSpecified")}</p>
                       )}
                     </div>
                   </div>
@@ -915,7 +930,7 @@ export default function Contacts({ user }: { user: any }) {
                   <div className="flex gap-3 items-start">
                     <Globe className="text-primary shrink-0 mt-0.5" size={16} />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Site internet officiel</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("contacts.officialWebsite")}</p>
                       {selectedPro.company?.website ? (
                         <a 
                           href={selectedPro.company.website}
@@ -927,7 +942,7 @@ export default function Contacts({ user }: { user: any }) {
                           <ExternalLink size={12} />
                         </a>
                       ) : (
-                        <p className="text-slate-400 text-xs italic mt-0.5">Non spécifié</p>
+                        <p className="text-slate-400 text-xs italic mt-0.5">{t("contacts.notSpecified")}</p>
                       )}
                     </div>
                   </div>
@@ -936,13 +951,13 @@ export default function Contacts({ user }: { user: any }) {
                 {/* Validation and Registry bottom section */}
                 <div className="bg-surface-container-highest/60 p-5 rounded-2xl border border-white/5 space-y-3 font-mono text-xs text-slate-400">
                   <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Numéro SIRET</span>
-                    <span className="font-bold text-on-surface">{selectedPro.company?.siret || "En cours de validation"}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{t("contacts.siretNumber")}</span>
+                    <span className="font-bold text-on-surface">{selectedPro.company?.siret || t("contacts.validationInProgress")}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Numéro RCS + Ville</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{t("contacts.rcsCityNumber")}</span>
                     <span className="font-bold text-on-surface text-right">
-                      {selectedPro.company?.rcs ? `${selectedPro.company.rcs} ${selectedPro.company.rcsCity ? `(${selectedPro.company.rcsCity})` : ""}` : "En cours de validation"}
+                      {selectedPro.company?.rcs ? `${selectedPro.company.rcs} ${selectedPro.company.rcsCity ? `(${selectedPro.company.rcsCity})` : ""}` : t("contacts.validationInProgress")}
                     </span>
                   </div>
                 </div>
@@ -950,7 +965,7 @@ export default function Contacts({ user }: { user: any }) {
                 {/* Verified Mention Banner */}
                 <div className="flex items-center justify-center gap-2 p-3 bg-green-500/10 text-[#4ade80] border border-green-500/20 rounded-2xl text-[10px] font-bold uppercase tracking-widest mt-2">
                   <ShieldCheck size={16} />
-                  <span>SafeCallr — Authentification professionnelle vérifiée</span>
+                  <span>{t("contacts.safeCallrMention")}</span>
                 </div>
               </div>
 
@@ -960,7 +975,7 @@ export default function Contacts({ user }: { user: any }) {
                   onClick={() => setSelectedPro(null)}
                   className="w-full bg-white/5 hover:bg-white/10 text-on-surface py-3.5 rounded-2xl font-bold text-sm transition-all text-center"
                 >
-                  Fermer la fiche
+                  {t("contacts.closeCard")}
                 </button>
               </div>
             </motion.div>
