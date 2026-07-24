@@ -4,8 +4,10 @@ import { Link } from "react-router-dom";
 import { auth } from "../../firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 import AppLogo from "../../components/AppLogo";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 export default function ProForgotPassword() {
+  const { lang, t } = useLanguage();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +19,7 @@ export default function ProForgotPassword() {
     setError(null);
 
     try {
+      auth.languageCode = lang;
       await sendPasswordResetEmail(auth, email);
       setIsSent(true);
     } catch (err: any) {

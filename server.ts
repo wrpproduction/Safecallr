@@ -7,7 +7,7 @@ import fs from "fs";
 import { Resend } from "resend";
 import { sendAdminNotification } from "./server/notify";
 import { getPlatformStats } from "./server/stats";
-import { EmailData } from "./src/lib/emailTemplates";
+import { EmailData, buildActivationEmail, buildOrganizationEmail } from "./src/lib/emailTemplates";
 
 // Global process exception handlers to prevent any unhandled error from crashing the server
 process.on("unhandledRejection", (reason, promise) => {
@@ -601,7 +601,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   // API: Générer un code de vérification à 6 chiffres personnalisé et envoyer le courriel
   app.post("/api/send-custom-verification", async (req, res) => {
     try {
-      const { email, firstName } = req.body;
+      const { email, firstName, lang } = req.body;
       if (!email) {
         return res.status(400).json({ error: "L'adresse email est requise." });
       }
@@ -627,41 +627,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         // On continue même en cas d'erreur de base de l'Admin SDK, car le client a déjà écrit le code
       }
 
-      const subject = "SafeCallr - Activez votre compte avec votre code à 6 chiffres";
-      const text = `Bonjour ${firstName || ""}, votre code de validation d'adresse email pour SafeCallr est : ${code}. Il expire dans 30 minutes.`;
-      const html = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 30px 20px; border: 1px solid #1f2937; border-radius: 16px; background-color: #0b0f19; color: #ffffff;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <div style="display: inline-block; background-color: #10b981; padding: 12px; border-radius: 12px; margin-bottom: 10px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6z"/></svg>
-            </div>
-            <h1 style="font-size: 24px; font-weight: 800; color: #10b981; margin: 0; letter-spacing: -0.05em;">SafeCallr</h1>
-            <p style="font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 0.15em;">Sécurité des appels bancaires</p>
-          </div>
-
-          <div style="background-color: #111827; padding: 25px; border-radius: 12px; border: 1px solid #1f2937; text-align: center;">
-            <h2 style="font-size: 18px; font-weight: 700; color: #ffffff; margin-top: 0; margin-bottom: 15px; text-align: left;">Activez votre compte</h2>
-            <p style="font-size: 14px; line-height: 1.6; color: #d1d5db; margin-bottom: 25px; text-align: left;">
-              Bonjour ${firstName || "utilisateur"},<br/><br/>
-              Merci pour votre inscription sur <strong>SafeCallr</strong> !<br/>
-              Pour finaliser votre inscription et activer votre compte, veuillez saisir le code de sécurité à 6 chiffres ci-dessous dans l'application :
-            </p>
-
-            <div style="margin: 30px 0; background-color: #1f2937; border: 1px solid #374151; padding: 15px 30px; border-radius: 12px; display: inline-block;">
-              <span style="font-size: 36px; font-weight: 800; letter-spacing: 0.2em; color: #10b981; font-family: monospace;">${code}</span>
-            </div>
-
-            <p style="font-size: 12px; color: #9ca3af; margin-top: 15px; text-align: left;">
-              Ce code de sécurité est strictement confidentiel et expire dans 30 minutes. L'équipe SafeCallr ne vous demandera jamais ce code par téléphone ou par e-mail.
-            </p>
-          </div>
-
-          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; border-top: 1px solid #1f2937; padding-top: 20px;">
-            <p style="margin: 0 0 10px 0;">Cet e-mail est automatique. Merci de ne pas y répondre directement.</p>
-            <p style="margin: 0; font-weight: bold; color: #9ca3af;">L'équipe SafeCallr &bull; SafeCallr Network</p>
-          </div>
-        </div>
-      `;
+      const { subject, html, text } = buildActivationEmail(code, firstName || "", lang || "en");
 
       // Envoi de l'email via la collection "mail" ou via Resend directement
       const apiKey = process.env.RESEND_API_KEY;
@@ -1240,7 +1206,8 @@ ${pages.map(page => `
       const { 
         idToken,
         orgData,
-        repData
+        repData,
+        lang
       } = req.body;
 
       logSteps.push(`Received payload. OrgName: ${orgData?.name}, Siret: ${orgData?.siret}, RepEmail: ${repData?.email}`);
@@ -1362,33 +1329,10 @@ ${pages.map(page => `
       console.log(`Lien d'activation pour ${repData.email}: ${activationLink}`);
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
-      const orgMailSubject = `Bienvenue sur SafeCallr - Activation de votre compte ${orgData.name}`;
-      const orgMailHtml = `
-        <div style="font-family: sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-          <h1 style="color: #10b981; font-size: 24px; margin-bottom: 20px;">Bienvenue sur SafeCallr</h1>
-          <p>Bonjour ${repData.firstName},</p>
-          <p>Votre organisation <strong>${orgData.name}</strong> a été enregistrée avec succès sur le protocole SafeCallr.</p>
-          <p>Pour activer votre compte de représentant et définir votre mot de passe, veuillez cliquer sur le bouton ci-dessous :</p>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${activationLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Activer mon compte</a>
-          </div>
-          <p style="font-size: 13px; color: #666; margin-top: 30px;">Si le bouton ne fonctionne pas, vous pouvez copier-coller ce lien de secours dans votre navigateur :</p>
-          <p style="font-size: 13px; color: #10b981; word-break: break-all;"><a href="${activationLink}" style="color: #10b981;">${activationLink}</a></p>
-          <p style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #999;">L'équipe SafeCallr</p>
-        </div>
-      `;
-      const orgMailText = `
-        Bienvenue sur SafeCallr
-        
-        Bonjour ${repData.firstName},
-        
-        Votre organisation ${orgData.name} a été enregistrée avec succès sur le protocole SafeCallr.
-        
-        Pour activer votre compte de représentant et définir votre mot de passe, veuillez ouvrir le lien ci-dessous dans votre navigateur :
-        ${activationLink}
-        
-        L'équipe SafeCallr
-      `;
+      const emailObj = buildOrganizationEmail(orgData.name, repData.firstName, activationLink, lang || "fr");
+      const orgMailSubject = emailObj.subject;
+      const orgMailHtml = emailObj.html;
+      const orgMailText = emailObj.text;
 
       // Dual sending system (Resend API first, Firestore mail collection fallback)
       logSteps.push("Attempting to send activation email...");
@@ -1703,7 +1647,7 @@ ${pages.map(page => `
   // API: Ajouter un collaborateur (Par le Représentant)
   app.post("/api/dashboard/create-member", async (req, res) => {
     try {
-      const { idToken, orgId, memberData } = req.body;
+      const { idToken, orgId, memberData, lang } = req.body;
       if (!idToken || !orgId) return res.status(401).json({ error: "Requête invalide" });
 
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -1729,9 +1673,57 @@ ${pages.map(page => `
       });
       const memberUid = userRecord.uid;
 
-      // Envoi lien d'activation (Simulé)
+      // Envoi lien d'activation
       const activationLink = await admin.auth().generatePasswordResetLink(memberData.email);
       console.log(`Lien d'activation pour collaborateur ${memberData.email}: ${activationLink}`);
+
+      // Build and send the activation email
+      const orgName = orgDoc.data()?.name || "SafeCallr";
+      const emailObj = buildOrganizationEmail(orgName, memberData.firstName, activationLink, lang || "fr");
+      const { subject, html, text } = emailObj;
+
+      // Dual sending system (Resend API first, Firestore mail collection fallback)
+      const apiKey = process.env.RESEND_API_KEY;
+      let emailSentDirectly = false;
+
+      if (apiKey) {
+        try {
+          const resend = new Resend(apiKey);
+          const fromAddress = process.env.EMAIL_FROM_ADDRESS || "contact@safecallr.com";
+          const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
+
+          await resend.emails.send({
+            from: `${fromName} <${fromAddress}>`,
+            to: memberData.email,
+            subject: subject,
+            html: html,
+            text: text
+          });
+          emailSentDirectly = true;
+          console.log(`[Create Member Mail] Mail envoyé directement avec succès à ${memberData.email} via Resend.`);
+        } catch (resendErr: any) {
+          console.error("[Create Member Mail] Échec Resend, repli vers Firestore mail...", resendErr);
+        }
+      }
+
+      if (!emailSentDirectly) {
+        try {
+          await db.collection("mail").add({
+            to: memberData.email,
+            message: {
+              subject: subject,
+              html: html,
+              text: text
+            },
+            orgId: orgId,
+            type: "invitation",
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          console.log(`[Create Member Mail] Enregistré dans Firestore 'mail' collection.`);
+        } catch (mailErr: any) {
+          console.warn("[Create Member Mail] Warning: mail collection add fallback failed:", mailErr.message);
+        }
+      }
 
       const batch = db.batch();
       batch.set(db.collection("organizations").doc(orgId).collection("members").doc(memberUid), {

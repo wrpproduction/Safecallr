@@ -319,7 +319,7 @@ export default function ProRegister() {
       console.log("Profil Firestore créé avec succès pour UID:", uid);
 
       // 6. Envoyer l'email de confirmation d'inscription
-      await emailService.sendProRegistrationConfirmationEmail(formData.email, formData.firstName);
+      await emailService.sendProRegistrationConfirmationEmail(formData.email, formData.firstName, uid);
 
       // Envoyer la notification d'inscription à l'administrateur
       await emailService.sendAdminRegistrationNotification({

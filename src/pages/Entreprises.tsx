@@ -430,7 +430,6 @@ export default function Entreprises() {
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
             <Link to="/confidentialite" className="hover:text-primary transition-colors">Confidentialité</Link>
-            <Link to="/cgu" className="hover:text-primary transition-colors">Conditions</Link>
             <Link to="/mentions-legales" className="hover:text-primary transition-colors">Mentions légales</Link>
           </div>
         </div>

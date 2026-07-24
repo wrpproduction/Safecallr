@@ -35,6 +35,11 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
     if (lang === "en") return "/privacy";
     return "/confidentialite";
   };
+  const getLegalNoticePath = () => {
+    if (lang === "es") return "/aviso-legal";
+    if (lang === "en") return "/legal-notice";
+    return "/mentions-legales";
+  };
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);
@@ -807,8 +812,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
             <Link id="footer-privacy-link" to={getPrivacyPath()} className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
-            <a href="#" className="hover:text-primary transition-colors">{t("landing.footerConditions")}</a>
-            <a href="#" className="hover:text-primary transition-colors">{t("landing.footerMentions")}</a>
+            <Link id="footer-legal-notice-link" to={getLegalNoticePath()} className="hover:text-primary transition-colors">{t("common.legalNotice")}</Link>
           </div>
         </div>
       </footer>

@@ -122,6 +122,7 @@ export default function AdminCreateOrganization() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           idToken,
+          lang: localStorage.getItem("app_lang") || "fr",
           orgData: {
             name: data.name,
             siret: data.siret,

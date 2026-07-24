@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth, signInWithPopup, googleProvider, db, setDoc, doc, serverTimestamp } from "../firebase";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { Shield, Mail, Lock, User, UserPlus, CheckCircle } from "lucide-react";
 import { linkPendingConnections } from "../lib/connections";

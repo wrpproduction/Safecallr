@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { auth, signInWithPopup, googleProvider, db, setDoc, doc, getDoc, serverTimestamp } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-react";
 import { linkPendingConnections } from "../lib/connections";
 import { emailService } from "../services/emailService";
 import LanguageSelector from "../components/LanguageSelector";
 import AppLogo from "../components/AppLogo";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function Auth() {
+  const { lang, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -235,6 +237,7 @@ export default function Auth() {
                     return;
                   }
                   try {
+                    auth.languageCode = lang;
                     await sendPasswordResetEmail(auth, email);
                     setError("");
                     alert("Un email de réinitialisation a été envoyé.");

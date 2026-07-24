@@ -39,6 +39,8 @@ import MeHistory from "./pages/me/MeHistory";
 import Unauthorized from "./pages/Unauthorized";
 import OrgAuthRequestDetails from "./pages/OrgAuthRequestDetails";
 import InstitutionErrorPage from "./pages/InstitutionErrorPage";
+import LegalNotice from "./pages/LegalNotice";
+import AvisoLegal from "./pages/AvisoLegal";
 
 // SafeCallr Business Administrator Pages
 import BusinessAdminDashboard from "./pages/business/AdminDashboard";
@@ -249,6 +251,18 @@ export default function App() {
             <>
               <SEOManager title="Mentions Légales" description="Informations légales relatives à l'utilisation du service SafeCallr." noIndex />
               <Landing legal="mentions" />
+            </>
+          } />
+          <Route path="/legal-notice" element={
+            <>
+              <SEOManager title="Legal Notice" description="Legal information relating to the use of the SafeCallr service." noIndex />
+              <LegalNotice />
+            </>
+          } />
+          <Route path="/aviso-legal" element={
+            <>
+              <SEOManager title="Aviso Legal" description="Información legal relativa al uso del servicio SafeCallr." noIndex />
+              <AvisoLegal />
             </>
           } />
           <Route path="/cgu" element={

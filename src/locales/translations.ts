@@ -25,6 +25,7 @@ export const translations = {
       refused: "Refusé",
       expired: "Expiré",
       privacyPolicy: "Politique de confidentialité",
+      legalNotice: "Mentions légales",
       decline: "Décliner",
       today: "Aujourd'hui"
     },
@@ -435,6 +436,7 @@ export const translations = {
       refused: "Declined",
       expired: "Expired",
       privacyPolicy: "Privacy Policy",
+      legalNotice: "Legal Notice",
       decline: "Decline",
       today: "Today"
     },
@@ -845,6 +847,7 @@ export const translations = {
       refused: "Rechazado",
       expired: "Expirado",
       privacyPolicy: "Política de privacidad",
+      legalNotice: "Aviso legal",
       decline: "Rechazar",
       today: "Hoy"
     },

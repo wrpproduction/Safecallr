@@ -329,7 +329,7 @@ export default function AdminPros() {
       });
       
       // Envoi de l'email de validation
-      await emailService.sendProValidationEmail(pro.email, pro.firstName);
+      await emailService.sendProValidationEmail(pro.email, pro.firstName, pro.id);
       
       console.log(`Pro ${proId} validated`);
     } catch (err) {
@@ -359,7 +359,7 @@ export default function AdminPros() {
       });
       
       // Envoi de l'email de rejet
-      await emailService.sendProRejectionEmail(pro.email, pro.firstName, reason);
+      await emailService.sendProRejectionEmail(pro.email, pro.firstName, reason, pro.id);
       
       console.log(`Pro ${proId} rejected for: ${reason}`);
       

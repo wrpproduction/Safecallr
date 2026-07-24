@@ -67,6 +67,7 @@ export default function CollaboratorSection({ members, organization }: Collabora
         body: JSON.stringify({
           idToken,
           orgId: organization.id,
+          lang: localStorage.getItem("app_lang") || "fr",
           memberData: { firstName, lastName, email, jobTitle }
         })
       });
