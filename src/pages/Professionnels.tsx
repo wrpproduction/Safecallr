@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useLanguage } from "../contexts/LanguageContext";
 import { 
   Shield, 
   CheckCircle, 
@@ -18,6 +19,17 @@ import SEOManager from "../components/seo/SEOManager";
 import AppLogo from "../components/AppLogo";
 
 export default function Professionnels() {
+  const { lang, t } = useLanguage();
+  const getPrivacyPath = () => {
+    if (lang === "es") return "/privacidad";
+    if (lang === "en") return "/privacy";
+    return "/confidentialite";
+  };
+  const getLegalNoticePath = () => {
+    if (lang === "es") return "/aviso-legal";
+    if (lang === "en") return "/legal-notice";
+    return "/mentions-legales";
+  };
   const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -444,8 +456,8 @@ export default function Professionnels() {
             © 2026 SafeCallr Technologies. Tous droits réservés.
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            <Link to="/confidentialite" className="hover:text-primary transition-colors">Confidentialité</Link>
-            <Link to="/mentions-legales" className="hover:text-primary transition-colors">Mentions légales</Link>
+            <Link to={getPrivacyPath()} className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
+            <Link to={getLegalNoticePath()} className="hover:text-primary transition-colors">{t("common.legalNotice")}</Link>
           </div>
         </div>
       </footer>

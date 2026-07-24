@@ -41,6 +41,7 @@ import OrgAuthRequestDetails from "./pages/OrgAuthRequestDetails";
 import InstitutionErrorPage from "./pages/InstitutionErrorPage";
 import LegalNotice from "./pages/LegalNotice";
 import AvisoLegal from "./pages/AvisoLegal";
+import MentionsLegales from "./pages/MentionsLegales";
 
 // SafeCallr Business Administrator Pages
 import BusinessAdminDashboard from "./pages/business/AdminDashboard";
@@ -250,7 +251,7 @@ export default function App() {
           <Route path="/mentions-legales" element={
             <>
               <SEOManager title="Mentions Légales" description="Informations légales relatives à l'utilisation du service SafeCallr." noIndex />
-              <Landing legal="mentions" />
+              <MentionsLegales />
             </>
           } />
           <Route path="/legal-notice" element={
