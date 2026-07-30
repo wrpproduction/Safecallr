@@ -51,11 +51,16 @@ async function getUserLang(uid?: string): Promise<string> {
 async function sendEmailWithFallback(to: string, subject: string, html: string, text: string) {
   let sentVia = "none";
   try {
+    const idToken = await auth.currentUser?.getIdToken();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    };
+    if (idToken) {
+      headers["Authorization"] = `Bearer ${idToken}`;
+    }
     const response = await fetch("/api/send-email", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ to, subject, html, text }),
     });
     

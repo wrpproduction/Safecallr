@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { auth, signInWithPopup, googleProvider, db, setDoc, doc, getDoc, serverTimestamp } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Shield, Mail, Lock, User, LogIn, UserPlus, CheckCircle } from "lucide-react";
 import { linkPendingConnections } from "../lib/connections";
 import { emailService } from "../services/emailService";
@@ -279,6 +279,15 @@ export default function Auth() {
           <div className="pt-2">
             <LanguageSelector />
           </div>
+          <p className="text-slate-500 text-xs text-center pt-2">
+            <Link to="/cgu" className="text-slate-400 underline hover:text-white transition-colors">
+              CGU
+            </Link>{" "}
+            •{" "}
+            <Link to="/confidentialite" className="text-slate-400 underline hover:text-white transition-colors">
+              Politique de confidentialité
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useEffect, useState } from "react";
 import { auth, onAuthStateChanged, doc, getDoc, db } from "./firebase";
 import Onboarding from "./pages/Onboarding";
+import AppOnboarding from "./components/AppOnboarding";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -226,7 +227,7 @@ export default function App() {
                   }
                 ]}
               />
-              {user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : <Landing />}
+              {user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : (Capacitor.isNativePlatform() ? <AppOnboarding /> : <Landing />)}
             </>
           } />
           

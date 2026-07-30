@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { db, collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, addDoc, deleteDoc, getDocs } from "../firebase";
+import { db, auth, collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, addDoc, deleteDoc, getDocs } from "../firebase";
 import { UserPlus, Check, X, Shield, Building2, Phone, Mail, Clock, Search, User, Plus, Trash2, MapPin, Globe, CheckCircle2, ShieldCheck, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -167,10 +167,11 @@ export default function Contacts({ user }: { user: any }) {
         // Person is in the base, send a validation request
         const target = targetUser as any;
         const targetName = target.displayName || (target.firstName ? `${target.firstName} ${target.lastName}` : "Utilisateur SafeCallr");
+        const senderName = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || "Un utilisateur SafeCallr";
         
-        await addDoc(collection(db, "personalContactRequests"), {
+        const docRef = await addDoc(collection(db, "personalContactRequests"), {
           fromUserId: user.uid || "",
-          fromUserName: user.displayName || "Utilisateur SafeCallr",
+          fromUserName: senderName,
           fromUserPhone: user.phoneNumber || "",
           toUserId: target.id,
           toUserName: targetName,
@@ -180,6 +181,32 @@ export default function Contacts({ user }: { user: any }) {
           description: newContact.description,
           createdAt: serverTimestamp()
         });
+
+        // Envoi de la notification push à la cible B
+        if (target.id) {
+          try {
+            const idToken = await auth.currentUser?.getIdToken();
+            await fetch("/api/notify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
+              },
+              body: JSON.stringify({
+                recipientId: target.id,
+                title: "SafeCallr",
+                body: `${senderName} souhaite vous ajouter comme contact`,
+                data: {
+                  type: "contact_request",
+                  requestId: docRef.id,
+                },
+              }),
+            });
+          } catch (pushErr) {
+            console.warn("[SafeCallr] Failed to send contact request push notification:", pushErr);
+          }
+        }
+
         setAddSuccess(t("contacts.successRequest").replace("{name}", contactFullName));
         setTimeout(() => setShowAddModal(false), 2000);
       } else {

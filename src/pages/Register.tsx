@@ -199,6 +199,17 @@ export default function Register() {
             Se connecter
           </Link>
         </p>
+
+        <p className="text-slate-500 text-xs text-center pt-2">
+          En vous inscrivant, vous acceptez nos{" "}
+          <Link to="/cgu" className="text-slate-400 underline hover:text-white transition-colors">
+            CGU
+          </Link>{" "}
+          et notre{" "}
+          <Link to="/confidentialite" className="text-slate-400 underline hover:text-white transition-colors">
+            Politique de confidentialité
+          </Link>.
+        </p>
       </div>
     </div>
   );

@@ -113,110 +113,35 @@ try {
     fcm = admin.messaging();
     firebaseInitialized = true;
     console.log(`[Firebase] Initialisé avec Succès. Project: ${projectId}, Database: ${dbId}`);
-
-    // CENTRALE SHADOW AUTH: Rendre toutes les requêtes admin.auth() résilientes aux erreurs IAM 403 (Service Usage API / Identity Toolkit)
-    if (!(admin.auth as any).isShadowWrapped) {
-      const originalAuth = admin.auth;
-      const shadowAuth = originalAuth();
-      
-      // Sauvegarder les méthodes d'origine
-      const origVerify = shadowAuth.verifyIdToken.bind(shadowAuth);
-      const origGetUser = shadowAuth.getUserByEmail.bind(shadowAuth);
-      const origCreateUser = shadowAuth.createUser.bind(shadowAuth);
-      const origResetLink = shadowAuth.generatePasswordResetLink.bind(shadowAuth);
-      const origDeleteUser = shadowAuth.deleteUser.bind(shadowAuth);
-      const origUpdateUser = shadowAuth.updateUser.bind(shadowAuth);
-
-      shadowAuth.verifyIdToken = async (token: string, ...args: any[]) => {
-        try {
-          return await origVerify(token, ...args);
-        } catch (err: any) {
-          console.warn("[Shadow Auth] verifyIdToken failed, falling back to offline JWT payload decoding:", err.message);
-          const parts = token.split(".");
-          if (parts.length === 3) {
-            try {
-              const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
-              return {
-                ...payload,
-                uid: payload.user_id || payload.uid,
-                email: payload.email
-              };
-            } catch (jwtErr: any) {
-              console.error("[Shadow Auth] Failed to parse JWT payload:", jwtErr.message);
-            }
-          }
-          throw err;
-        }
-      };
-
-      shadowAuth.getUserByEmail = async (email: string, ...args: any[]) => {
-        try {
-          return await origGetUser(email, ...args);
-        } catch (err: any) {
-          console.warn("[Shadow Auth] getUserByEmail failed for " + email + ", checking local Firestore index fallback:", err.message);
-          const snap = await db.collection("users").where("email", "==", email).limit(1).get();
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { uid: doc.id, email: doc.data().email } as any;
-          }
-          throw { code: "auth/user-not-found", message: "User not found (Shadow Auth Fallback)" };
-        }
-      };
-
-      shadowAuth.createUser = async (properties: any, ...args: any[]) => {
-        try {
-          return await origCreateUser(properties, ...args);
-        } catch (err: any) {
-          console.warn("[Shadow Auth] createUser failed, creating deterministic user representation:", err.message);
-          const uid = "rep_" + Buffer.from(properties.email || `${Date.now()}`).toString("hex").substring(0, 20);
-          return {
-            uid,
-            email: properties.email,
-            displayName: properties.displayName
-          } as any;
-        }
-      };
-
-      shadowAuth.generatePasswordResetLink = async (email: string, ...args: any[]) => {
-        try {
-          return await origResetLink(email, ...args);
-        } catch (err: any) {
-          console.warn("[Shadow Auth] generatePasswordResetLink failed, creating a working local fallback URL:", err.message);
-          return `https://safecallr.com/reset-password?email=${encodeURIComponent(email)}&sandbox=true`;
-        }
-      };
-
-      shadowAuth.deleteUser = async (uid: string, ...args: any[]) => {
-        try {
-          await origDeleteUser(uid, ...args);
-        } catch (err: any) {
-          console.warn("[Shadow Auth] deleteUser skipped (sandbox fallback):", err.message);
-        }
-      };
-
-      shadowAuth.updateUser = async (uid: string, properties: any, ...args: any[]) => {
-        try {
-          return await origUpdateUser(uid, properties, ...args);
-        } catch (err: any) {
-          console.warn("[Shadow Auth] updateUser skipped (sandbox fallback):", err.message);
-          return {} as any;
-        }
-      };
-
-      // Remplacer centralement admin.auth pour renvoyer le shadow réutilisable
-      const wrappedAuth = () => shadowAuth;
-      (wrappedAuth as any).isShadowWrapped = true;
-      admin.auth = wrappedAuth as any;
-      console.log("[Shadow Auth] Le système d'interception d'authentification résilient est parfaitement connecté.");
-    } else {
-      console.log("[Shadow Auth] Déjà connecté, saut de l'interception.");
-    }
-
   } else {
     console.warn("[Firebase] Aucun PROJECT ID trouvé. Le SDK Admin Firebase est inactif.");
   }
 } catch (err) {
   console.error("[Firebase] Échec critique d'initialisation de Firebase Admin:", err);
+}
+
+async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Authentification requise" });
+    }
+
+    const token = authHeader.split("Bearer ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Token manquant" });
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    (req as any).user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email || "",
+    };
+    next();
+  } catch (error: any) {
+    console.error("[requireAuth] Verification failed:", error?.message || error);
+    return res.status(401).json({ error: "Token invalide ou expiré" });
+  }
 }
 
 async function verifyAdmin(idToken: string) {
@@ -227,7 +152,6 @@ async function verifyAdmin(idToken: string) {
 
   const superAdmins = [
     "xdcam10@gmail.com",
-    "ulrich.vidal@gmail.com",
     "contact@wrpproduction.com",
     "contact@safecallr.com"
   ];
@@ -285,181 +209,6 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  // AUTO-RUN STARTUP FIX FOR ULRICH VIDAL (Déclenché en arrière-plan pour ne pas bloquer le démarrage du serveur)
-  if (firebaseInitialized && db) {
-    (async () => {
-      try {
-        const logPath = path.join(process.cwd(), "ulrich-fix-log.json");
-        const logData: any = { timestamp: new Date().toISOString(), steps: [] };
-
-        const emailToSearch = "ulrich.vidal@gmail.com";
-        logData.steps.push(`Searching for email: ${emailToSearch}`);
-
-        // 1. Tenter d'obtenir l'UID via Auth
-        let authUser: any = null;
-        try {
-          authUser = await admin.auth().getUserByEmail(emailToSearch);
-          logData.authUser = {
-            uid: authUser.uid,
-            email: authUser.email,
-            displayName: authUser.displayName,
-            emailVerified: authUser.emailVerified
-          };
-          logData.steps.push(`Found in Firebase Auth with UID: ${authUser.uid}`);
-        } catch (authErr: any) {
-          logData.steps.push(`Auth check error or not found: ${authErr.message}`);
-        }
-
-        // 2. Chercher dans la collection 'pros'
-        const prosSnap = await db.collection("pros").where("email", "==", emailToSearch).get();
-        let proDocData: any = null;
-        let proDocId: string | null = null;
-        if (!prosSnap.empty) {
-          proDocId = prosSnap.docs[0].id;
-          proDocData = prosSnap.docs[0].data();
-          logData.proDoc = { id: proDocId, ...proDocData };
-          logData.steps.push(`Found in 'pros' collection under doc ID: ${proDocId}`);
-        } else {
-          logData.steps.push(`Not found in 'pros' collection.`);
-        }
-
-        // 3. Chercher dans la collection 'users'
-        const usersSnap = await db.collection("users").where("email", "==", emailToSearch).get();
-        let userDocData: any = null;
-        let userDocId: string | null = null;
-        if (!usersSnap.empty) {
-          userDocId = usersSnap.docs[0].id;
-          userDocData = usersSnap.docs[0].data();
-          logData.userDoc = { id: userDocId, ...userDocData };
-          logData.steps.push(`Found in 'users' collection under doc ID: ${userDocId}`);
-        } else {
-          logData.steps.push(`Not found in 'users' collection.`);
-        }
-
-        // Déterminer l'UID cible
-        const targetUid = authUser?.uid || proDocId || userDocId;
-
-        if (targetUid) {
-          logData.targetUid = targetUid;
-          
-          // A. S'il n'est pas dans 'pros', on le crée dans 'pros'
-          if (!proDocData) {
-            logData.steps.push(`Creating record in 'pros' for UID: ${targetUid}`);
-            const newProData = {
-              id: targetUid,
-              firstName: userDocData?.firstName || "Ulrich",
-              lastName: userDocData?.lastName || "Vidal",
-              email: emailToSearch,
-              phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
-              role: "pro",
-              status: "active",
-              verified: true,
-              siretVerified: true,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection("pros").doc(targetUid).set(newProData);
-            logData.steps.push(`Successfully created pro record.`);
-          } else {
-            // S'assurer qu'il est actif
-            logData.steps.push(`Ensuring active status in 'pros' for UID: ${targetUid}`);
-            await db.collection("pros").doc(targetUid).update({
-              status: "active",
-              verified: true,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-          }
-
-          // B. S'il n'est pas dans 'users', on le crée dans 'users'
-          if (!userDocData) {
-            logData.steps.push(`Creating record in 'users' for UID: ${targetUid}`);
-            const newUserData = {
-              uid: targetUid,
-              id: targetUid,
-              firstName: proDocData?.firstName || "Ulrich",
-              lastName: proDocData?.lastName || "Vidal",
-              displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
-              email: emailToSearch,
-              phone: proDocData?.phone || "0663558820",
-              phoneNumber: proDocData?.phone || "0663558820",
-              role: "user",
-              status: "active",
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection("users").doc(targetUid).set(newUserData);
-            logData.steps.push(`Successfully created user record.`);
-          } else {
-            // Enregistrer le rôle normal + statut actif
-            logData.steps.push(`Ensuring role is user/admin and status active in 'users' for UID: ${targetUid}`);
-            await db.collection("users").doc(targetUid).update({
-              status: "active",
-              role: "user",
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-          }
-        } else {
-          logData.steps.push(`No user found in Auth, pros, or users. Creating a complete test account from scratch.`);
-          try {
-            const createdAuth = await admin.auth().createUser({
-              email: emailToSearch,
-              emailVerified: true,
-              password: "password123",
-              displayName: "Ulrich Vidal"
-            });
-            logData.createdAuthUid = createdAuth.uid;
-            logData.steps.push(`Created Auth user with UID: ${createdAuth.uid}`);
-
-            // Création dans pros
-            const newProData = {
-              id: createdAuth.uid,
-              firstName: "Ulrich",
-              lastName: "Vidal",
-              email: emailToSearch,
-              phone: "0663558820",
-              role: "pro",
-              status: "active",
-              verified: true,
-              siretVerified: true,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection("pros").doc(createdAuth.uid).set(newProData);
-            logData.steps.push(`Created pro document.`);
-
-            // Création dans users
-            const newUserData = {
-              uid: createdAuth.uid,
-              id: createdAuth.uid,
-              userClass: "individual",
-              firstName: "Ulrich",
-              lastName: "Vidal",
-              displayName: "Ulrich Vidal",
-              email: emailToSearch,
-              phone: "0663558820",
-              phoneNumber: "0663558820",
-              role: "user",
-              status: "active",
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection("users").doc(createdAuth.uid).set(newUserData);
-            logData.steps.push(`Created user document.`);
-          } catch (createAuthErr: any) {
-            logData.steps.push(`Failed to create Auth user: ${createAuthErr.message}`);
-          }
-        }
-
-        safeWriteFileSync(logPath, JSON.stringify(logData, null, 2));
-        console.log("=== STARTUP FIX ULRICH COMPLETED, RESULTS WRITTEN TO ulrich-fix-log.json ===");
-      } catch (err: any) {
-        console.error("Global Startup Fix Error:", err);
-      }
-    })();
-  } else {
-    console.warn("Skipping Ulrich Vidal startup fix as Firebase is not fully initialized.");
-  }
-
   app.use(express.json());
 
   app.get("/api/health", (req, res) => {
@@ -472,7 +221,7 @@ async function startServer() {
   });
 
   // API: AI-powered blog post generation with Gemini (SEO & GEO optimized)
-  app.post("/api/generate-blog-post", async (req, res) => {
+  app.post("/api/generate-blog-post", requireAuth, async (req, res) => {
     try {
       const { topic, category, targetLocation, keywords } = req.body;
       if (!topic) {
@@ -540,7 +289,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   });
 
   // API: Secure server-side Proxy for sending emails using Resend with direct Firestore /mail fallback
-  app.post("/api/send-email", async (req, res) => {
+  app.post("/api/send-email", requireAuth, async (req, res) => {
     try {
       const { to, subject, html, text } = req.body;
 
@@ -801,163 +550,6 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
     }
   });
 
-  // API: Fix Ulrich Vidal database record dynamically
-  app.get("/api/admin/fix-ulrich-now", async (req, res) => {
-    const logData: any = { timestamp: new Date().toISOString(), steps: [] };
-    try {
-      const emailToSearch = "ulrich.vidal@gmail.com";
-      logData.steps.push(`Searching for email: ${emailToSearch}`);
-
-      // 1. Auth check
-      let authUser: any = null;
-      try {
-        authUser = await admin.auth().getUserByEmail(emailToSearch);
-        logData.authUser = {
-          uid: authUser.uid,
-          email: authUser.email,
-          displayName: authUser.displayName,
-          emailVerified: authUser.emailVerified
-        };
-        logData.steps.push(`Found in Firebase Auth with UID: ${authUser.uid}`);
-      } catch (authErr: any) {
-        logData.steps.push(`Auth check error or not found: ${authErr.message}`);
-      }
-
-      // 2. Pros check
-      const prosSnap = await db.collection("pros").where("email", "==", emailToSearch).get();
-      let proDocData: any = null;
-      let proDocId: string | null = null;
-      if (!prosSnap.empty) {
-        proDocId = prosSnap.docs[0].id;
-        proDocData = prosSnap.docs[0].data();
-        logData.proDoc = { id: proDocId, ...proDocData };
-        logData.steps.push(`Found in 'pros' collection under doc ID: ${proDocId}`);
-      } else {
-        logData.steps.push(`Not found in 'pros' collection.`);
-      }
-
-      // 3. Users check
-      const usersSnap = await db.collection("users").where("email", "==", emailToSearch).get();
-      let userDocData: any = null;
-      let userDocId: string | null = null;
-      if (!usersSnap.empty) {
-        userDocId = usersSnap.docs[0].id;
-        userDocData = usersSnap.docs[0].data();
-        logData.userDoc = { id: userDocId, ...userDocData };
-        logData.steps.push(`Found in 'users' collection under doc ID: ${userDocId}`);
-      } else {
-        logData.steps.push(`Not found in 'users' collection.`);
-      }
-
-      const targetUid = authUser?.uid || proDocId || userDocId;
-
-      if (targetUid) {
-        logData.targetUid = targetUid;
-
-        // Ensure in pros
-        if (!proDocData) {
-          logData.steps.push(`Creating in 'pros' for UID: ${targetUid}`);
-          await db.collection("pros").doc(targetUid).set({
-            id: targetUid,
-            firstName: userDocData?.firstName || "Ulrich",
-            lastName: userDocData?.lastName || "Vidal",
-            email: emailToSearch,
-            phone: userDocData?.phone || userDocData?.phoneNumber || "0663558820",
-            role: "pro",
-            status: "active",
-            verified: true,
-            siretVerified: true,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        } else {
-          logData.steps.push(`Ensuring pro is active`);
-          await db.collection("pros").doc(targetUid).update({
-            status: "active",
-            verified: true,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        }
-
-        // Ensure in users
-        if (!userDocData) {
-          logData.steps.push(`Creating in 'users' for UID: ${targetUid}`);
-          await db.collection("users").doc(targetUid).set({
-            uid: targetUid,
-            id: targetUid,
-            userClass: "individual",
-            firstName: proDocData?.firstName || "Ulrich",
-            lastName: proDocData?.lastName || "Vidal",
-            displayName: `${proDocData?.firstName || "Ulrich"} ${proDocData?.lastName || "Vidal"}`,
-            email: emailToSearch,
-            phone: proDocData?.phone || "0663558820",
-            phoneNumber: proDocData?.phone || "0663558820",
-            role: "user",
-            status: "active",
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        } else {
-          logData.steps.push(`Ensuring user role/active status`);
-          await db.collection("users").doc(targetUid).update({
-            status: "active",
-            role: "user",
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        }
-        
-        logData.steps.push(`Ulrich Vidal successfully mapped in auth, pros, and users.`);
-      } else {
-        logData.steps.push(`Creating complete new account since no traces found at all.`);
-        const createdAuth = await admin.auth().createUser({
-          email: emailToSearch,
-          emailVerified: true,
-          password: "password123",
-          displayName: "Ulrich Vidal"
-        });
-        logData.createdAuthUid = createdAuth.uid;
-
-        await db.collection("pros").doc(createdAuth.uid).set({
-          id: createdAuth.uid,
-          firstName: "Ulrich",
-          lastName: "Vidal",
-          email: emailToSearch,
-          phone: "0663558820",
-          role: "pro",
-          status: "active",
-          verified: true,
-          siretVerified: true,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        await db.collection("users").doc(createdAuth.uid).set({
-          uid: createdAuth.uid,
-          id: createdAuth.uid,
-          userClass: "individual",
-          firstName: "Ulrich",
-          lastName: "Vidal",
-          displayName: "Ulrich Vidal",
-          email: emailToSearch,
-          phone: "0663558820",
-          phoneNumber: "0663558820",
-          role: "user",
-          status: "active",
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        logData.steps.push(`Account created successfully!`);
-      }
-
-      logData.success = true;
-      res.json(logData);
-    } catch (err: any) {
-      logData.steps.push(`Fatal error: ${err.message}`);
-      logData.success = false;
-      res.status(500).json(logData);
-    }
-  });
-
   // API: Demande de contact entreprise
   app.post("/api/contact", async (req, res) => {
     try {
@@ -1069,7 +661,7 @@ ${pages.map(page => `
   });
 
   // API: Trouver un utilisateur par téléphone
-  app.get("/api/user-by-phone/:phone", async (req, res) => {
+  app.get("/api/user-by-phone/:phone", requireAuth, async (req, res) => {
     try {
       const { phone } = req.params;
       const snapshot = await db.collection("users").where("phoneNumber", "==", phone).limit(1).get();
@@ -1079,14 +671,14 @@ ${pages.map(page => `
       }
 
       const userData = snapshot.docs[0].data();
-      res.json({ uid: userData.uid, displayName: userData.displayName, fcmToken: userData.fcmToken });
+      res.json({ uid: userData.uid, displayName: userData.displayName });
     } catch (error) {
       res.status(500).json({ error: "Erreur serveur" });
     }
   });
 
   // API: Trouver un utilisateur par ID
-  app.get("/api/user-by-id/:id", async (req, res) => {
+  app.get("/api/user-by-id/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const doc = await db.collection("users").doc(id).get();
@@ -1096,23 +688,35 @@ ${pages.map(page => `
       }
 
       const userData = doc.data();
-      res.json({ uid: userData?.uid, displayName: userData?.displayName, fcmToken: userData?.fcmToken });
+      res.json({ uid: userData?.uid, displayName: userData?.displayName });
     } catch (error) {
       res.status(500).json({ error: "Erreur serveur" });
     }
   });
 
   // API: Envoyer une notification FCM
-  app.post("/api/notify", async (req, res) => {
+  app.post("/api/notify", requireAuth, async (req, res) => {
     try {
-      const { token, title, body, data } = req.body;
+      const { recipientId, title, body, data } = req.body;
       
-      if (!token) return res.status(400).json({ error: "Token manquant" });
+      if (!recipientId) return res.status(400).json({ error: "recipientId manquant" });
+
+      const userDoc = await db.collection("users").doc(recipientId).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: "Utilisateur destinataire non trouvé" });
+      }
+
+      const userData = userDoc.data();
+      const targetToken = userData?.fcmToken || userData?.token;
+
+      if (!targetToken || typeof targetToken !== "string") {
+        return res.status(404).json({ error: "Token FCM du destinataire non trouvé" });
+      }
 
       const message = {
         notification: { title, body },
         data: data || {},
-        token: token,
+        token: targetToken,
       };
 
       await fcm.send(message);
@@ -1126,6 +730,15 @@ ${pages.map(page => `
   // API: Supprimer un utilisateur par email (Auth + Firestore) - Pour reset de compte
   app.post("/api/admin/delete-user", async (req, res) => {
     try {
+      const idToken = req.headers.authorization?.split("Bearer ")[1] || req.body.idToken;
+      if (!idToken) return res.status(401).json({ error: "Non authentifié" });
+
+      try {
+        await verifyAdmin(idToken);
+      } catch (adminErr: any) {
+        return res.status(403).json({ error: adminErr.message || "Accès refusé" });
+      }
+
       const { email } = req.body;
       if (!email) return res.status(400).json({ error: "Email manquant" });
 
@@ -1229,7 +842,6 @@ ${pages.map(page => `
 
       const superAdmins = [
         "xdcam10@gmail.com",
-        "ulrich.vidal@gmail.com",
         "contact@wrpproduction.com",
         "contact@safecallr.com"
       ];
@@ -1871,12 +1483,13 @@ ${pages.map(page => `
       });
 
       // 7. Simuler l'envoi FCM (ou réel si on a le token)
-      console.log(`[FCM] Notification envoyée à ${userData.displayName} (${clientPhone}) pour le code ${code} de la part de ${memberData.firstName} ${memberData.lastName} (${orgDoc.data()?.name})`);
+      console.log(`[FCM] Notification de vérification envoyée pour la demande ${requestRef.id} (${orgDoc.data()?.name})`);
       
-      if (userData.fcmToken) {
+      const targetToken = userData.fcmToken || userData.token;
+      if (targetToken) {
         try {
           await fcm.send({
-            token: userData.fcmToken,
+            token: targetToken,
             notification: {
               title: "Vérification SafeCallr",
               body: `${memberData.firstName} de ${orgDoc.data()?.name} souhaite authentifier cet appel.`
@@ -1884,8 +1497,8 @@ ${pages.map(page => `
             data: {
               requestId: requestRef.id,
               orgId: orgId,
-              code: code,
-              trustMessage: orgDoc.data()?.trustMessage
+              type: "auth_request",
+              trustMessage: orgDoc.data()?.trustMessage || ""
             }
           });
         } catch (e) {

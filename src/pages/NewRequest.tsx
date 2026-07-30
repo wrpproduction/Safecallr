@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { db, collection, addDoc, serverTimestamp, query, where, onSnapshot } from "../firebase";
+import { db, auth, collection, addDoc, serverTimestamp, query, where, onSnapshot } from "../firebase";
 import { Shield, Phone, User, ChevronRight, AlertCircle, Banknote, Home, MoreHorizontal, Users, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -66,18 +66,7 @@ export default function NewRequest({ user }: { user: any }) {
       const targetName = isUserA ? selectedContact.userBName : selectedContact.userAName;
       const targetPhone = isUserA ? selectedContact.userBPhone : selectedContact.userAPhone;
 
-      // 1. On cherche le token FCM de la cible (sécurisé pour éviter les erreurs de parsing d'URL dans Safari)
-      let targetFCMToken: string | undefined = undefined;
-      if (targetId && typeof targetId === "string" && !targetId.includes("[") && !targetId.includes("]")) {
-        try {
-          const userDoc = await fetch(`/api/user-by-id/${encodeURIComponent(targetId)}`).then(res => res.ok ? res.json() : null);
-          targetFCMToken = userDoc?.fcmToken;
-        } catch (fetchErr) {
-          console.warn("Could not fetch target user FCM token:", fetchErr);
-        }
-      }
-
-      // 2. On crée la requête dans Firestore
+      // 1. On crée la requête dans Firestore
       const codeA = Math.floor(1000 + Math.random() * 9000).toString();
       const codeB = Math.floor(1000 + Math.random() * 9000).toString();
       
@@ -97,17 +86,21 @@ export default function NewRequest({ user }: { user: any }) {
         updatedAt: serverTimestamp(),
       });
 
-      // 3. On envoie la notification push via le serveur si B existe (encapsulé pour éviter de bloquer le flux principal en cas de défaillance réseau/Safari)
-      if (targetFCMToken && typeof targetFCMToken === "string" && targetFCMToken !== "undefined" && targetFCMToken !== "null") {
+      // 2. On envoie la notification push via le serveur si B existe
+      if (targetId && typeof targetId === "string" && !targetId.includes("[") && !targetId.includes("]")) {
         try {
+          const idToken = await auth.currentUser?.getIdToken();
           await fetch("/api/notify", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
+            },
             body: JSON.stringify({
-              token: targetFCMToken,
+              recipientId: targetId,
               title: "Demande de vérification",
               body: `${user.displayName || user.firstName} souhaite vérifier votre identité.`,
-              data: { requestId: docRef.id },
+              data: { requestId: docRef.id, type: "auth_request" },
             }),
           });
         } catch (fetchErr) {

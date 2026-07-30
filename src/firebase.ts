@@ -117,8 +117,10 @@ export const requestFCMToken = async (userId: string) => {
       });
       if (token) {
         await setDoc(doc(db, "users", userId), { 
+          token: token,
           fcmToken: token, 
           platform: "web",
+          updatedAt: serverTimestamp(),
           tokenUpdatedAt: serverTimestamp()
         }, { merge: true });
         return token;

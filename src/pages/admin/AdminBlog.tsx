@@ -145,10 +145,12 @@ export default function AdminBlog() {
 
     setIsGenerating(true);
     try {
+      const idToken = await auth.currentUser?.getIdToken();
       const res = await fetch("/api/generate-blog-post", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
         },
         body: JSON.stringify({
           topic: aiTopic,

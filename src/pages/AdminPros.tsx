@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Clock
 } from "lucide-react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { 
   collection, 
   query, 
@@ -429,9 +429,13 @@ export default function AdminPros() {
                   if (confirm(`Confirmez-vous la suppression TOTALE du compte ${email} ?`)) {
                     setLoading(true);
                     try {
+                      const idToken = await auth.currentUser?.getIdToken();
                       const res = await fetch("/api/admin/delete-user", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: {
+                          "Content-Type": "application/json",
+                          ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
+                        },
                         body: JSON.stringify({ email })
                       });
                       const data = await res.json();
@@ -542,9 +546,13 @@ export default function AdminPros() {
                               if (confirm(`Êtes-vous sûr de vouloir réinitialiser le compte de ${pro.email} ? Cela supprimera son compte Auth et son profil Firestore.`)) {
                                 setActionLoading(pro.id);
                                 try {
+                                  const idToken = await auth.currentUser?.getIdToken();
                                   const res = await fetch("/api/admin/delete-user", {
                                     method: "POST",
-                                    headers: { "Content-Type": "application/json" },
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                      ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
+                                    },
                                     body: JSON.stringify({ email: pro.email })
                                   });
                                   const data = await res.json();
