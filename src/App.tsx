@@ -43,6 +43,9 @@ import InstitutionErrorPage from "./pages/InstitutionErrorPage";
 import LegalNotice from "./pages/LegalNotice";
 import AvisoLegal from "./pages/AvisoLegal";
 import MentionsLegales from "./pages/MentionsLegales";
+import Cgu from "./pages/Cgu";
+import Terms from "./pages/Terms";
+import Terminos from "./pages/Terminos";
 
 // SafeCallr Business Administrator Pages
 import BusinessAdminDashboard from "./pages/business/AdminDashboard";
@@ -270,7 +273,31 @@ export default function App() {
           <Route path="/cgu" element={
             <>
               <SEOManager title="Conditions Générales d'Utilisation" description="Les CGU encadrent l'accès et l'utilisation de la plateforme SafeCallr." noIndex />
-              <Landing legal="cgu" />
+              <Cgu />
+            </>
+          } />
+          <Route path="/terms" element={
+            <>
+              <SEOManager title="Terms of Use" description="Terms of Use governing access and use of the SafeCallr platform." noIndex />
+              <Terms />
+            </>
+          } />
+          <Route path="/terms-of-use" element={
+            <>
+              <SEOManager title="Terms of Use" description="Terms of Use governing access and use of the SafeCallr platform." noIndex />
+              <Terms />
+            </>
+          } />
+          <Route path="/terminos" element={
+            <>
+              <SEOManager title="Condiciones Generales de Uso" description="Las CGU rigen el acceso y uso de la plataforma SafeCallr." noIndex />
+              <Terminos />
+            </>
+          } />
+          <Route path="/condiciones-uso" element={
+            <>
+              <SEOManager title="Condiciones Generales de Uso" description="Las CGU rigen el acceso y uso de la plataforma SafeCallr." noIndex />
+              <Terminos />
             </>
           } />
           <Route path="/confidentialite" element={

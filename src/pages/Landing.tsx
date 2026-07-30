@@ -40,6 +40,11 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
     if (lang === "en") return "/legal-notice";
     return "/mentions-legales";
   };
+  const getCguPath = () => {
+    if (lang === "es") return "/terminos";
+    if (lang === "en") return "/terms";
+    return "/cgu";
+  };
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);
@@ -811,6 +816,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
             {t("landing.footerCopyright")}
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <Link id="footer-cgu-link" to={getCguPath()} className="hover:text-primary transition-colors">{t("common.cgu")}</Link>
             <Link id="footer-privacy-link" to={getPrivacyPath()} className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
             <Link id="footer-legal-notice-link" to={getLegalNoticePath()} className="hover:text-primary transition-colors">{t("common.legalNotice")}</Link>
           </div>

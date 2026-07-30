@@ -26,6 +26,7 @@ export const translations = {
       expired: "Expiré",
       privacyPolicy: "Politique de confidentialité",
       legalNotice: "Mentions légales",
+      cgu: "CGU",
       decline: "Décliner",
       today: "Aujourd'hui"
     },
@@ -437,6 +438,7 @@ export const translations = {
       expired: "Expired",
       privacyPolicy: "Privacy Policy",
       legalNotice: "Legal Notice",
+      cgu: "Terms of Use",
       decline: "Decline",
       today: "Today"
     },
@@ -848,6 +850,7 @@ export const translations = {
       expired: "Expirado",
       privacyPolicy: "Política de privacidad",
       legalNotice: "Aviso legal",
+      cgu: "Términos de uso",
       decline: "Rechazar",
       today: "Hoy"
     },

@@ -32,6 +32,11 @@ export default function Particuliers() {
     if (lang === "en") return "/legal-notice";
     return "/mentions-legales";
   };
+  const getCguPath = () => {
+    if (lang === "es") return "/terminos";
+    if (lang === "en") return "/terms";
+    return "/cgu";
+  };
   const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -438,6 +443,7 @@ export default function Particuliers() {
             © 2026 SafeCallr Technologies. Tous droits réservés.
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <Link to={getCguPath()} className="hover:text-primary transition-colors">{t("common.cgu")}</Link>
             <Link to={getPrivacyPath()} className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
             <Link to={getLegalNoticePath()} className="hover:text-primary transition-colors">{t("common.legalNotice")}</Link>
           </div>
