@@ -657,6 +657,18 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
       { url: "/aviso-legal", priority: 0.5, changefreq: "monthly" },
     ];
 
+    const escapeXml = (unsafe: string) => 
+      unsafe.replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          case '\'': return '&apos;';
+          case '"': return '&quot;';
+          default: return c;
+        }
+      });
+
     let dynamicArticleUrls: string[] = [];
     if (firebaseInitialized && db) {
       try {
@@ -664,8 +676,8 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         blogSnap.forEach((doc: any) => {
           const data = doc.data();
           if (data.slug || data.metaTitle || doc.id) {
-            const slug = data.slug || encodeURIComponent(data.metaTitle || doc.id);
-            dynamicArticleUrls.push(`/actualite/${slug}`);
+            const rawSlug = data.slug || encodeURIComponent(data.metaTitle || doc.id);
+            dynamicArticleUrls.push(`/actualite/${rawSlug}`);
           }
         });
       } catch (err) {
@@ -675,26 +687,27 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
 
     const todayStr = new Date().toISOString().split('T')[0];
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${pages.map(page => `
-  <url>
-    <loc>${baseUrl}${page.url}</loc>
+    const staticUrlsXml = pages.map(page => `  <url>
+    <loc>${escapeXml(baseUrl + page.url)}</loc>
     <lastmod>${todayStr}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
-  </url>`).join('')}
-${dynamicArticleUrls.map(url => `
-  <url>
-    <loc>${baseUrl}${url}</loc>
+  </url>`).join('\n');
+
+    const dynamicUrlsXml = dynamicArticleUrls.map(url => `  <url>
+    <loc>${escapeXml(baseUrl + url)}</loc>
     <lastmod>${todayStr}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
-  </url>`).join('')}
-</urlset>`;
+  </url>`).join('\n');
 
-    res.header("Content-Type", "application/xml");
-    res.send(xml);
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticUrlsXml}
+${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.status(200).send(xml.trim());
   });
 
   // API: Trouver un utilisateur par téléphone
