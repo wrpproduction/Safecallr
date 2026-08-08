@@ -634,7 +634,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   });
 
   // API: Sitemap dynamique
-  app.get("/sitemap.xml", async (req, res) => {
+  app.get(["/sitemap.xml", "/api/sitemap.xml", "/api/sitemap"], async (req, res) => {
     const baseUrl = "https://safecallr.com";
     const pages = [
       { url: "/", priority: 1.0, changefreq: "daily" },
@@ -1603,6 +1603,14 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     app.get("*", async (req, res, next) => {
       const url = req.originalUrl;
       if (url.startsWith("/api/")) return next();
+      if (url.includes("sitemap.xml") || url.includes("robots.txt")) {
+        const staticFile = url.includes("sitemap.xml") ? "sitemap.xml" : "robots.txt";
+        const staticPath = path.join(process.cwd(), "public", staticFile);
+        if (fs.existsSync(staticPath)) {
+          res.setHeader("Content-Type", staticFile.endsWith(".xml") ? "application/xml; charset=utf-8" : "text/plain; charset=utf-8");
+          return res.sendFile(staticPath);
+        }
+      }
       try {
         let template = fs.readFileSync(path.resolve(resolvedDirname, "index.html"), "utf-8");
         template = await vite.transformIndexHtml(url, template);
@@ -1618,6 +1626,10 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       setHeaders: (res, filePath) => {
         if (filePath.endsWith(".webmanifest") || filePath.endsWith("manifest.webmanifest")) {
           res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+        } else if (filePath.endsWith("sitemap.xml")) {
+          res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        } else if (filePath.endsWith("robots.txt")) {
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
         }
       }
     }));
@@ -1638,6 +1650,26 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     app.get("*", (req, res) => {
       const url = req.path;
       
+      if (url === "/sitemap.xml" || url.endsWith("sitemap.xml")) {
+        const sitemapDist = path.join(distPath, "sitemap.xml");
+        const sitemapPublic = path.join(process.cwd(), "public", "sitemap.xml");
+        const fileToServe = fs.existsSync(sitemapDist) ? sitemapDist : fs.existsSync(sitemapPublic) ? sitemapPublic : null;
+        if (fileToServe) {
+          res.setHeader("Content-Type", "application/xml; charset=utf-8");
+          return res.sendFile(fileToServe);
+        }
+      }
+
+      if (url === "/robots.txt" || url.endsWith("robots.txt")) {
+        const robotsDist = path.join(distPath, "robots.txt");
+        const robotsPublic = path.join(process.cwd(), "public", "robots.txt");
+        const fileToServe = fs.existsSync(robotsDist) ? robotsDist : fs.existsSync(robotsPublic) ? robotsPublic : null;
+        if (fileToServe) {
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.sendFile(fileToServe);
+        }
+      }
+
       // Si c'est une route prérendue, on essaie de servir le index.html correspondant dans le dossier
       if (prerenderedRoutes.includes(url) || (url === "/" && prerenderedRoutes.includes("/"))) {
         const filePath = url === "/" 
