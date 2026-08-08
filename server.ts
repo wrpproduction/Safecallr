@@ -634,25 +634,62 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   });
 
   // API: Sitemap dynamique
-  app.get("/sitemap.xml", (req, res) => {
+  app.get("/sitemap.xml", async (req, res) => {
     const baseUrl = "https://safecallr.com";
     const pages = [
-      { url: "/", priority: 1.0, changefreq: "weekly" },
-      { url: "/particuliers", priority: 0.8, changefreq: "weekly" },
-      { url: "/professionnels", priority: 0.8, changefreq: "weekly" },
+      { url: "/", priority: 1.0, changefreq: "daily" },
+      { url: "/particuliers", priority: 0.9, changefreq: "weekly" },
+      { url: "/professionnels", priority: 0.9, changefreq: "weekly" },
+      { url: "/entreprises", priority: 0.9, changefreq: "weekly" },
       { url: "/institutions", priority: 0.8, changefreq: "weekly" },
-      { url: "/how-it-works", priority: 0.7, changefreq: "monthly" },
-      { url: "/contact", priority: 0.6, changefreq: "monthly" },
+      { url: "/how-it-works", priority: 0.8, changefreq: "monthly" },
+      { url: "/actualite", priority: 0.8, changefreq: "daily" },
+      { url: "/company-contact", priority: 0.7, changefreq: "monthly" },
+      // Legal Pages - FR / EN / ES
+      { url: "/cgu", priority: 0.5, changefreq: "monthly" },
+      { url: "/terms", priority: 0.5, changefreq: "monthly" },
+      { url: "/terminos", priority: 0.5, changefreq: "monthly" },
+      { url: "/confidentialite", priority: 0.5, changefreq: "monthly" },
+      { url: "/privacy", priority: 0.5, changefreq: "monthly" },
+      { url: "/privacidad", priority: 0.5, changefreq: "monthly" },
+      { url: "/mentions-legales", priority: 0.5, changefreq: "monthly" },
+      { url: "/legal-notice", priority: 0.5, changefreq: "monthly" },
+      { url: "/aviso-legal", priority: 0.5, changefreq: "monthly" },
     ];
+
+    let dynamicArticleUrls: string[] = [];
+    if (firebaseInitialized && db) {
+      try {
+        const blogSnap = await db.collection("blog_posts").get();
+        blogSnap.forEach((doc: any) => {
+          const data = doc.data();
+          if (data.slug || data.metaTitle || doc.id) {
+            const slug = data.slug || encodeURIComponent(data.metaTitle || doc.id);
+            dynamicArticleUrls.push(`/actualite/${slug}`);
+          }
+        });
+      } catch (err) {
+        console.warn("[Sitemap] Unable to fetch blog posts for sitemap:", err);
+      }
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(page => `
   <url>
     <loc>${baseUrl}${page.url}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
+    <lastmod>${todayStr}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
+  </url>`).join('')}
+${dynamicArticleUrls.map(url => `
+  <url>
+    <loc>${baseUrl}${url}</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>`).join('')}
 </urlset>`;
 

@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import SEOManager from "../components/seo/SEOManager";
 import AppLogo from "../components/AppLogo";
+import LanguageSelector from "../components/LanguageSelector";
 
 export default function Professionnels() {
   const { lang, t } = useLanguage();
@@ -58,40 +59,41 @@ export default function Professionnels() {
 
   const faqs = [
     {
-      q: "En quoi SafeCallr est différent d'un outil d'authentification client ?",
-      a: "La plupart des outils vérifient que le client est bien le client. SafeCallr vérifie que le professionnel est bien le professionnel — c'est l'angle que les fraudes au faux conseiller exploitent."
+      q: t("professionnels.faq1Q"),
+      a: t("professionnels.faq1A")
     },
     {
-      q: "Un fraudeur peut-il créer un faux compte professionnel ?",
-      a: "Non. L'accès professionnel n'est ouvert qu'après vérification auprès d'autorités officielles (KBIS, chambres, registres). C'est la barrière centrale du dispositif."
+      q: t("professionnels.faq2Q"),
+      a: t("professionnels.faq2A")
     },
     {
-      q: "Comment se passe l'inscription ?",
-      a: "Vous créez votre compte Pro en ligne. Votre statut professionnel est ensuite vérifié manuellement avant activation — c'est cette étape qui garantit qu'aucune identité professionnelle ne peut être usurpée."
+      q: t("professionnels.faq3Q"),
+      a: t("professionnels.faq3A")
     },
     {
-      q: "Est-ce compatible avec nos obligations de conformité ?",
-      a: "SafeCallr s'inscrit dans une démarche de protection du client et de lutte contre la fraude, en complément des dispositifs réglementaires existants. Nous accompagnons chaque déploiement institutionnel."
+      q: t("professionnels.faq4Q"),
+      a: t("professionnels.faq4A")
     }
   ];
+
+  const sectorTags = (t("professionnels.sectorTags") as unknown as string[]) || ["Banques", "Notaires", "Gestion de Patrimoine", "Assurances", "Expertise Comptable", "Avocats"];
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Prouver votre identité professionnelle à vos clients au téléphone"
-        description="Banquiers, notaires, gestionnaires de patrimoine et conseillers : prouvez en temps réel à vos clients que c'est bien vous au téléphone. SafeCallr Pro élimine l'usurpation de votre identité professionnelle."
+        title={t("professionnels.seoTitle")}
+        description={t("professionnels.seoDesc")}
         keywords={["usurpation conseiller bancaire", "fraude au faux conseiller", "authentification professionnelle téléphone", "spoofing notaire", "vishing", "sécuriser appels clients", "conseiller financier", "gérant de patrimoine", "SafeCallr Pro"]}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebPage",
-          "name": "Professionnels - SafeCallr Pro",
-          "description": "Banquiers, notaires, gestionnaires de patrimoine : prouvez à vos clients de manière infalsifiable que c'est bien vous qui les appelez.",
-          "inLanguage": "fr-FR",
+          "name": `Professionnels - ${t("professionnels.badge")}`,
+          "description": t("professionnels.seoDesc"),
+          "inLanguage": lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-US",
           "publisher": {
             "@type": "Organization",
             "name": "SafeCallr"
-          },
-          "keywords": "usurpation conseiller bancaire, fraude au faux conseiller, authentification professionnelle téléphone, spoofing notaire, vishing, sécuriser appels clients"
+          }
         }}
       />
 
@@ -107,18 +109,20 @@ export default function Professionnels() {
             />
           </Link>
           <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-slate-400">
-            <Link to="/particuliers" className="hover:text-primary transition-colors">Particuliers</Link>
-            <Link to="/professionnels" className="text-primary transition-colors">Professionnels</Link>
-            <Link to="/entreprises" className="hover:text-primary transition-colors">Entreprises</Link>
+            <Link to="/particuliers" className="hover:text-primary transition-colors">{t("navigation.particuliers") || "Particuliers"}</Link>
+            <Link to="/professionnels" className="text-primary transition-colors">{t("navigation.professionnels") || "Professionnels"}</Link>
+            <Link to="/entreprises" className="hover:text-primary transition-colors">{t("navigation.entreprises") || "Entreprises"}</Link>
           </div>
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+            <LanguageSelector />
+
             {/* Connexion Dropdown */}
             <div className="relative" ref={loginRef}>
               <button 
                 onClick={() => { setIsLoginOpen(!isLoginOpen); setIsRegisterOpen(false); }}
                 className="text-[10px] sm:text-sm font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors flex items-center gap-1 whitespace-nowrap cursor-pointer"
               >
-                Connexion <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isLoginOpen ? 'rotate-180' : ''}`} />
+                {t("navigation.login") || "Connexion"} <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isLoginOpen ? 'rotate-180' : ''}`} />
               </button>
               
               <AnimatePresence>
@@ -134,8 +138,8 @@ export default function Professionnels() {
                         <Users className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Particulier</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Accès personnel</div>
+                        <div className="text-sm font-bold">{t("navigation.particulier") || "Particulier"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.personalAccess") || "Accès personnel"}</div>
                       </div>
                     </Link>
                     <Link to="/pro/login" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
@@ -143,8 +147,8 @@ export default function Professionnels() {
                         <Building2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Professionnel</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Espace Pro</div>
+                        <div className="text-sm font-bold">{t("navigation.professionnel") || "Professionnel"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.proSpace") || "Espace Pro"}</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -158,7 +162,7 @@ export default function Professionnels() {
                 onClick={() => { setIsRegisterOpen(!isRegisterOpen); setIsLoginOpen(false); }}
                 className="bg-primary text-on-primary px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-bold text-[10px] sm:text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1 whitespace-nowrap cursor-pointer"
               >
-                S'inscrire <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isRegisterOpen ? 'rotate-180' : ''}`} />
+                {t("navigation.register") || "S'inscrire"} <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isRegisterOpen ? 'rotate-180' : ''}`} />
               </button>
 
               <AnimatePresence>
@@ -174,8 +178,8 @@ export default function Professionnels() {
                         <Users className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Vous êtes un particulier</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Inscription gratuite</div>
+                        <div className="text-sm font-bold">{t("navigation.youAreIndividual") || "Vous êtes un particulier"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.freeRegistration") || "Inscription gratuite"}</div>
                       </div>
                     </Link>
                     <Link to="/pro/register" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
@@ -183,8 +187,8 @@ export default function Professionnels() {
                         <Building2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Vous êtes un pro</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Compte certifié</div>
+                        <div className="text-sm font-bold">{t("navigation.youArePro") || "Vous êtes un pro"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.certifiedAccount") || "Compte certifié"}</div>
                       </div>
                     </Link>
                     <Link to="/company-contact" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
@@ -192,8 +196,8 @@ export default function Professionnels() {
                         <Banknote className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Vous êtes une entreprise</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Nous contacter</div>
+                        <div className="text-sm font-bold">{t("navigation.youAreCompany") || "Vous êtes une entreprise"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.contactUs") || "Nous contacter"}</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -218,17 +222,17 @@ export default function Professionnels() {
             transition={{ duration: 0.6 }}
           >
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2 rounded-full mb-8">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Espace Professionnel (Pro)</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t("professionnels.badge")}</span>
             </div>
             <h1 className="font-headline font-black text-4xl md:text-7xl tracking-tight leading-[1] mb-8">
-              Prouvez à vos clients <br />
-              <span className="text-primary">que c'est bien vous</span>
+              {t("professionnels.heroTitle1")} <br />
+              <span className="text-primary">{t("professionnels.heroTitle2")}</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-6 leading-relaxed text-left md:text-center">
-              Vos clients reçoivent des appels d'escrocs se faisant passer pour vous — leur banquier, leur notaire, leur conseiller. Les conséquences sont lourdes : virements frauduleux, perte de confiance, responsabilité engagée.
+              {t("professionnels.heroDesc1")}
             </p>
             <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed text-left md:text-center">
-              SafeCallr Pro inverse la logique de la fraude. Lors d'un appel, vous prouvez votre identité professionnelle à votre client en un geste. L'usurpation de votre identité devient impossible.
+              {t("professionnels.heroDesc2")}
             </p>
           </motion.div>
 
@@ -239,7 +243,7 @@ export default function Professionnels() {
             className="flex flex-col items-center gap-4 mb-20"
           >
             <Link to="/pro/register" className="w-full sm:w-auto bg-primary text-on-primary px-12 py-6 rounded-2xl font-headline font-black text-xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-              Créer votre compte Pro
+              {t("professionnels.ctaRegister")}
               <ArrowRight className="w-6 h-6" />
             </Link>
           </motion.div>
@@ -251,10 +255,10 @@ export default function Professionnels() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { value: "4,5 Md€", desc: "préjudice des escroqueries en France en 2023, ×2 depuis 2016", source: "SSMSI, 2024" },
-              { value: "Plus gros montants", desc: "l'usurpation (faux conseiller, faux support) concentre, avec l'investissement, les pertes unitaires les plus élevées", source: "FTC, 2024" },
-              { value: "+1 633 %", desc: "vishing (usurpation vocale par IA) au T1 2025", source: "Pindrop, 2025" },
-              { value: "4 %", desc: "seule fraction des fonds escroqués qui est récupérée", source: "GASA, 2024" }
+              { value: t("professionnels.stat1Val"), desc: t("professionnels.stat1Desc"), source: t("professionnels.stat1Src") },
+              { value: t("professionnels.stat2Val"), desc: t("professionnels.stat2Desc"), source: t("professionnels.stat2Src") },
+              { value: t("professionnels.stat3Val"), desc: t("professionnels.stat3Desc"), source: t("professionnels.stat3Src") },
+              { value: t("professionnels.stat4Val"), desc: t("professionnels.stat4Desc"), source: t("professionnels.stat4Src") }
             ].map((stat, i) => (
               <div key={i} className="bg-surface-container-low/50 backdrop-blur-sm p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
                 <div>
@@ -272,13 +276,13 @@ export default function Professionnels() {
       {/* Le problème Section */}
       <section className="py-24 px-6 relative">
         <div className="max-w-4xl mx-auto">
-          <span className="text-error font-bold uppercase tracking-[0.3em] text-xs mb-4 block text-center">Le Constat d'Urgence</span>
+          <span className="text-error font-bold uppercase tracking-[0.3em] text-xs mb-4 block text-center">{t("professionnels.problemTag")}</span>
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-8 text-center text-error">
-            Le problème : tout le monde peut se faire passer pour vous
+            {t("professionnels.problemTitle")}
           </h2>
           <div className="bg-surface-container-low p-8 md:p-12 rounded-[32px] border border-white/5 space-y-6 text-slate-300 leading-relaxed text-lg">
             <p>
-              Un numéro affiché se falsifie. Un nom s'annonce. Aujourd'hui, votre client n'a aucun moyen fiable de vérifier que l'appel "de sa banque" vient réellement de sa banque. Les fraudeurs l'exploitent — et c'est vous, et votre établissement, qui en portez les conséquences.
+              {t("professionnels.problemDesc")}
             </p>
           </div>
         </div>
@@ -288,25 +292,25 @@ export default function Professionnels() {
       <section className="py-24 px-6 bg-surface-container-lowest border-y border-white/5">
         <div className="max-w-7xl mx-auto">
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight text-center mb-16">
-            La solution : une preuve d'identité que le fraudeur ne peut pas reproduire
+            {t("professionnels.solutionTitle")}
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {[
               {
-                step: "Étape 1",
-                title: "Vous déclenchez la vérification",
-                desc: "Pendant l'appel, vous lancez une demande de confirmation depuis votre tableau de bord."
+                step: t("professionnels.step1Tag"),
+                title: t("professionnels.step1Title"),
+                desc: t("professionnels.step1Desc")
               },
               {
-                step: "Étape 2",
-                title: "Votre client reçoit un code",
-                desc: "Une notification arrive sur l'application de votre client, avec un code unique."
+                step: t("professionnels.step2Tag"),
+                title: t("professionnels.step2Title"),
+                desc: t("professionnels.step2Desc")
               },
               {
-                step: "Étape 3",
-                title: "Vous lisez le code à voix haute",
-                desc: "Le code que vous annoncez correspond à celui reçu par le client. La preuve est faite, instantanément. Un usurpateur, lui, n'a jamais accès à ce code."
+                step: t("professionnels.step3Tag"),
+                title: t("professionnels.step3Title"),
+                desc: t("professionnels.step3Desc")
               }
             ].map((item, i) => (
               <div key={i} className="bg-surface-container-low p-8 rounded-3xl border border-white/5 relative flex flex-col justify-between">
@@ -325,15 +329,15 @@ export default function Professionnels() {
       <section className="py-24 px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
-            <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Notre piliers</span>
+            <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">{t("professionnels.pillarTag")}</span>
             <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-6">
-              Le cœur du dispositif : un statut professionnel non usurpable
+              {t("professionnels.pillarTitle")}
             </h2>
             <p className="text-lg text-slate-300 leading-relaxed mb-6">
-              La force de SafeCallr ne réside pas dans le code lui-même, mais dans la rigueur de l'enrôlement. Votre statut professionnel est vérifié auprès d'autorités réelles — extrait KBIS, chambres professionnelles, registres réglementés, employeur bancaire.
+              {t("professionnels.pillarDesc1")}
             </p>
             <p className="text-lg text-slate-300 leading-relaxed">
-              Résultat : il est structurellement impossible pour un fraudeur de se créer une identité professionnelle SafeCallr. C'est ce qui distingue une vraie preuve d'identité d'un simple gadget technique.
+              {t("professionnels.pillarDesc2")}
             </p>
           </div>
           <div className="bg-surface-container-low border border-white/5 p-8 rounded-[32px] space-y-6">
@@ -342,8 +346,8 @@ export default function Professionnels() {
                 <CheckCircle className="text-primary w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white mb-1">Rigueur d'enrôlement</h4>
-                <p className="text-slate-400 text-sm">Contrôle strict des pièces officielles Kbis, RPT, SIRET ou appartenance aux chambres.</p>
+                <h4 className="font-bold text-white mb-1">{t("professionnels.bullet1Title")}</h4>
+                <p className="text-slate-400 text-sm">{t("professionnels.bullet1Desc")}</p>
               </div>
             </div>
             <div className="flex gap-4 items-start">
@@ -351,8 +355,8 @@ export default function Professionnels() {
                 <Lock className="text-primary w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white mb-1">Protection de Marque</h4>
-                <p className="text-slate-400 text-sm">Vos conseillers et collaborateurs sont rattachés à votre espace d'entreprise sécurisé.</p>
+                <h4 className="font-bold text-white mb-1">{t("professionnels.bullet2Title")}</h4>
+                <p className="text-slate-400 text-sm">{t("professionnels.bullet2Desc")}</p>
               </div>
             </div>
           </div>
@@ -363,14 +367,14 @@ export default function Professionnels() {
       <section className="py-24 px-6 bg-surface-container-lowest border-t border-white/5">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-8 text-center">
-            Complémentaire à vos dispositifs existants
+            {t("professionnels.compTitle")}
           </h2>
           <div className="bg-primary/5 p-8 md:p-12 rounded-[32px] border border-primary/20 space-y-6 text-slate-300 leading-relaxed text-lg text-left">
             <p>
-              SafeCallr ne remplace pas vos outils — il comble un angle mort. Des solutions comme Sécur'Pass authentifient le client auprès du professionnel.
+              {t("professionnels.compDesc1")}
             </p>
             <p>
-              SafeCallr fait l'inverse : il authentifie le professionnel auprès du client. Les deux logiques se complètent et couvrent ensemble les deux sens de la relation téléphonique.
+              {t("professionnels.compDesc2")}
             </p>
           </div>
         </div>
@@ -380,13 +384,13 @@ export default function Professionnels() {
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-8">
-            Pensé pour les secteurs exposés
+            {t("professionnels.sectorsTitle")}
           </h2>
           <p className="text-slate-300 text-lg leading-relaxed max-w-3xl mx-auto mb-10">
-            Banques, notaires, gestion de patrimoine, assurance, expertise comptable, cabinets d'avocats : partout où un appel peut déclencher une décision financière, l'usurpation de votre identité est une menace. SafeCallr Pro s'adresse aux professions où la confiance dans l'identité de l'appelant a une valeur directe.
+            {t("professionnels.sectorsDesc")}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            {["Banques", "Notaires", "Gestion de Patrimoine", "Assurances", "Expertise Comptable", "Avocats"].map((tag, idx) => (
+            {sectorTags.map((tag, idx) => (
               <span key={idx} className="px-5 py-3 rounded-xl bg-surface-container-low border border-white/5 text-sm font-bold text-slate-300">{tag}</span>
             ))}
           </div>
@@ -396,15 +400,15 @@ export default function Professionnels() {
       {/* UI Callout */}
       <section className="py-20 bg-gradient-to-b from-transparent to-surface-container-low px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Protégez votre marque</span>
+          <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">{t("professionnels.ctaTag")}</span>
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight mb-6">
-            Rassurez vos clients dès aujourd'hui
+            {t("professionnels.ctaTitle")}
           </h2>
           <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
-            Sécurisez vos transactions sensibles. Offrez un bouclier anti-spoofing d'une efficacité structurelle éprouvée.
+            {t("professionnels.ctaSub")}
           </p>
           <Link to="/pro/register" className="inline-flex bg-primary text-on-primary px-10 py-5 rounded-2xl font-headline font-black text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-            Créer votre compte Pro
+            {t("professionnels.ctaBtn")}
           </Link>
         </div>
       </section>
@@ -412,7 +416,7 @@ export default function Professionnels() {
       {/* Questions Fréquentes Accordion */}
       <section className="py-24 px-6 max-w-4xl mx-auto">
         <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight text-center mb-16">
-          Questions fréquentes (Professionnels)
+          {t("professionnels.faqTitle")}
         </h2>
         <div className="space-y-4">
           {faqs.map((faq, idx) => (
@@ -446,10 +450,10 @@ export default function Professionnels() {
       {/* Bottom Cross Navigation */}
       <section className="py-12 bg-surface-container-low border-t border-white/5 text-center px-6">
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-          Autre profil ?{" "}
-          <Link to="/particuliers" className="text-primary hover:underline ml-1">Découvrez SafeCallr Particuliers</Link>
+          {t("professionnels.otherProfile")}{" "}
+          <Link to="/particuliers" className="text-primary hover:underline ml-1">{t("professionnels.linkParticuliers")}</Link>
           <span className="mx-2 text-slate-600">|</span>
-          <Link to="/entreprises" className="text-primary hover:underline">SafeCallr Entreprise</Link>
+          <Link to="/entreprises" className="text-primary hover:underline">{t("professionnels.linkEnt")}</Link>
         </p>
       </section>
 

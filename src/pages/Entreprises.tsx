@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import SEOManager from "../components/seo/SEOManager";
 import AppLogo from "../components/AppLogo";
+import LanguageSelector from "../components/LanguageSelector";
 
 export default function Entreprises() {
   const { lang, t } = useLanguage();
@@ -58,40 +59,39 @@ export default function Entreprises() {
 
   const faqs = [
     {
-      q: "Qu'est-ce que la fraude au président ?",
-      a: "C'est une escroquerie où un fraudeur usurpe l'identité d'un dirigeant pour ordonner un virement ou une action sensible, en jouant sur l'autorité et l'urgence. SafeCallr neutralise le levier central de cette fraude : l'incapacité à vérifier l'identité de l'appelant."
+      q: t("entreprises.faq1Q"),
+      a: t("entreprises.faq1A")
     },
     {
-      q: "Comment SafeCallr s'intègre-t-il à nos procédures existantes ?",
-      a: "SafeCallr ajoute une étape de vérification d'identité aux moments sensibles que vous définissez (virements, accès, décisions), sans remplacer vos contrôles financiers."
+      q: t("entreprises.faq2Q"),
+      a: t("entreprises.faq2A")
     },
     {
-      q: "Qui peut être authentifié ?",
-      a: "Tout collaborateur enrôlé dans l'organisation, dans les deux sens — un subordonné peut vérifier un dirigeant, et inversement."
+      q: t("entreprises.faq3Q"),
+      a: t("entreprises.faq3A")
     },
     {
-      q: "Le déploiement est-il lourd pour nos équipes ?",
-      a: "Non. L'enrôlement est piloté de façon centralisée et la vérification se fait en un geste, au moment où elle est utile."
+      q: t("entreprises.faq4Q"),
+      a: t("entreprises.faq4A")
     }
   ];
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Protéger votre entreprise contre la fraude au président & usurpation"
-        description="Validez en interne l'identité de vos dirigeants et collaborateurs avant tout virement ou décision critique. SafeCallr Entreprise neutralise la fraude au président (FOVI), l'usurpation d'identité interne et l'ingénierie sociale en un geste."
+        title={t("entreprises.seoTitle")}
+        description={t("entreprises.seoDesc")}
         keywords={["fraude au président", "arnaque au faux dirigeant", "sécuriser virements internes", "usurpation CEO", "validation trésorerie", "fraude au faux RH", "FOVI", "ingénierie sociale", "sécurité financière entreprise", "SafeCallr Entreprise"]}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebPage",
-          "name": "Entreprises - SafeCallr Entreprise",
-          "description": "Validez en interne l'identité de vos dirigeants et collaborateurs avant tout virement ou décision stratégique.",
-          "inLanguage": "fr-FR",
+          "name": `Entreprises - ${t("entreprises.badge")}`,
+          "description": t("entreprises.seoDesc"),
+          "inLanguage": lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-US",
           "publisher": {
             "@type": "Organization",
             "name": "SafeCallr"
-          },
-          "keywords": "fraude au président, arnaque au faux dirigeant, sécuriser virements internes, usurpation CEO, validation trésorerie, fraude au faux RH, FOVI, ingénierie sociale"
+          }
         }}
       />
 
@@ -107,18 +107,20 @@ export default function Entreprises() {
             />
           </Link>
           <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-slate-400">
-            <Link to="/particuliers" className="hover:text-primary transition-colors">Particuliers</Link>
-            <Link to="/professionnels" className="hover:text-primary transition-colors">Professionnels</Link>
-            <Link to="/entreprises" className="text-primary transition-colors">Entreprises</Link>
+            <Link to="/particuliers" className="hover:text-primary transition-colors">{t("navigation.particuliers") || "Particuliers"}</Link>
+            <Link to="/professionnels" className="hover:text-primary transition-colors">{t("navigation.professionnels") || "Professionnels"}</Link>
+            <Link to="/entreprises" className="text-primary transition-colors">{t("navigation.entreprises") || "Entreprises"}</Link>
           </div>
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+            <LanguageSelector />
+
             {/* Connexion Dropdown */}
             <div className="relative" ref={loginRef}>
               <button 
                 onClick={() => { setIsLoginOpen(!isLoginOpen); setIsRegisterOpen(false); }}
                 className="text-[10px] sm:text-sm font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors flex items-center gap-1 whitespace-nowrap cursor-pointer"
               >
-                Connexion <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isLoginOpen ? 'rotate-180' : ''}`} />
+                {t("navigation.login") || "Connexion"} <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isLoginOpen ? 'rotate-180' : ''}`} />
               </button>
               
               <AnimatePresence>
@@ -134,8 +136,8 @@ export default function Entreprises() {
                         <Users className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Particulier</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Accès personnel</div>
+                        <div className="text-sm font-bold">{t("navigation.particulier") || "Particulier"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.personalAccess") || "Accès personnel"}</div>
                       </div>
                     </Link>
                     <Link to="/pro/login" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
@@ -143,8 +145,8 @@ export default function Entreprises() {
                         <Building2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Professionnel</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Espace Pro</div>
+                        <div className="text-sm font-bold">{t("navigation.professionnel") || "Professionnel"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.proSpace") || "Espace Pro"}</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -158,7 +160,7 @@ export default function Entreprises() {
                 onClick={() => { setIsRegisterOpen(!isRegisterOpen); setIsLoginOpen(false); }}
                 className="bg-primary text-on-primary px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-bold text-[10px] sm:text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1 whitespace-nowrap cursor-pointer"
               >
-                S'inscrire <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isRegisterOpen ? 'rotate-180' : ''}`} />
+                {t("navigation.register") || "S'inscrire"} <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isRegisterOpen ? 'rotate-180' : ''}`} />
               </button>
 
               <AnimatePresence>
@@ -174,8 +176,8 @@ export default function Entreprises() {
                         <Users className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Vous êtes un particulier</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Inscription gratuite</div>
+                        <div className="text-sm font-bold">{t("navigation.youAreIndividual") || "Vous êtes un particulier"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.freeRegistration") || "Inscription gratuite"}</div>
                       </div>
                     </Link>
                     <Link to="/pro/register" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
@@ -183,8 +185,8 @@ export default function Entreprises() {
                         <Building2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold">Vous êtes un pro</div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">Compte certifié</div>
+                        <div className="text-sm font-bold">{t("navigation.youArePro") || "Vous êtes un pro"}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t("navigation.certifiedAccount") || "Compte certifié"}</div>
                       </div>
                     </Link>
                     <Link to="/business/register" className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 transition-colors group">
@@ -192,8 +194,8 @@ export default function Entreprises() {
                         <Banknote className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold font-headline">Vous êtes une entreprise</div>
-                        <div className="text-[10px] text-primary uppercase tracking-widest font-bold">Créer mon organisation en ligne</div>
+                        <div className="text-sm font-bold font-headline">{t("navigation.youAreCompany") || "Vous êtes une entreprise"}</div>
+                        <div className="text-[10px] text-primary uppercase tracking-widest font-bold">{t("navigation.createOrgOnline") || "Créer mon organisation en ligne"}</div>
                       </div>
                     </Link>
                   </motion.div>
@@ -218,17 +220,17 @@ export default function Entreprises() {
             transition={{ duration: 0.6 }}
           >
             <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2 rounded-full mb-8">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Espace Entreprise</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{t("entreprises.badge")}</span>
             </div>
             <h1 className="font-headline font-black text-4xl md:text-7xl tracking-tight leading-[1] mb-8">
-              La fraude au président commence par un appel. <br />
-              <span className="text-primary font-black">Mettez-y fin.</span>
+              {t("entreprises.heroTitle1")} <br />
+              <span className="text-primary font-black">{t("entreprises.heroTitle2")}</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-6 leading-relaxed text-left md:text-center">
-              "C'est le PDG. J'ai besoin que tu valides ce virement, tout de suite, et de façon confidentielle." Chaque année, ce scénario coûte des sommes considérables aux entreprises. L'arme du fraudeur est simple : usurper l'identité d'un dirigeant ou d'un collègue au téléphone.
+              {t("entreprises.heroDesc1")}
             </p>
             <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed text-left md:text-center">
-              SafeCallr Entreprise permet à vos équipes de vérifier, en un geste, que l'interlocuteur est bien celui qu'il prétend être — avant tout acte sensible.
+              {t("entreprises.heroDesc2")}
             </p>
           </motion.div>
 
@@ -239,11 +241,11 @@ export default function Entreprises() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
           >
             <Link to="/business/register" className="w-full sm:w-auto bg-[#3DFFA0] text-[#0F1B3D] px-10 py-5 rounded-2xl font-headline font-black text-lg shadow-2xl shadow-[#3DFFA0]/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-              Créer votre espace Business
+              {t("entreprises.ctaRegister")}
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link to="/company-contact" className="w-full sm:w-auto bg-slate-900 border border-white/5 hover:bg-slate-800 text-slate-300 px-10 py-5 rounded-2xl font-headline font-semibold text-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-              Contacter un expert
+              {t("entreprises.ctaContact")}
             </Link>
           </motion.div>
         </div>
@@ -254,10 +256,10 @@ export default function Entreprises() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { value: "≈ 500 000 $", desc: "perte moyenne par incident de deepfake en entreprise", source: "Pindrop, 2025" },
-              { value: "T1 2025 > 2024", desc: "les incidents de deepfake détectés sur le seul 1er trimestre 2025 dépassent déjà tout 2024", source: "Pindrop, 2025" },
-              { value: "+1 633 %", desc: "vishing (usurpation vocale par IA) au T1 2025", source: "Pindrop, 2025" },
-              { value: "40 Md $", desc: "fraude dopée à l'IA générative projetée en 2027, contre 12,3 Md $ en 2023", source: "Deloitte, 2024" }
+              { value: t("entreprises.stat1Val"), desc: t("entreprises.stat1Desc"), source: t("entreprises.stat1Src") },
+              { value: t("entreprises.stat2Val"), desc: t("entreprises.stat2Desc"), source: t("entreprises.stat2Src") },
+              { value: t("entreprises.stat3Val"), desc: t("entreprises.stat3Desc"), source: t("entreprises.stat3Src") },
+              { value: t("entreprises.stat4Val"), desc: t("entreprises.stat4Desc"), source: t("entreprises.stat4Src") }
             ].map((stat, i) => (
               <div key={i} className="bg-surface-container-low/50 backdrop-blur-sm p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
                 <div>
@@ -275,16 +277,13 @@ export default function Entreprises() {
       {/* Le problème Section */}
       <section className="py-24 px-6 relative">
         <div className="max-w-4xl mx-auto">
-          <span className="text-error font-bold uppercase tracking-[0.3em] text-xs mb-4 block text-center">Facteurs de Risques</span>
+          <span className="text-error font-bold uppercase tracking-[0.3em] text-xs mb-4 block text-center">{t("entreprises.problemTag")}</span>
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-8 text-center text-error">
-            Une menace qui exploite la hiérarchie et l'urgence
+            {t("entreprises.problemTitle")}
           </h2>
           <div className="bg-surface-container-low p-8 md:p-12 rounded-[32px] border border-white/5 space-y-6 text-slate-300 leading-relaxed text-lg">
             <p>
-              La fraude au président, l'usurpation d'un membre de la direction ou d'un service support repose toujours sur le même levier : une autorité apparente, un sentiment d'urgence, et l'impossibilité de vérifier l'identité de l'appelant.
-            </p>
-            <p>
-              Vos procédures financières peuvent être solides — elles restent vulnérables tant qu'un simple appel suffit à les contourner.
+              {t("entreprises.problemDesc")}
             </p>
           </div>
         </div>
@@ -294,22 +293,22 @@ export default function Entreprises() {
       <section className="py-24 px-6 bg-surface-container-lowest border-y border-white/5">
         <div className="max-w-7xl mx-auto">
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight text-center mb-16">
-            La vérification d'identité, intégrée à vos processus sensibles
+            {t("entreprises.solutionTitle")}
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {[
               {
-                title: "Validation des virements & trésorerie",
-                desc: "Avant d'exécuter un ordre reçu par téléphone, le collaborateur confirme l'identité du demandeur. Aucune correspondance, aucune exécution."
+                title: t("entreprises.step1Title"),
+                desc: t("entreprises.step1Desc")
               },
               {
-                title: "Authentification entre collaborateurs",
-                desc: "Direction, RH, finance, IT : chaque échange sensible peut être authentifié, dans les deux sens, entre membres de l'organisation."
+                title: t("entreprises.step2Title"),
+                desc: t("entreprises.step2Desc")
               },
               {
-                title: "Sécurisation support & réinitialisations",
-                desc: "Les attaques par ingénierie sociale visant le helpdesk (réinitialisation de MFA, accès comptes) sont neutralisées par une vérification d'identité préalable."
+                title: t("entreprises.step3Title"),
+                desc: t("entreprises.step3Desc")
               }
             ].map((item, i) => (
               <div key={i} className="bg-surface-container-low p-8 rounded-3xl border border-white/5 flex flex-col justify-between">
@@ -330,12 +329,15 @@ export default function Entreprises() {
       <section className="py-24 px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
-            <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Déploiement simple</span>
+            <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">{t("entreprises.pillarTag")}</span>
             <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-6">
-              Une architecture pensée pour l'organisation
+              {t("entreprises.pillarTitle")}
             </h2>
+            <p className="text-lg text-slate-300 leading-relaxed mb-6">
+              {t("entreprises.pillarDesc1")}
+            </p>
             <p className="text-lg text-slate-300 leading-relaxed">
-              SafeCallr Entreprise s'appuie sur une hiérarchie d'administration claire : un référent pilote le déploiement, les collaborateurs sont enrôlés de façon contrôlée, et l'employeur agit comme autorité de confiance pour valider les identités internes. La protection se déploie de haut en bas, sans dépendre de l'adoption volontaire de chacun.
+              {t("entreprises.pillarDesc2")}
             </p>
           </div>
           <div className="bg-surface-container-low border border-white/5 p-8 rounded-[32px] space-y-6">
@@ -344,8 +346,8 @@ export default function Entreprises() {
                 <Cpu className="text-primary w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white mb-1">Contrôle centralisé</h4>
-                <p className="text-slate-400 text-sm">Gestion globale de l'annuaire de vos collaborateurs et de leurs pièces certifiées.</p>
+                <h4 className="font-bold text-white mb-1">{t("entreprises.bullet1Title")}</h4>
+                <p className="text-slate-400 text-sm">{t("entreprises.bullet1Desc")}</p>
               </div>
             </div>
             <div className="flex gap-4 items-start">
@@ -353,8 +355,8 @@ export default function Entreprises() {
                 <Lock className="text-primary w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white mb-1">Preuve asymétrique</h4>
-                <p className="text-slate-400 text-sm">Protocole cryptographique hautement sécurisé pour l'échange de jetons d'identité.</p>
+                <h4 className="font-bold text-white mb-1">{t("entreprises.bullet2Title")}</h4>
+                <p className="text-slate-400 text-sm">{t("entreprises.bullet2Desc")}</p>
               </div>
             </div>
           </div>
@@ -365,14 +367,14 @@ export default function Entreprises() {
       <section className="py-24 px-6 bg-surface-container-lowest border-t border-white/5">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight leading-tight mb-8 text-center">
-            Au-delà de la fraude : une culture de confiance vérifiable
+            {t("entreprises.compTitle")}
           </h2>
           <div className="bg-primary/5 p-8 md:p-12 rounded-[32px] border border-primary/20 space-y-6 text-slate-300 leading-relaxed text-lg text-left">
             <p>
-              Donner à vos équipes le moyen de vérifier une identité, c'est aussi les autoriser à dire "je vérifie" sans crainte de froisser une hiérarchie.
+              {t("entreprises.compDesc1")}
             </p>
             <p>
-              SafeCallr transforme la vérification en réflexe légitime plutôt qu'en marque de défiance — la meilleure protection contre l'ingénierie sociale.
+              {t("entreprises.compDesc2")}
             </p>
           </div>
         </div>
@@ -381,23 +383,28 @@ export default function Entreprises() {
       {/* UI Callout */}
       <section className="py-20 bg-gradient-to-b from-transparent to-surface-container-low px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Sécurité des Dirigeants</span>
+          <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs mb-4 block">{t("entreprises.ctaTag")}</span>
           <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight mb-6">
-            Neutralisez la fraude présidentielle
+            {t("entreprises.ctaTitle")}
           </h2>
           <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
-            Discutez avec nos spécialistes et découvrez à quel point l'intégration de SafeCallr au sein de vos procédures financières est rapide.
+            {t("entreprises.ctaSub")}
           </p>
-          <Link to="/company-contact" className="inline-flex bg-primary text-on-primary px-10 py-5 rounded-2xl font-headline font-black text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-            Contacter un expert
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link to="/business/register" className="inline-flex bg-primary text-on-primary px-10 py-5 rounded-2xl font-headline font-black text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              {t("entreprises.ctaBtn")}
+            </Link>
+            <Link to="/company-contact" className="inline-flex bg-slate-900 border border-white/10 text-slate-300 px-10 py-5 rounded-2xl font-headline font-bold text-xl hover:scale-105 active:scale-95 transition-all">
+              {t("entreprises.ctaContactBtn")}
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Questions Fréquentes Accordion */}
       <section className="py-24 px-6 max-w-4xl mx-auto">
         <h2 className="font-headline font-black text-3xl md:text-5xl tracking-tight text-center mb-16">
-          Questions fréquentes (Entreprises)
+          {t("entreprises.faqTitle")}
         </h2>
         <div className="space-y-4">
           {faqs.map((faq, idx) => (
@@ -431,10 +438,10 @@ export default function Entreprises() {
       {/* Bottom Cross Navigation */}
       <section className="py-12 bg-surface-container-low border-t border-white/5 text-center px-6">
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-          Vous êtes un professionnel libéral ?{" "}
-          <Link to="/professionnels" className="text-primary hover:underline ml-1">Découvrez SafeCallr Pro</Link>
+          {t("entreprises.otherProfile")}{" "}
+          <Link to="/professionnels" className="text-primary hover:underline ml-1">{t("entreprises.linkPro")}</Link>
           <span className="mx-2 text-slate-600">|</span>
-          <Link to="/particuliers" className="text-primary hover:underline">SafeCallr Particuliers</Link>
+          <Link to="/particuliers" className="text-primary hover:underline">{t("entreprises.linkParticuliers")}</Link>
         </p>
       </section>
 
