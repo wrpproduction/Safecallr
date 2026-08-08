@@ -815,7 +815,8 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
             {t("landing.footerCopyright")}
           </div>
-          <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="flex flex-wrap justify-center gap-6 md:gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <Link id="footer-sitemap-link" to="/sitemap" className="hover:text-primary transition-colors">Plan du site</Link>
             <Link id="footer-cgu-link" to={getCguPath()} className="hover:text-primary transition-colors">{t("common.cgu")}</Link>
             <Link id="footer-privacy-link" to={getPrivacyPath()} className="hover:text-primary transition-colors">{t("common.privacyPolicy")}</Link>
             <Link id="footer-legal-notice-link" to={getLegalNoticePath()} className="hover:text-primary transition-colors">{t("common.legalNotice")}</Link>

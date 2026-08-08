@@ -64,6 +64,8 @@ import { registerSW } from 'virtual:pwa-register';
 import Particuliers from "./pages/Particuliers";
 import Professionnels from "./pages/Professionnels";
 import Entreprises from "./pages/Entreprises";
+import SitemapPage from "./pages/SitemapPage";
+import SitemapXmlPage from "./pages/SitemapXmlPage";
 
 import { Capacitor } from "@capacitor/core";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -321,6 +323,10 @@ export default function App() {
 
           <Route path="/actualite" element={<Actualites />} />
           <Route path="/actualite/:slug" element={<ArticleDetail />} />
+
+          <Route path="/sitemap" element={<SitemapPage />} />
+          <Route path="/plan-du-site" element={<SitemapPage />} />
+          <Route path="/sitemap.xml" element={<SitemapXmlPage />} />
 
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/welcome" element={<Welcome />} />
