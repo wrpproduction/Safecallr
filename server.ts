@@ -1639,7 +1639,7 @@ function convertMarkdownToSEOPageHTML(markdown: string): string {
 }
 
 async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any): Promise<string> {
-  const url = reqPath || "/";
+  const url = (reqPath || "/").split("?")[0];
   let pageTitle = "SafeCallr | Protection Anti-Spoofing & Authentification d'Appels";
   let pageDescription = "SafeCallr est la solution d'authentification humaine d'appels téléphoniques en temps réel. Protégez-vous contre le spoofing, l'usurpation d'identité et les faux conseillers bancaires.";
   let pageKeywords = "SafeCallr, authentification appels, spoofing, faux conseiller bancaire, sécurité téléphonique, 2FA téléphone, anti-fraude, protection usurpation, cybersécurité";
@@ -1653,7 +1653,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
 
   // Handle Blog Post Detail Route: /actualite/:slug
   if (url.startsWith("/actualite/") && url.length > 11) {
-    const rawSlug = url.replace("/actualite/", "").split("?")[0];
+    const rawSlug = url.replace("/actualite/", "");
     const decodedSlug = decodeURIComponent(rawSlug);
     let article: any = null;
 
@@ -1732,34 +1732,341 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       `;
     }
   } else if (url === "/particuliers") {
-    pageTitle = "SafeCallr pour Particuliers | Protection contre les arnaques téléphoniques";
-    pageDescription = "Protégez votre famille et vos proches contre le spoofing, les faux conseillers bancaires et les usurpations d'identité grâce à SafeCallr.";
+    pageTitle = "SafeCallr pour Particuliers | Protection Anti-Spoofing & Faux Conseiller Bancaire";
+    pageDescription = "Protégez votre famille et vos comptes bancaires contre les arnaques téléphoniques, le spoofing et l'usurpation d'identité grâce à SafeCallr.";
     rootBodyHtml = `
-      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
-        <h1 style="font-size:36px;font-weight:800;color:#00e676;">SafeCallr pour Particuliers & Familles</h1>
-        <p style="font-size:18px;line-height:1.6;color:#cbd5e1;">Protégez-vous et vos proches contre les arnaques au faux conseiller bancaire et le spoofing d'appels grâce à notre technologie d'authentification humaine en temps réel.</p>
-        <nav style="margin-top:20px;"><a href="/" style="color:#00e676;text-decoration:none;">Accueil SafeCallr</a> | <a href="/actualite" style="color:#00e676;text-decoration:none;">Conseils Cybersécurité</a></nav>
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">SafeCallr pour Particuliers & Familles — Sécurité Téléphonique Personnelle</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Ne cédez plus à la panique des faux conseillers bancaires. Authentifiez chaque appel important avant de donner des informations personnelles.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Indépendants & Pros</a>
+          <a href="/entreprises" style="color:#00e676;text-decoration:none;">Pour Entreprises</a>
+          <a href="/how-it-works" style="color:#00e676;text-decoration:none;">Comment ça marche</a>
+          <a href="/actualite" style="color:#00e676;text-decoration:none;">Actualités & Blog</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Pourquoi adopter SafeCallr pour votre foyer ?</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Les arnaques téléphoniques ciblent des milliers de personnes chaque jour. Un prétendu conseiller bancaire vous signale une opération suspecte et vous demande de valider une transaction. Grâce à SafeCallr, vous vérifiez instantanément si l'appelant est réellement votre banquier.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Fonctionnalités clés pour les particuliers</h2>
+          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;">
+            <li><strong>Vérification d'appel en temps réel :</strong> Recevez un jeton de validation sur l'application lors de l'appel.</li>
+            <li><strong>Alerte anti-spoofing instantanée :</strong> Identifiez les numéros masqués ou usurpés.</li>
+            <li><strong>Historique et journal de sécurité :</strong> Gardez une trace de tous vos appels vérifiés.</li>
+            <li><strong>Application gratuite et intuitive :</strong> Disponible sur iOS et Android.</li>
+          </ul>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
       </div>
     `;
   } else if (url === "/professionnels") {
-    pageTitle = "SafeCallr pour Professionnels & Indépendants | Authentifiez vos appels clients";
+    pageTitle = "SafeCallr pour Professionnels & Indépendants | Authentifiez vos Appels Clients";
     pageDescription = "Permettez à vos clients d'authentifier vos appels officiels en temps réel pour instaurer une confiance totale lors de vos démarches par téléphone.";
     rootBodyHtml = `
-      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
-        <h1 style="font-size:36px;font-weight:800;color:#00e676;">SafeCallr pour Professionnels & Indépendants</h1>
-        <p style="font-size:18px;line-height:1.6;color:#cbd5e1;">Rassurez vos clients en leur permettant d'authentifier vos appels officiels en temps réel avant tout échange d'informations stratégiques.</p>
-        <nav style="margin-top:20px;"><a href="/" style="color:#00e676;text-decoration:none;">Accueil SafeCallr</a> | <a href="/company-contact" style="color:#00e676;text-decoration:none;">Nous contacter</a></nav>
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">SafeCallr pour Professionnels & Indépendants — Confiance Téléphonique</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Prouvez l'authenticité de vos appels sortants auprès de vos clients et prospects en un clic.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
+          <a href="/entreprises" style="color:#00e676;text-decoration:none;">Pour Entreprises</a>
+          <a href="/how-it-works" style="color:#00e676;text-decoration:none;">Comment ça marche</a>
+          <a href="/company-contact" style="color:#00e676;text-decoration:none;">Contact Pro</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Rassurez vos clients dès les premières secondes de l'appel</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Face à la hausse des arnaques, vos clients hésitent à décrocher ou à partager des données confidentielles par téléphone. SafeCallr permet à vos clients de valider que c'est bien vous qui les appelez.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Les avantages pour votre activité professionnelle</h2>
+          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;">
+            <li><strong>Taux de décroché supérieur :</strong> Vos clients savent qu'il s'agit d'un appel légitime.</li>
+            <li><strong>Élimination de la méfiance :</strong> Transmettez des devis, factures ou rendez-vous en toute sérénité.</li>
+            <li><strong>Espace Pro dédié :</strong> Envoyez vos requêtes d'authentification directement depuis votre interface web ou mobile.</li>
+          </ul>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
       </div>
     `;
-  } else if (url === "/entreprises") {
+  } else if (url === "/entreprises" || url === "/institutions") {
     pageTitle = "SafeCallr pour Entreprises & Grandes Organisations | Anti-Spoofing & Fraude au Président";
-    pageDescription = "Sécurisez la voix de votre entreprise. Éliminez les risques de fraude au président, d'usurpation de marque et d'appels frauduleux auprès de vos clients.";
+    pageDescription = "Sécurisez les communications téléphoniques de votre entreprise. Éliminez les risques de fraude au président, d'usurpation de marque et d'appels frauduleux.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">SafeCallr pour Entreprises, Banques & Grandes Organisations</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Protégez la voix de votre marque et sécurisez les échanges téléphoniques stratégiques avec vos collaborateurs et vos clients.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Indépendants</a>
+          <a href="/company-contact" style="color:#00e676;text-decoration:none;">Demander une démo</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Protégez votre marque contre l'usurpation de numéro (Spoofing)</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Les réseaux criminels usurpent régulièrement les numéros des grandes banques, assurances et institutions pour piéger les citoyens. SafeCallr fournit une infrastructure d'authentification forte de la voix et des appels sortants.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Solutions Entreprise SafeCallr</h2>
+          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;">
+            <li><strong>API & SDK d'intégration téléphonique :</strong> Intégrez l'authentification dans vos centres de contact et vos applications métier.</li>
+            <li><strong>Lutte contre la fraude au président :</strong> Vérifiez la légitimité des demandes de virement ou de modifications RIB.</li>
+            <li><strong>Authentification forte 2FA des téléconseillers :</strong> Garantissez l'identité de vos opérateurs auprès des clients.</li>
+          </ul>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
+      </div>
+    `;
   } else if (url === "/how-it-works") {
     pageTitle = "Comment fonctionne SafeCallr ? | Authentification d'Appels en 3 Étapes";
-    pageDescription = "Découvrez la technologie 2FA humaine de SafeCallr pour valider en temps réel l'identité de vos interlocuteurs téléphoniques.";
-  } else if (url === "/actualite") {
-    pageTitle = "Actualités & Guides Cybersécurité | Vigilance SafeCallr";
-    pageDescription = "Retrouvez nos derniers articles, analyses et guides d'experts sur le spoofing téléphonique, la fraude au faux conseiller bancaire et la sécurité de la voix.";
+    pageDescription = "Découvrez la technologie de double authentification téléphonique SafeCallr pour valider l'identité de vos interlocuteurs en temps réel.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Comment fonctionne l'authentification d'appel SafeCallr ?</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Un protocole de sécurité innovant en 3 étapes simples pour éliminer définitivement le spoofing téléphonique.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Professionnels</a>
+          <a href="/actualite" style="color:#00e676;text-decoration:none;">Actualités</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Étape 1 : Vous recevez un appel suspect</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Votre téléphone sonne. L'interlocuteur se présente comme votre banquier, votre conseiller ou un professionnel de santé.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Étape 2 : Demande d'authentification en temps réel</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Vous demandez à votre interlocuteur de certifier son appel via SafeCallr. L'appelant officiel envoie une notification sécurisée sur votre application SafeCallr.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Étape 3 : Validation instantanée</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Votre écran affiche la confirmation d'identité certifiée par le protocole SafeCallr. Vous poursuivez l'échange en toute sécurité.</p>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/actualite" || url === "/blog") {
+    pageTitle = "Actualités, Guides & Conseils Cybersécurité | Vigilance SafeCallr";
+    pageDescription = "Consultez nos articles, conseils et analyses d'experts sur la prévention des arnaques téléphoniques, le spoofing et la fraude au faux conseiller bancaire.";
+
+    let articlesListHtml = "";
+    if (db) {
+      try {
+        const snap = await db.collection("articles").where("published", "==", true).get();
+        if (!snap.empty) {
+          articlesListHtml = snap.docs.map((docSnap: any) => {
+            const data = docSnap.data();
+            const articleSlug = data.slug || data.metaTitle || docSnap.id;
+            return `
+              <article style="margin-bottom:30px;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+                <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;">${escapeHtml(data.category || 'Actualités')}</span>
+                <h2 style="font-size:22px;font-weight:700;color:#ffffff;margin:8px 0;"><a href="/actualite/${encodeURIComponent(articleSlug)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(data.title)}</a></h2>
+                <p style="color:#cbd5e1;font-size:15px;line-height:1.6;">${escapeHtml(data.summary || '')}</p>
+                <a href="/actualite/${encodeURIComponent(articleSlug)}" style="color:#00e676;font-weight:700;text-decoration:none;">Lire la suite →</a>
+              </article>
+            `;
+          }).join("");
+        }
+      } catch (err) {
+        console.warn("[SEO Server] Error fetching articles list:", err);
+      }
+    }
+
+    if (!articlesListHtml) {
+      articlesListHtml = `
+        <article style="margin-bottom:30px;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+          <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;">Guide Sécurité</span>
+          <h2 style="font-size:22px;font-weight:700;color:#ffffff;margin:8px 0;">Comment reconnaître une arnaque au faux conseiller bancaire ?</h2>
+          <p style="color:#cbd5e1;font-size:15px;line-height:1.6;">Découvrez les signaux d'alerte essentiels et la conduite à tenir lorsque vous recevez un appel suspect de votre soi-disant banquier.</p>
+        </article>
+      `;
+    }
+
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Actualités & Guides de Vigilance Cybersécurité — SafeCallr</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Toutes les clés pour comprendre et vous protéger contre les arnaques téléphoniques, le spoofing et la fraude bancaire.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Professionnels</a>
+          <a href="/how-it-works" style="color:#00e676;text-decoration:none;">Comment ça marche</a>
+        </nav>
+        <section>
+          ${articlesListHtml}
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/company-contact") {
+    pageTitle = "Contact & Démo Entreprise | SafeCallr Cybersécurité";
+    pageDescription = "Contactez l'équipe SafeCallr pour organiser une démonstration ou échanger sur le déploiement de l'anti-spoofing dans votre organisation.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Contactez l'Équipe SafeCallr</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Vous êtes une entreprise, une banque, une institution ou un professionnel ? Parlons de la sécurisation de vos communications.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/entreprises" style="color:#00e676;text-decoration:none;">Solutions Entreprises</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Solutions Professionnels</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Besoin d'une démo ou d'un devis sur mesure ?</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Nos experts en sécurité des télécommunications sont à votre disposition pour vous accompagner dans la mise en place de la solution SafeCallr au sein de vos équipes.</p>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/cgu" || url === "/terms" || url === "/terms-of-use" || url === "/terminos" || url === "/condiciones-uso") {
+    pageTitle = "Conditions Générales d'Utilisation | SafeCallr";
+    pageDescription = "Consultez les Conditions Générales d'Utilisation (CGU) régissant l'accès et l'utilisation des services SafeCallr.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Conditions Générales d'Utilisation (CGU)</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Règles d'utilisation du service d'authentification et de sécurité téléphonique SafeCallr.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/confidentialite" style="color:#00e676;text-decoration:none;">Confidentialité</a>
+          <a href="/mentions-legales" style="color:#00e676;text-decoration:none;">Mentions Légales</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Objet du service</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">SafeCallr met à disposition une plateforme permettant de certifier et valider l'authenticité des appels téléphoniques entrants et sortants afin de lutter contre la fraude.</p>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés.</p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/confidentialite" || url === "/privacy" || url === "/privacidad") {
+    pageTitle = "Politique de Confidentialité | SafeCallr";
+    pageDescription = "Découvrez comment SafeCallr traite et protège vos données personnelles conformément au Règlement Général sur la Protection des Données (RGPD).";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Politique de Confidentialité & Protection des Données</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Engagement de SafeCallr quant à la protection et le respect de votre vie privée.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/cgu" style="color:#00e676;text-decoration:none;">CGU</a>
+          <a href="/mentions-legales" style="color:#00e676;text-decoration:none;">Mentions Légales</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Protection et sécurité des données (RGPD)</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">SafeCallr ne vend et ne cède aucune donnée personnelle à des tiers. Les informations collectées servent exclusivement à assurer la vérification sécurisée de vos appels.</p>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés.</p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/mentions-legales" || url === "/legal-notice" || url === "/aviso-legal") {
+    pageTitle = "Mentions Légales | SafeCallr";
+    pageDescription = "Informations légales, éditeur du site et hébergement de la plateforme SafeCallr.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Mentions Légales</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Informations légales relatives au site et aux applications SafeCallr.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/cgu" style="color:#00e676;text-decoration:none;">CGU</a>
+          <a href="/confidentialite" style="color:#00e676;text-decoration:none;">Confidentialité</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Éditeur du service</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">La plateforme SafeCallr est édité par la société SafeCallr, spécialisée dans la sécurité et l'authentification des télécommunications.</p>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés.</p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/sitemap" || url === "/plan-du-site") {
+    pageTitle = "Plan du Site | SafeCallr";
+    pageDescription = "Retrouvez l'ensemble des rubriques, services et guides du site SafeCallr.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Plan du Site SafeCallr</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Accès direct à toutes les rubriques et pages de notre site.</p>
+        </header>
+        <ul style="line-height:2;font-size:18px;color:#00e676;">
+          <li><a href="/" style="color:#00e676;">Accueil — Protection Anti-Spoofing</a></li>
+          <li><a href="/particuliers" style="color:#00e676;">Pour Particuliers & Familles</a></li>
+          <li><a href="/professionnels" style="color:#00e676;">Pour Professionnels & Indépendants</a></li>
+          <li><a href="/entreprises" style="color:#00e676;">Pour Entreprises & Grandes Organisations</a></li>
+          <li><a href="/how-it-works" style="color:#00e676;">Comment ça marche ?</a></li>
+          <li><a href="/actualite" style="color:#00e676;">Actualités & Blog Cybersécurité</a></li>
+          <li><a href="/company-contact" style="color:#00e676;">Contact Entreprise</a></li>
+          <li><a href="/cgu" style="color:#00e676;">Conditions Générales d'Utilisation</a></li>
+          <li><a href="/confidentialite" style="color:#00e676;">Politique de Confidentialité</a></li>
+          <li><a href="/mentions-legales" style="color:#00e676;">Mentions Légales</a></li>
+        </ul>
+      </div>
+    `;
+  } else if (url === "/" || url === "") {
+    // Default Landing Page HTML
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">SafeCallr — Authentification d'Appels & Protection Anti-Spoofing</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">La solution de sécurité téléphonique en temps réel contre la fraude au faux conseiller bancaire, le spoofing et l'usurpation d'identité.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Indépendants & Pros</a>
+          <a href="/entreprises" style="color:#00e676;text-decoration:none;">Pour Entreprises</a>
+          <a href="/how-it-works" style="color:#00e676;text-decoration:none;">Comment ça marche</a>
+          <a href="/actualite" style="color:#00e676;text-decoration:none;">Actualités & Blog</a>
+          <a href="/company-contact" style="color:#00e676;text-decoration:none;">Contact Entreprise</a>
+        </nav>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Ne faites plus jamais confiance aveuglément à un appel sortant</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">SafeCallr invente la double authentification humaine d'appel (2FA téléphonique). Lorsqu'une banque, une institution ou un proche vous appelle, SafeCallr valide l'identité de votre interlocuteur en temps réel avant tout échange confidentiel.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Comment SafeCallr vous protège du faux conseiller bancaire ?</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Le spoofing téléphonique permet aux escrocs d'afficher le numéro exact de votre banque sur votre écran. Avec SafeCallr, le conseiller doit envoyer un jeton d'authentification sécurisé sur votre application. Vous validez en un clic l'authenticité de l'appel.</p>
+        </section>
+        <section style="margin-bottom:30px;">
+          <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Pour tous vos usages : Particuliers, Professionnels & Entreprises</h2>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">Que vous soyez un particulier souhaitant protéger vos comptes bancaires, un professionnel indépendant rassurant ses clients, ou une entreprise sécurisant ses communications sortantes, SafeCallr s'adapte à vos besoins.</p>
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
+      </div>
+    `;
   }
 
   let html = rawTemplate;
@@ -1808,7 +2115,11 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
 
   // Inject rootBodyHtml if specified
   if (rootBodyHtml) {
-    html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/gi, `<div id="root">\n${rootBodyHtml}\n    </div>\n    <script`);
+    if (html.includes('<div id="root"></div>')) {
+      html = html.replace('<div id="root"></div>', `<div id="root">\n${rootBodyHtml}\n    </div>`);
+    } else {
+      html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/gi, `<div id="root">\n${rootBodyHtml}\n    </div>\n    <script`);
+    }
   }
 
   return html;
