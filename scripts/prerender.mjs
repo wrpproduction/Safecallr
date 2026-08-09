@@ -46,7 +46,7 @@ async function main() {
     '/privacidad',
   ];
 
-  const articleRoutes = await getPublishedArticleRoutes();
+  const { routes: articleRoutes, articlesMap } = await getPublishedArticlesData();
   const allRoutes = Array.from(new Set([...staticRoutes, ...articleRoutes]));
 
   console.log(`[Prerender] ${allRoutes.length} route(s) to prerender.`);
@@ -75,7 +75,14 @@ async function main() {
 
   for (const route of allRoutes) {
     try {
-      const { html, head } = await render(route);
+      let preloadedData = null;
+      if (route.startsWith('/actualite/')) {
+        const rawSlug = route.replace('/actualite/', '');
+        const decodedSlug = decodeURIComponent(rawSlug);
+        preloadedData = articlesMap[decodedSlug] || articlesMap[rawSlug] || null;
+      }
+
+      const { html, head } = await render(route, preloadedData);
 
       let cleanedTemplate = template
         .replace(/<title>[\s\S]*?<\/title>/i, '')
@@ -88,6 +95,11 @@ async function main() {
 
       if (head) {
         fullHtml = fullHtml.replace('</head>', `${head}\n</head>`);
+      }
+
+      if (preloadedData) {
+        const script = `<script>window.__PRELOADED_ARTICLE__ = ${JSON.stringify(preloadedData)};</script>`;
+        fullHtml = fullHtml.replace('</head>', `${script}\n</head>`);
       }
 
       if (html) {
@@ -116,10 +128,40 @@ async function main() {
 }
 
 /**
- * Récupère les routes des articles publiés depuis Firestore via l'API REST REST
+ * Convertit les valeurs de champs Firestore REST en objet JS simple
  */
-async function getPublishedArticleRoutes() {
+function parseFirestoreFields(fields) {
+  if (!fields) return {};
+  const doc = {};
+  for (const [key, val] of Object.entries(fields)) {
+    if ('stringValue' in val) doc[key] = val.stringValue;
+    else if ('booleanValue' in val) doc[key] = val.booleanValue;
+    else if ('integerValue' in val) doc[key] = Number(val.integerValue);
+    else if ('doubleValue' in val) doc[key] = Number(val.doubleValue);
+    else if ('timestampValue' in val) doc[key] = val.timestampValue;
+    else if ('mapValue' in val) doc[key] = parseFirestoreFields(val.mapValue?.fields);
+    else if ('arrayValue' in val) {
+      doc[key] = (val.arrayValue?.values || []).map(item => {
+        if ('stringValue' in item) return item.stringValue;
+        if ('integerValue' in item) return Number(item.integerValue);
+        if ('doubleValue' in item) return Number(item.doubleValue);
+        if ('booleanValue' in item) return item.booleanValue;
+        return item;
+      });
+    } else if ('nullValue' in val) {
+      doc[key] = null;
+    }
+  }
+  return doc;
+}
+
+/**
+ * Récupère les routes et données des articles publiés depuis Firestore via l'API REST
+ */
+async function getPublishedArticlesData() {
   const routes = [];
+  const articlesMap = {};
+
   try {
     let projectId = 'gen-lang-client-0258611834';
     let databaseId = 'ai-studio-ffb666f4-67e6-42be-a2e6-2406f74f5b0d';
@@ -157,27 +199,34 @@ async function getPublishedArticleRoutes() {
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) {
-      console.warn('[Prerender] Firestore runQuery HTTP status:', res.status);
-      return routes;
-    }
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          const fields = row.document?.fields;
+          if (!fields) continue;
 
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        const fields = row.document?.fields;
-        if (!fields) continue;
-        const metaTitle = fields.metaTitle?.stringValue;
-        if (metaTitle) {
-          const route = `/actualite/${encodeURIComponent(metaTitle)}`;
-          if (!routes.includes(route)) routes.push(route);
+          const docName = row.document?.name || '';
+          const id = docName.split('/').pop() || '';
+          const parsed = parseFirestoreFields(fields);
+          const article = { id, ...parsed };
+
+          const metaTitle = article.metaTitle || article.slug || id;
+          if (metaTitle) {
+            articlesMap[metaTitle] = article;
+            const route = `/actualite/${encodeURIComponent(metaTitle)}`;
+            if (!routes.includes(route)) routes.push(route);
+          }
         }
       }
+    } else {
+      console.warn('[Prerender] Firestore runQuery HTTP status:', res.status);
     }
   } catch (err) {
     console.warn('[Prerender] Could not fetch articles from Firestore:', err?.message || err);
   }
-  return routes;
+
+  return { routes, articlesMap };
 }
 
 main().catch((err) => {

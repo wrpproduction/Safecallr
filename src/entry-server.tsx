@@ -3,14 +3,17 @@ import { renderToString } from 'react-dom/server';
 import { HelmetProvider } from 'react-helmet-async';
 import { StaticRouter } from 'react-router';
 import App from './App';
+import { PreloadContext } from './contexts/PreloadContext';
 
-export async function render(url: string): Promise<{ html: string; head: string }> {
+export async function render(url: string, preloadedData?: any): Promise<{ html: string; head: string }> {
   const helmetContext: { helmet?: any } = {};
 
   const html = renderToString(
     <HelmetProvider context={helmetContext}>
       <StaticRouter location={url}>
-        <App />
+        <PreloadContext.Provider value={preloadedData}>
+          <App />
+        </PreloadContext.Provider>
       </StaticRouter>
     </HelmetProvider>
   );

@@ -19,44 +19,75 @@ import MarkdownRenderer from "../components/MarkdownRenderer";
 import { toast } from "sonner";
 import AppLogo from "../components/AppLogo";
 import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
+import { usePreloadedData } from "../contexts/PreloadContext";
 
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [article, setArticle] = useState<any | null>(null);
+  const preloadedContextData = usePreloadedData();
+
+  const getInitialArticle = () => {
+    if (preloadedContextData) {
+      if (
+        preloadedContextData.metaTitle === slug ||
+        preloadedContextData.slug === slug ||
+        preloadedContextData.id === slug
+      ) {
+        return preloadedContextData;
+      }
+    }
+    if (typeof window !== 'undefined' && (window as any).__PRELOADED_ARTICLE__) {
+      const windowData = (window as any).__PRELOADED_ARTICLE__;
+      if (
+        windowData.metaTitle === slug ||
+        windowData.slug === slug ||
+        windowData.id === slug
+      ) {
+        return windowData;
+      }
+    }
+    return null;
+  };
+
+  const initialArticle = getInitialArticle();
+  const [article, setArticle] = useState<any | null>(initialArticle);
   const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialArticle);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchArticleAndRelated = async () => {
       if (!slug) return;
-      setLoading(true);
+      if (!article) {
+        setLoading(true);
+      }
       try {
-        let currentArticle: any = null;
+        let currentArticle: any = article;
 
-        // Query article by metaTitle slug in Firestore
-        const q = query(
-          collection(db, "articles"), 
-          where("metaTitle", "==", slug),
-          where("published", "==", true)
-        );
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          querySnapshot.forEach((doc) => {
-            currentArticle = { id: doc.id, ...doc.data() };
-          });
-        }
-
-        // Fallback to default articles if not found in Firestore
         if (!currentArticle) {
-          currentArticle = DEFAULT_BLOG_ARTICLES.find(
-            a => a.slug === slug || a.metaTitle === slug || a.id === slug
-          ) || null;
-        }
+          // Query article by metaTitle slug in Firestore
+          const q = query(
+            collection(db, "articles"), 
+            where("metaTitle", "==", slug),
+            where("published", "==", true)
+          );
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            querySnapshot.forEach((doc) => {
+              currentArticle = { id: doc.id, ...doc.data() };
+            });
+          }
 
-        setArticle(currentArticle);
+          // Fallback to default articles if not found in Firestore
+          if (!currentArticle) {
+            currentArticle = DEFAULT_BLOG_ARTICLES.find(
+              a => a.slug === slug || a.metaTitle === slug || a.id === slug
+            ) || null;
+          }
+
+          setArticle(currentArticle);
+        }
 
         // Fetch related articles of same category
         if (currentArticle) {
@@ -90,12 +121,14 @@ export default function ArticleDetail() {
 
       } catch (err) {
         console.error("Error fetching article details:", err);
-        const def = DEFAULT_BLOG_ARTICLES.find(
-          a => a.slug === slug || a.metaTitle === slug || a.id === slug
-        );
-        setArticle(def || null);
-        if (def) {
-          setRelatedArticles(DEFAULT_BLOG_ARTICLES.filter(a => a.id !== def.id).slice(0, 3));
+        if (!article) {
+          const def = DEFAULT_BLOG_ARTICLES.find(
+            a => a.slug === slug || a.metaTitle === slug || a.id === slug
+          );
+          setArticle(def || null);
+          if (def) {
+            setRelatedArticles(DEFAULT_BLOG_ARTICLES.filter(a => a.id !== def.id).slice(0, 3));
+          }
         }
       } finally {
         setLoading(false);
