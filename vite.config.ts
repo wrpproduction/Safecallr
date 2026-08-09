@@ -115,27 +115,75 @@ export default defineConfig(async ({mode}) => {
       const articleRoutes = await getPublishedArticleRoutes();
       allPrerenderRoutes = Array.from(new Set([...staticRoutes, ...articleRoutes]));
 
-      const chromium = (await import('@sparticuz/chromium')).default;
-      // Rendu HTML simple : pas besoin du mode graphique
-      chromium.setGraphicsMode = false;
-      const executablePath = await chromium.executablePath();
+      let executablePath: string | undefined;
+
+      // 1. Tenter d'utiliser @sparticuz/chromium (environnement Lambda/Serverless)
+      try {
+        const chromium = (await import('@sparticuz/chromium')).default;
+        chromium.setGraphicsMode = false;
+        executablePath = await chromium.executablePath();
+      } catch (e) {
+        /* ignore */
+      }
+
+      // 2. Détecter un binaire Chrome/Chromium système si disponible
+      if (!executablePath) {
+        const candidatePaths = [
+          process.env.PUPPETEER_EXECUTABLE_PATH,
+          process.env.CHROME_BIN,
+          '/usr/bin/google-chrome',
+          '/usr/bin/chromium',
+          '/usr/bin/chromium-browser',
+        ].filter(Boolean) as string[];
+
+        for (const p of candidatePaths) {
+          if (fs.existsSync(p)) {
+            executablePath = p;
+            break;
+          }
+        }
+      }
 
       if (executablePath) {
+        // Test d'instanciation puppeteer pour vérifier que l'exécutable fonctionne sur l'hôte
+        const puppeteerCore = await import('puppeteer-core');
+        const testBrowser = await puppeteerCore.launch({
+          headless: true,
+          executablePath,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process',
+            '--no-zygote'
+          ],
+        });
+        await testBrowser.close();
+
         prerenderRendererOptions = {
           renderAfterTime: 4000,
           maxConcurrentRoutes: 1,
           launchOptions: {
             headless: true,
             executablePath: executablePath,
-            args: chromium.args,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--single-process',
+              '--no-zygote'
+            ],
           },
         };
         enablePrerenderPlugin = true;
+        console.log('[Vite Prerender] Chromium validé et prerender activé avec succès.');
       } else {
-        console.warn('[Vite Prerender] Aucun chemin exécutable Chromium trouvé.');
+        console.warn('[Vite Prerender] Aucun exécutable Chrome/Chromium trouvé. Prerender désactivé proprement.');
       }
-    } catch (err) {
-      console.warn('[Vite Prerender] Erreur init @sparticuz/chromium, désactivation du prerender:', err);
+    } catch (err: any) {
+      console.warn('[Vite Prerender] Chrome non disponible/exécutable sur cet environnement CI (prerender désactivé):', err?.message || err);
       enablePrerenderPlugin = false;
     }
   }
@@ -216,6 +264,21 @@ export default defineConfig(async ({mode}) => {
         rendererOptions: prerenderRendererOptions
       }) : null
     ].filter(Boolean),
+    build: {
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) return 'firebase';
+              if (id.includes('framer-motion') || id.includes('motion')) return 'motion';
+              if (id.includes('lucide-react')) return 'icons';
+              if (id.includes('recharts')) return 'charts';
+            }
+          }
+        }
+      }
+    },
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
