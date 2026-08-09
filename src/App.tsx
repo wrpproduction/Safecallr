@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { auth, onAuthStateChanged, doc, getDoc, db } from "./firebase";
 import Onboarding from "./pages/Onboarding";
@@ -206,10 +206,9 @@ export default function App() {
     <ErrorBoundary>
       <LanguageProvider user={user}>
         <Toaster position="top-right" richColors />
-        <Router>
-          <ScrollToTop />
-          <NotificationController user={user} />
-          <Routes>
+        <ScrollToTop />
+        <NotificationController user={user} />
+        <Routes>
           <Route path="/" element={
             <>
               <SEOManager 
@@ -392,8 +391,7 @@ export default function App() {
           <Route path="/account-suspended" element={<InstitutionErrorPage type="suspended" />} />
           <Route path="/organization-inactive" element={<InstitutionErrorPage type="inactive" />} />
         </Routes>
-      </Router>
-     </LanguageProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }
