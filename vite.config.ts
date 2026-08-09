@@ -30,42 +30,48 @@ async function getPublishedArticleRoutes(): Promise<string[]> {
         if (config.projectId) projectId = config.projectId;
         if (config.firestoreDatabaseId) databaseId = config.firestoreDatabaseId;
         if (config.apiKey) apiKey = config.apiKey;
-      } catch (e) {
-        // Ignorer l'erreur de parse
-      }
+      } catch (e) { /* ignore */ }
     }
 
-    const collectionsToFetch = ['articles', 'blog'];
-    for (const col of collectionsToFetch) {
-      const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${col}?key=${apiKey}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.documents && Array.isArray(data.documents)) {
-          for (const doc of data.documents) {
-            const fields = doc.fields || {};
-            const isPublished = 
-              fields.published?.booleanValue === true || 
-              fields.status?.stringValue === 'published' ||
-              (!fields.published && !fields.status);
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
+    const body = {
+      structuredQuery: {
+        from: [{ collectionId: 'articles' }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: 'published' },
+            op: 'EQUAL',
+            value: { booleanValue: true },
+          },
+        },
+      },
+    };
 
-            if (isPublished) {
-              const slug = fields.slug?.stringValue || fields.metaTitle?.stringValue;
-              const docId = doc.name ? doc.name.split('/').pop() : null;
-              const identifier = slug || docId;
-              if (identifier) {
-                const articleRoute = `/actualite/${identifier}`;
-                if (!routes.includes(articleRoute)) {
-                  routes.push(articleRoute);
-                }
-              }
-            }
-          }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      console.warn('[Vite Prerender] runQuery HTTP', res.status);
+      return routes;
+    }
+
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      for (const row of data) {
+        const fields = row.document?.fields;
+        if (!fields) continue; // ignore les lignes readTime sans document
+        const metaTitle = fields.metaTitle?.stringValue;
+        if (metaTitle) {
+          const route = `/actualite/${encodeURIComponent(metaTitle)}`;
+          if (!routes.includes(route)) routes.push(route);
         }
       }
     }
+    console.log(`[Vite Prerender] ${routes.length} article(s) publié(s) trouvé(s).`);
   } catch (err) {
-    console.warn('[Vite Prerender] Impossible de charger les articles Firestore au build:', err);
+    console.warn('[Vite Prerender] Articles Firestore non chargés au build:', err);
   }
   return routes;
 }
@@ -79,7 +85,6 @@ export default defineConfig(async ({mode}) => {
     '/particuliers',
     '/professionnels',
     '/entreprises',
-    '/institutions',
     '/company-contact',
     '/how-it-works',
     '/actualite',
