@@ -201,7 +201,7 @@ export const translations = {
       blogTag: "Actualités & Vigilance",
       blogTitlePart1: "Dossiers &",
       blogTitleAccent: "Prévention",
-      blogSubtitle: "Découvrez nos derniers décryptages d'arnaques téléphoniques et conseils d'experts pour vous protéger, vous et votre organisation.",
+      blogSubtitle: "Découvrez nos derniers décryptages d'arnaques et conseils d'experts pour vous protéger, vous et votre organisation.",
       blogAll: "Voir tous les articles",
       blogEmpty: "Aucun article de vigilance n'est publié pour le moment.",
       blogCatPublic: "Grand Public",
@@ -615,6 +615,22 @@ export const translations = {
       otherProfile: "Autre profil ?",
       linkParticuliers: "Découvrez SafeCallr Particuliers",
       linkPro: "SafeCallr Professionnels"
+    },
+    seo: {
+      contact: {
+        title: "Contactez un expert en sécurité",
+        desc: "Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
+      },
+      blog: {
+        title: "Blog & Actualités Cybersécurité",
+        desc: "Retrouvez nos enquêtes, guides pratiques et actualités sur la sécurité. Apprenez à déjouer les arnaques au faux conseiller bancaire, le spoofing et le vishing."
+      }
+    },
+    blogHeader: {
+      tag: "Centre de vigilance & Conseils",
+      titlePrefix: "Le Blog de la",
+      titleAccent: "Sécurité",
+      subtitle: "Guides d'experts, alertes de sécurité et décryptages pour vous informer et vous prémunir contre les nouvelles formes d'escroqueries."
     }
   },
   en: {
@@ -819,7 +835,7 @@ export const translations = {
       blogTag: "News & Warning",
       blogTitlePart1: "Guides &",
       blogTitleAccent: "Prevention",
-      blogSubtitle: "Discover our latest analyses of phone scams and expert advice to protect yourself and your organization.",
+      blogSubtitle: "Discover our latest scam analyses and expert advice to protect yourself and your organization.",
       blogAll: "View all articles",
       blogEmpty: "No warning articles are published at the moment.",
       blogCatPublic: "For Individuals",
@@ -1233,6 +1249,22 @@ export const translations = {
       otherProfile: "Looking for another profile?",
       linkParticuliers: "Discover SafeCallr Personal",
       linkPro: "SafeCallr Professionals"
+    },
+    seo: {
+      contact: {
+        title: "Contact a Security Expert",
+        desc: "A question about deployment or need a demo? Contact the SafeCallr team to secure your professional communications."
+      },
+      blog: {
+        title: "Cybersecurity Blog & News",
+        desc: "Discover our investigations, practical guides, and news on security. Learn how to thwart fake bank advisor scams, spoofing, and vishing."
+      }
+    },
+    blogHeader: {
+      tag: "Warning & Advice Center",
+      titlePrefix: "The",
+      titleAccent: "Security Blog",
+      subtitle: "Expert guides, security alerts, and analysis to inform and protect you against new forms of scams."
     }
   },
   es: {
@@ -1437,7 +1469,7 @@ export const translations = {
       blogTag: "Actualidades y Alertas",
       blogTitlePart1: "Dossiers y",
       blogTitleAccent: "Prevención",
-      blogSubtitle: "Descubra nuestros últimos análisis de estafas telefónicas y consejos de expertos para protegerse a sí mismo y a su organización.",
+      blogSubtitle: "Descubra nuestros últimos análisis de estafas y consejos de expertos para protegerse a sí mismo y a su organización.",
       blogAll: "Ver todos los artículos",
       blogEmpty: "No hay artículos de alerta publicados por el momento.",
       blogCatPublic: "Particular",
@@ -1851,6 +1883,22 @@ export const translations = {
       otherProfile: "¿Busca otro perfil?",
       linkParticuliers: "Descubra SafeCallr Particuliers",
       linkPro: "SafeCallr Profesionales"
+    },
+    seo: {
+      contact: {
+        title: "Contacte a un experto en seguridad",
+        desc: "¿Una pregunta sobre la implementación o necesita una demo? Contacte al equipo de SafeCallr para proteger sus comunicaciones profesionales."
+      },
+      blog: {
+        title: "Blog y Noticias de Ciberseguridad",
+        desc: "Descubra nuestras investigaciones, guías prácticas y noticias sobre seguridad. Aprenda a frustrar las estafas de falsos asesores bancarios, el spoofing y el vishing."
+      }
+    },
+    blogHeader: {
+      tag: "Centro de vigilancia y consejos",
+      titlePrefix: "El Blog de la",
+      titleAccent: "Seguridad",
+      subtitle: "Guías de expertos, alertas de seguridad y análisis para informarle y protegerle contra las nuevas formas de estafas."
     }
   }
 };

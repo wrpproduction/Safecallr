@@ -15,8 +15,10 @@ import { db, collection, getDocs, query, where, orderBy } from "../firebase";
 import SEOManager from "../components/seo/SEOManager";
 import AppLogo from "../components/AppLogo";
 import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function Actualites() {
+  const { t } = useLanguage();
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<"all" | "grand_public" | "professionnel">("all");
@@ -71,8 +73,8 @@ export default function Actualites() {
   const blogJsonLd = {
     "@context": "https://schema.org",
     "@type": "Blog",
-    "name": "Le Blog de la Sécurité Téléphonique - SafeCallr",
-    "description": "Centre d'information, d'enquêtes et d'actualités sur le spoofing téléphonique, la sécurité bancaire et la prévention des fraudes vocales.",
+    "name": `${t('blogHeader.titlePrefix')} ${t('blogHeader.titleAccent')} - SafeCallr`,
+    "description": t('seo.blog.desc'),
     "publisher": {
       "@type": "Organization",
       "name": "SafeCallr",
@@ -94,9 +96,9 @@ export default function Actualites() {
   return (
     <div className="min-h-screen bg-background text-on-background selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Blog & Actualités Cybersécurité Téléphonique | SafeCallr"
-        description="Retrouvez nos enquêtes, guides pratiques et actualités sur la sécurité téléphonique. Apprenez à déjouer les arnaques au faux conseiller bancaire, le spoofing et le vishing."
-        keywords={["blog cybersécurité", "actualités arnaques téléphoniques", "guide anti-spoofing", "alertes faux conseiller bancaire", "prévention vishing", "conseils sécurité téléphonique"]}
+        title={t('seo.blog.title')}
+        description={t('seo.blog.desc')}
+        keywords={["blog cybersécurité", "actualités arnaques", "guide anti-spoofing", "alertes faux conseiller bancaire", "prévention vishing", "conseils sécurité"]}
         jsonLd={blogJsonLd}
       />
 
@@ -127,13 +129,13 @@ export default function Actualites() {
 
         <div className="max-w-7xl mx-auto text-center space-y-4 relative z-10">
           <span className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-widest text-primary">
-            Centre de vigilance & Conseils
+            {t('blogHeader.tag')}
           </span>
           <h1 className="font-headline font-black text-4xl md:text-6xl tracking-tight">
-            Le Blog de la <span className="text-primary">Sécurité Téléphonique</span>
+            {t('blogHeader.titlePrefix')}{' '}<span className="text-primary">{t('blogHeader.titleAccent')}</span>
           </h1>
           <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
-            Guides d'experts, alertes de sécurité et décryptages pour vous informer et vous prémunir contre les nouvelles formes d'escroqueries téléphoniques.
+            {t('blogHeader.subtitle')}
           </p>
         </div>
       </section>

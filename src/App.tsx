@@ -68,7 +68,20 @@ import SitemapPage from "./pages/SitemapPage";
 import SitemapXmlPage from "./pages/SitemapXmlPage";
 
 import { Capacitor } from "@capacitor/core";
-import { LanguageProvider } from "./contexts/LanguageContext";
+import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
+
+function CompanyContactPage() {
+  const { t } = useLanguage();
+  return (
+    <>
+      <SEOManager 
+        title={t('seo.contact.title')}
+        description={t('seo.contact.desc')}
+      />
+      <CompanyContact />
+    </>
+  );
+}
 
 // Register Service Worker
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
@@ -253,33 +266,9 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/es/entreprises" element={<Entreprises />} />
           <Route path="/institutions" element={<Entreprises />} />
 
-          <Route path="/company-contact" element={
-            <>
-              <SEOManager 
-                title="Contactez un expert en sécurité téléphonique"
-                description="Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
-              />
-              <CompanyContact />
-            </>
-          } />
-          <Route path="/en/company-contact" element={
-            <>
-              <SEOManager 
-                title="Contactez un expert en sécurité téléphonique"
-                description="Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
-              />
-              <CompanyContact />
-            </>
-          } />
-          <Route path="/es/company-contact" element={
-            <>
-              <SEOManager 
-                title="Contactez un expert en sécurité téléphonique"
-                description="Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
-              />
-              <CompanyContact />
-            </>
-          } />
+          <Route path="/company-contact" element={<CompanyContactPage />} />
+          <Route path="/en/company-contact" element={<CompanyContactPage />} />
+          <Route path="/es/company-contact" element={<CompanyContactPage />} />
 
           {/* Legal routes Placeholder mapping to be handled in Landing or specific component if needed */}
           <Route path="/mentions-legales" element={
