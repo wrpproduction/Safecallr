@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { db, doc, setDoc } from "../firebase";
 import { translations, LanguageType } from "../locales/translations";
@@ -15,11 +16,25 @@ export const getSyncDefault = (): LanguageType => {
   if (typeof window === "undefined") {
     return "fr"; // défaut fr côté serveur
   }
-  const devLang = navigator.language.substring(0, 2).toLowerCase();
-  if (devLang === "fr" || devLang === "en" || devLang === "es") {
-    return devLang as LanguageType;
+
+  // SUR NATIF (Capacitor iOS/Android) : logique inchangée basée sur la langue du device
+  if (Capacitor.isNativePlatform()) {
+    const devLang = navigator.language ? navigator.language.substring(0, 2).toLowerCase() : "fr";
+    if (devLang === "fr" || devLang === "en" || devLang === "es") {
+      return devLang as LanguageType;
+    }
+    return "en"; // fallback en sur natif
   }
-  return "en"; // fallback en
+
+  // SUR WEB (y compris Puppeteer prerender) : langue déterministe basée sur le préfixe d'URL
+  const pathname = window.location.pathname;
+  if (pathname.startsWith("/en/") || pathname === "/en") {
+    return "en";
+  }
+  if (pathname.startsWith("/es/") || pathname === "/es") {
+    return "es";
+  }
+  return "fr"; // Racine et toutes les autres URLs non préfixées = fr
 };
 
 export function LanguageProvider({ children, user }: { children: React.ReactNode; user: any }) {
@@ -28,7 +43,16 @@ export function LanguageProvider({ children, user }: { children: React.ReactNode
   useEffect(() => {
     const initLanguage = async () => {
       try {
-        // Cascade order:
+        const isNative = Capacitor.isNativePlatform();
+
+        // SUR WEB SANS UTILISATEUR CONNECTÉ :
+        // La langue déterministe dérivée de l'URL prévaut pour le prerender et l'indexation SEO.
+        // On ne laisse ni Preferences ni la langue du navigateur écraser la valeur synchrone.
+        if (!isNative && !user) {
+          return;
+        }
+
+        // SUR NATIF OU WEB AVEC UTILISATEUR CONNECTÉ : Cascade habituelle conservée
         // (a) champ lang du profil Firestore si connecté
         if (user && user.uid && user.lang) {
           const firestoreLang = user.lang as string;
@@ -45,7 +69,7 @@ export function LanguageProvider({ children, user }: { children: React.ReactNode
           return;
         }
 
-        // (c) langue du device (already falls back to en if no match)
+        // (c) langue du device (sur natif)
         setLang(getSyncDefault());
       } catch (err) {
         console.error("[SafeCallr] Language initialization error:", err);
