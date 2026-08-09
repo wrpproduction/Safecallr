@@ -1640,6 +1640,130 @@ function convertMarkdownToSEOPageHTML(markdown: string): string {
 
 async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any): Promise<string> {
   const url = (reqPath || "/").split("?")[0];
+  const escapeHtml = (str: string) => (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const DEFAULT_BLOG_ARTICLES = [
+    {
+      id: "comment-reconnaitre-arnaque-faux-conseiller-bancaire",
+      metaTitle: "comment-reconnaitre-arnaque-faux-conseiller-bancaire",
+      slug: "comment-reconnaitre-arnaque-faux-conseiller-bancaire",
+      title: "Comment reconnaître une arnaque au faux conseiller bancaire en 2026 ?",
+      category: "grand_public",
+      categoryLabel: "Grand Public & Familles",
+      summary: "Analyse détaillée des techniques de spoofing téléphonique utilisées par les escrocs pour usurper le numéro officiel de votre banque, et les réflexes de sécurité SafeCallr pour protéger vos comptes.",
+      metaDescription: "Guide pratique 2026 : apprenez à déjouer les arnaques au faux conseiller bancaire. Découvrez le spoofing de numéro et la solution SafeCallr pour valider vos appels en temps réel.",
+      seoKeywords: "faux conseiller bancaire, arnaque téléphonique, spoofing banque, sécurité bancaire, SafeCallr, authentification appel, 2FA téléphone",
+      imageUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80",
+      createdAt: "2026-02-01T10:00:00.000Z",
+      author: "Comité de Vigilance Cybersécurité SafeCallr",
+      content: `
+# Comment reconnaître une arnaque au faux conseiller bancaire en 2026 ?
+
+L'arnaque au faux conseiller bancaire représente aujourd'hui plus de 300 millions d'euros de préjudice annuel en France. Les escrocs exploitent la confiance des épargnants grâce à une technique redoutable : le **spoofing téléphonique**.
+
+## Qu'est-ce que le spoofing de numéro de téléphone ?
+
+Le spoofing permet à un individu malveillant de modifier l'identifiant d'appelant (Caller ID) affiché sur votre écran de téléphone. Même si le numéro qui s'affiche est exactement celui enregistré dans vos contacts comme étant le service fraude de votre banque, l'appel provient en réalité d'un centre d'appel frauduleux.
+
+### Le scénario type de l'escroquerie
+
+1. **La prise de contact urgente :** L'escroc vous appelle en prétendant qu'une transaction frauduleuse de plusieurs milliers d'euros est en cours sur votre compte bancaire.
+2. **La mise en confiance :** Il égrène des informations personnelles vous concernant (nom, adresse, début de numéro de carte) obtenues lors de fuites de données antérieures.
+3. **La fausse annulation :** Il vous demande de valider une notification push sur votre application bancaire ou de lui dicter un code SMS reçu à l'instant, sous prétexte d'annuler le virement. En réalité, vous validez l'ajout d'un nouveau bénéficiaire ou un transfert d'argent sortant.
+
+## Pourquoi les mesures traditionnelles ne suffisent plus ?
+
+- **Le SMS de validation (OTP) :** Il est facilement détourné par ingénierie sociale ou usurpation de SIM.
+- **L'affichage du numéro officiel :** Il n'a plus aucune valeur de preuve en raison des faiblesses originelles des réseaux télécoms.
+
+## La solution SafeCallr : La double authentification humaine d'appel
+
+Face à ce fléau, SafeCallr introduit la certification réciproque d'appel en temps réel.
+
+- **Demande de preuve instantanée :** Lorsque vous recevez un appel suspect de votre banque, demandez à l'interlocuteur d'envoyer un jeton d'authentification SafeCallr.
+- **Notification cryptographique :** Un jeton sécurisé s'affiche instantanément sur votre application mobile SafeCallr.
+- **Si l'appelant refuse ou hésite :** Vous avez la certitude absolue qu'il s'agit d'une tentative d'usurpation d'identité.
+
+Ne donnez plus jamais suite à un appel d'urgence sans l'avoir certifié au préalable via l'application SafeCallr.
+`
+    },
+    {
+      id: "spoofing-telephonique-comment-les-escrocs-usurpent-votre-numero",
+      metaTitle: "spoofing-telephonique-comment-les-escrocs-usurpent-votre-numero",
+      slug: "spoofing-telephonique-comment-les-escrocs-usurpent-votre-numero",
+      title: "Spoofing Téléphonique : Comment les pirates usurpent les numéros officiels",
+      category: "grand_public",
+      categoryLabel: "Technologie & Cybersécurité",
+      summary: "Comprendre les vulnérabilités du protocole d'identification de l'appelant (Caller ID) et comment la technologie cryptographique SafeCallr restaure la confiance numérique.",
+      metaDescription: "Tout comprendre sur le spoofing de numéro de téléphone : vulnérabilités du Caller ID, cadre légal MAN et comment SafeCallr sécurise la voix.",
+      seoKeywords: "spoofing telephonique, Caller ID spoofing, piratage telephone, usurpation numero, reseau telecom, SafeCallr, authentification voix",
+      imageUrl: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80",
+      createdAt: "2026-01-20T14:30:00.000Z",
+      author: "Équipe R&D SafeCallr",
+      content: `
+# Spoofing Téléphonique : Comment les pirates usurpent les numéros officiels
+
+Le réseau téléphonique commuté a été conçu dans les années 1970 avec une hypothèse fondamentale : les opérateurs télécoms se font une confiance implicite. Cette architecture originale est aujourd'hui exploitée par des réseaux criminels à l'échelle mondiale.
+
+## Les coulisses techniques du Caller ID Spoofing
+
+Lorsqu'un appel est émis via la voix sur IP (VoIP), l'émetteur peut configurer librement le champ d'entête SIP \`From:\`. Les serveurs Asterisk ou logiciels d'appel automatisés permettent de définir n'importe quel numéro à 10 chiffres.
+
+### Le mécanisme en 3 étapes :
+
+1. **Abonnement VoIP sans vérification :** L'escroc souscrit un service d'appel VoIP auprès d'un fournisseur peu scrupuleux.
+2. **Personnalisation du champ CLI :** Il renseigne le numéro officiel d'un établissement bancaire ou d'une administration publique.
+3. **Acheminement vers la victime :** L'opérateur téléphonique destinataire affiche le numéro transmis sans être en mesure de vérifier son authenticité à la source.
+
+## Cadre réglementaire et limites du mécanisme MAN (Mécanisme d'Authentification des Numéros)
+
+En France, la loi Naegelen et le plan de numérotation imposent aux opérateurs d'interrompre les appels dont l'identifiant n'est pas certifié. Cependant :
+
+- Les appels provenant de passerelles internationales échappent encore partiellement au filtrage.
+- Le chiffrement de bout en bout du réseau télécom ne garantit pas la légitimité de l'interlocuteur humain au bout du fil.
+
+## Comment SafeCallr garantit l'intégrité de l'appelant
+
+SafeCallr ne se fie pas au réseau télécom pour valider l'identité. En combinant un canal de données sécurisé et une signature cryptographique temporaire, SafeCallr crée une passerelle hors-bande (out-of-band) inviolable entre l'appelant et l'appelé.
+`
+    },
+    {
+      id: "fraude-au-president-proteger-votre-entreprise",
+      metaTitle: "fraude-au-president-proteger-votre-entreprise",
+      slug: "fraude-au-president-proteger-votre-entreprise",
+      title: "Fraude au Président et Usurpation d'Identité : Protéger son Entreprise",
+      category: "professionnel",
+      categoryLabel: "Entreprises & PME",
+      summary: "Les PME et grands groupes font face à des pertes colossales dues aux faux ordres de virement exécutés par téléphone. Découvrez le protocole d'authentification renforcée SafeCallr Pro.",
+      metaDescription: "Comment protéger votre entreprise contre la fraude au président et les fausses instructions de virement. Guide complet et protocole de sécurité SafeCallr.",
+      seoKeywords: "fraude au president, arnaque virement, securite entreprise, usurpation identite direction, SafeCallr pro, authentification entreprise",
+      imageUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+      createdAt: "2026-01-10T09:15:00.000Z",
+      author: "Département Sécurité Entreprises SafeCallr",
+      content: `
+# Fraude au Président et Usurpation d'Identité : Protéger son Entreprise
+
+La fraude au président (ou FOVI pour Faux Ordres de Virement d'Entreprise) consiste à contacter un collaborateur du service comptable ou financier en se faisant passer pour le dirigeant ou le cabinet d'avocat de l'entreprise, afin d'exiger un virement urgent et confidentiel.
+
+## L'impact dévastateur de l'ingénierie sociale
+
+Les escrocs réalisent une préparation minutieuse avant de passer à l'action :
+- **Recherche d'organigramme :** Identification des responsables comptables sur LinkedIn et réseaux professionnels.
+- **Période stratégique :** Appel en fin de journée ou pendant les vacances du dirigeant.
+- **Tone & Pression psychologique :** Discours autoritaire exigeant la discrétion absolue ("opération de rachat ultra-confidentielle").
+
+## L'avènement du Deepfake Vocal (Vishing par IA)
+
+Avec les progrès de l'intelligence artificielle générative, il est désormais possible de cloner la voix d'un dirigeant à partir de quelques minutes d'enregistrement vidéo public. L'analyse vocale humaine ne permet plus d'identifier un imposteur.
+
+## La réponse opérationnelle SafeCallr Entreprise
+
+1. **Protocole de validation obligatoire :** Tout ordre de virement inhabituel transmitted par téléphone doit faire l'objet d'un jeton de validation SafeCallr émis depuis le compte certifié du dirigeant.
+2. **Piste d'audit infalsifiable :** Chaque vérification d'appel génère un journal d'horodatage chiffré, garantissant le respect des procédures internes et simplifiant les contrôles de conformité (DORA / ISO 27001).
+`
+    }
+  ];
+
   let pageTitle = "SafeCallr | Protection Anti-Spoofing & Authentification d'Appels";
   let pageDescription = "SafeCallr est la solution d'authentification humaine d'appels téléphoniques en temps réel. Protégez-vous contre le spoofing, l'usurpation d'identité et les faux conseillers bancaires.";
   let pageKeywords = "SafeCallr, authentification appels, spoofing, faux conseiller bancaire, sécurité téléphonique, 2FA téléphone, anti-fraude, protection usurpation, cybersécurité";
@@ -1649,9 +1773,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
   let jsonLdObj: any = null;
   let rootBodyHtml = "";
 
-  const escapeHtml = (str: string) => (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-  // Handle Blog Post Detail Route: /actualite/:slug
+  // 1. Handle Blog Post Detail Route: /actualite/:slug
   if (url.startsWith("/actualite/") && url.length > 11) {
     const rawSlug = url.replace("/actualite/", "");
     const decodedSlug = decodeURIComponent(rawSlug);
@@ -1672,29 +1794,36 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
           article = { id: snap.docs[0].id, ...snap.docs[0].data() };
         }
       } catch (err) {
-        console.warn("[SEO Dynamic Server] Error fetching article:", err);
+        console.warn("[SEO Dynamic Server] Error fetching article from Firestore:", err);
       }
     }
 
+    if (!article) {
+      article = DEFAULT_BLOG_ARTICLES.find(
+        a => a.slug === decodedSlug || a.metaTitle === decodedSlug || a.id === decodedSlug
+      );
+    }
+
     if (article) {
-      pageTitle = `${article.title} | Vigilance SafeCallr`;
+      const articleSlug = article.slug || article.metaTitle || article.id;
+      pageTitle = `${article.title} | Blog Cybersécurité SafeCallr`;
       pageDescription = article.metaDescription || article.summary || article.title;
       if (article.seoKeywords) pageKeywords = article.seoKeywords;
       if (article.imageUrl) pageImage = article.imageUrl;
       ogType = "article";
-      canonicalUrl = `https://safecallr.com/actualite/${encodeURIComponent(decodedSlug)}`;
+      canonicalUrl = `https://safecallr.com/actualite/${encodeURIComponent(articleSlug)}`;
 
       jsonLdObj = {
         "@context": "https://schema.org",
         "@type": "NewsArticle",
         "headline": article.title,
         "image": [pageImage],
-        "datePublished": article.createdAt || new Date().toISOString(),
-        "dateModified": article.updatedAt || article.createdAt || new Date().toISOString(),
+        "datePublished": article.createdAt || "2026-02-01T10:00:00.000Z",
+        "dateModified": article.updatedAt || article.createdAt || "2026-02-01T10:00:00.000Z",
         "description": pageDescription,
         "author": {
           "@type": "Organization",
-          "name": "Comité de Vigilance SafeCallr",
+          "name": article.author || "Comité de Vigilance SafeCallr",
           "url": "https://safecallr.com"
         },
         "publisher": {
@@ -1711,18 +1840,18 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
 
       rootBodyHtml = `
         <div style="max-width:900px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
-          <nav style="margin-bottom:20px;">
-            <a href="/actualite" style="color:#00e676;text-decoration:none;font-weight:700;">← Retour aux actualités & guides SafeCallr</a>
+          <nav style="margin-bottom:24px;">
+            <a href="/actualite" style="color:#00e676;text-decoration:none;font-weight:700;font-size:15px;">← Retour aux actualités & guides SafeCallr</a>
           </nav>
           <article>
             <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
-              <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(article.category || 'Actualités & Guides')}</span>
-              <h1 style="font-size:32px;font-weight:800;color:#ffffff;margin:10px 0;">${escapeHtml(article.title)}</h1>
-              <p style="color:#94a3b8;font-size:14px;margin:0;">Publié par le Comité de Vigilance SafeCallr</p>
+              <span style="color:#00e676;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(article.categoryLabel || article.category || 'Actualités')}</span>
+              <h1 style="font-size:32px;font-weight:800;color:#ffffff;margin:12px 0 16px 0;line-height:1.3;">${escapeHtml(article.title)}</h1>
+              <p style="color:#94a3b8;font-size:14px;margin:0;">Publié par <strong>${escapeHtml(article.author || 'Comité de Vigilance SafeCallr')}</strong> — ${new Date(article.createdAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </header>
-            ${article.imageUrl ? `<img src="${escapeHtml(article.imageUrl)}" alt="${escapeHtml(article.title)}" style="width:100%;max-height:450px;object-fit:cover;border-radius:16px;margin-bottom:30px;" />` : ''}
-            <div style="font-size:18px;line-height:1.6;color:#e2e8f0;margin-bottom:30px;">
-              <p><strong>${escapeHtml(article.summary || '')}</strong></p>
+            ${article.imageUrl ? `<img src="${escapeHtml(article.imageUrl)}" alt="${escapeHtml(article.title)}" style="width:100%;max-height:450px;object-fit:cover;border-radius:16px;margin-bottom:30px;box-shadow:0 10px 30px rgba(0,0,0,0.5);" />` : ''}
+            <div style="font-size:18px;line-height:1.6;color:#e2e8f0;margin-bottom:30px;background:rgba(255,255,255,0.03);padding:20px;border-radius:12px;border-left:4px solid #00e676;">
+              <p style="margin:0;"><strong>${escapeHtml(article.summary || '')}</strong></p>
             </div>
             <div style="font-size:16px;line-height:1.8;color:#cbd5e1;">
               ${articleBodyHtml}
@@ -1730,15 +1859,115 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
           </article>
         </div>
       `;
+    } else {
+      pageTitle = "Article Introuvable | Blog SafeCallr";
+      pageDescription = "L'article demandé n'existe pas ou a été déplacé.";
+      rootBodyHtml = `
+        <div style="max-width:800px;margin:0 auto;padding:60px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;text-align:center;">
+          <h1 style="font-size:32px;font-weight:800;color:#ffffff;margin-bottom:16px;">Article introuvable</h1>
+          <p style="font-size:16px;color:#94a3b8;margin-bottom:32px;">L'article que vous recherchez n'existe pas ou a été mis à jour.</p>
+          <a href="/actualite" style="display:inline-block;background:#00e676;color:#0f1b3d;padding:12px 24px;border-radius:12px;font-weight:700;text-decoration:none;">Voir toutes les actualités</a>
+        </div>
+      `;
     }
-  } else if (url === "/particuliers") {
-    pageTitle = "SafeCallr pour Particuliers | Protection Anti-Spoofing & Faux Conseiller Bancaire";
-    pageDescription = "Protégez votre famille et vos comptes bancaires contre les arnaques téléphoniques, le spoofing et l'usurpation d'identité grâce à SafeCallr.";
+  } else if (url === "/actualite" || url === "/blog") {
+    // 2. Handle Blog Listing Route: /actualite
+    pageTitle = "Actualités & Guides de Sécurité Téléphonique | Blog SafeCallr";
+    pageDescription = "Consultez nos articles, conseils d'experts et décryptages d'arnaques (faux conseiller bancaire, spoofing, fraude au président) pour sécuriser vos télécommunications.";
+    pageKeywords = "blog cybersécurité, actualités spoofing, guides sécurité téléphone, alerte arnaque bancaire, conseils SafeCallr, anti-fraude";
+    canonicalUrl = "https://safecallr.com/actualite";
+
+    let articlesList: any[] = [];
+    if (db) {
+      try {
+        const snap = await db.collection("articles").where("published", "==", true).get();
+        if (!snap.empty) {
+          articlesList = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        }
+      } catch (err) {
+        console.warn("[SEO Server] Error fetching articles list from Firestore:", err);
+      }
+    }
+
+    if (articlesList.length === 0) {
+      articlesList = DEFAULT_BLOG_ARTICLES;
+    } else {
+      // Merge defaults if not present
+      for (const defArt of DEFAULT_BLOG_ARTICLES) {
+        if (!articlesList.some(a => a.slug === defArt.slug || a.metaTitle === defArt.metaTitle)) {
+          articlesList.push(defArt);
+        }
+      }
+    }
+
+    jsonLdObj = {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      "name": "Actualités & Guides Cybersécurité — SafeCallr",
+      "description": pageDescription,
+      "publisher": {
+        "@type": "Organization",
+        "name": "SafeCallr",
+        "logo": { "@type": "ImageObject", "url": "https://safecallr.com/logo.png" }
+      },
+      "blogPost": articlesList.map(a => ({
+        "@type": "BlogPosting",
+        "headline": a.title,
+        "description": a.summary,
+        "image": a.imageUrl,
+        "datePublished": a.createdAt || "2026-02-01T10:00:00.000Z",
+        "url": `https://safecallr.com/actualite/${encodeURIComponent(a.slug || a.metaTitle || a.id)}`
+      }))
+    };
+
+    const articlesCardsHtml = articlesList.map(art => {
+      const artSlug = art.slug || art.metaTitle || art.id;
+      return `
+        <article style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;margin-bottom:24px;display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(0,230,118,0.1);padding:4px 10px;border-radius:20px;">${escapeHtml(art.categoryLabel || art.category || 'Actualités')}</span>
+            <span style="color:#64748b;font-size:13px;">${new Date(art.createdAt || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          </div>
+          <h2 style="font-size:22px;font-weight:700;color:#ffffff;margin:0;"><a href="/actualite/${encodeURIComponent(artSlug)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(art.title)}</a></h2>
+          <p style="color:#cbd5e1;font-size:15px;line-height:1.6;margin:0;">${escapeHtml(art.summary || '')}</p>
+          <div style="margin-top:8px;">
+            <a href="/actualite/${encodeURIComponent(artSlug)}" style="color:#00e676;font-weight:700;text-decoration:none;font-size:15px;">Lire l'article complet →</a>
+          </div>
+        </article>
+      `;
+    }).join("");
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
-          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">SafeCallr pour Particuliers & Familles — Sécurité Téléphonique Personnelle</h1>
-          <p style="font-size:18px;color:#94a3b8;margin:0;">Ne cédez plus à la panique des faux conseillers bancaires. Authentifiez chaque appel important avant de donner des informations personnelles.</p>
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Blog & Guides de Sécurité Téléphonique SafeCallr</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Décryptages d'experts, alertes cybersécurité et conseils pratiques pour vous protéger des arnaques au faux conseiller bancaire et du spoofing.</p>
+        </header>
+        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
+          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
+          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
+          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Professionnels</a>
+          <a href="/entreprises" style="color:#00e676;text-decoration:none;">Pour Entreprises</a>
+          <a href="/how-it-works" style="color:#00e676;text-decoration:none;">Comment ça marche</a>
+        </nav>
+        <section>
+          ${articlesCardsHtml}
+        </section>
+        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
+          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
+        </footer>
+      </div>
+    `;
+  } else if (url === "/particuliers") {
+    pageTitle = "SafeCallr pour Particuliers | Protection contre les Faux Conseillers Bancaires & Spoofing";
+    pageDescription = "Protégez votre famille et vos comptes bancaires contre les arnaques téléphoniques. Validez l'identité de votre banquier en temps réel avant tout échange confidentiel.";
+    pageKeywords = "SafeCallr particuliers, arnaque faux conseiller, protection banque famille, securite telephone, anti-spoofing particulier";
+    
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">SafeCallr pour Particuliers & Familles — Protection Anti-Spoofing</h1>
+          <p style="font-size:18px;color:#94a3b8;margin:0;">Ne cédez plus à la panique des faux conseillers bancaires. Authentifiez chaque appel important avant de communiquer des informations personnelles ou de valider un virement.</p>
         </header>
         <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
           <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
@@ -1753,7 +1982,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
         </section>
         <section style="margin-bottom:30px;">
           <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Fonctionnalités clés pour les particuliers</h2>
-          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;">
+          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;font-size:16px;">
             <li><strong>Vérification d'appel en temps réel :</strong> Recevez un jeton de validation sur l'application lors de l'appel.</li>
             <li><strong>Alerte anti-spoofing instantanée :</strong> Identifiez les numéros masqués ou usurpés.</li>
             <li><strong>Historique et journal de sécurité :</strong> Gardez une trace de tous vos appels vérifiés.</li>
@@ -1766,8 +1995,10 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       </div>
     `;
   } else if (url === "/professionnels") {
-    pageTitle = "SafeCallr pour Professionnels & Indépendants | Authentifiez vos Appels Clients";
-    pageDescription = "Permettez à vos clients d'authentifier vos appels officiels en temps réel pour instaurer une confiance totale lors de vos démarches par téléphone.";
+    pageTitle = "SafeCallr pour Professionnels & Indépendants | Authentifiez vos Appels Sortants Clients";
+    pageDescription = "Démarquez-vous et restaurez la confiance de vos clients lors de vos démarches téléphoniques. Certifiez l'authenticité de vos appels pros en un clic.";
+    pageKeywords = "SafeCallr pro, authentification appel client, confiance telephonique, indeptendants pros, securite appel sortant";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -1787,7 +2018,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
         </section>
         <section style="margin-bottom:30px;">
           <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Les avantages pour votre activité professionnelle</h2>
-          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;">
+          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;font-size:16px;">
             <li><strong>Taux de décroché supérieur :</strong> Vos clients savent qu'il s'agit d'un appel légitime.</li>
             <li><strong>Élimination de la méfiance :</strong> Transmettez des devis, factures ou rendez-vous en toute sérénité.</li>
             <li><strong>Espace Pro dédié :</strong> Envoyez vos requêtes d'authentification directement depuis votre interface web ou mobile.</li>
@@ -1799,8 +2030,10 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       </div>
     `;
   } else if (url === "/entreprises" || url === "/institutions") {
-    pageTitle = "SafeCallr pour Entreprises & Grandes Organisations | Anti-Spoofing & Fraude au Président";
-    pageDescription = "Sécurisez les communications téléphoniques de votre entreprise. Éliminez les risques de fraude au président, d'usurpation de marque et d'appels frauduleux.";
+    pageTitle = "SafeCallr pour Entreprises & Banques | Sécurité Téléphonique & Anti-Fraude au Président";
+    pageDescription = "Protégez la voix de votre marque et vos centres de contact. Éliminez la fraude au président, le spoofing de vos numéros officiels et protégez vos clients.";
+    pageKeywords = "SafeCallr entreprises, anti-spoofing banque, fraude au president, securite centre d'appel, API authentification voix";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -1819,7 +2052,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
         </section>
         <section style="margin-bottom:30px;">
           <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Solutions Entreprise SafeCallr</h2>
-          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;">
+          <ul style="padding-left:20px;color:#cbd5e1;line-height:1.8;font-size:16px;">
             <li><strong>API & SDK d'intégration téléphonique :</strong> Intégrez l'authentification dans vos centres de contact et vos applications métier.</li>
             <li><strong>Lutte contre la fraude au président :</strong> Vérifiez la légitimité des demandes de virement ou de modifications RIB.</li>
             <li><strong>Authentification forte 2FA des téléconseillers :</strong> Garantissez l'identité de vos opérateurs auprès des clients.</li>
@@ -1831,8 +2064,10 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       </div>
     `;
   } else if (url === "/how-it-works") {
-    pageTitle = "Comment fonctionne SafeCallr ? | Authentification d'Appels en 3 Étapes";
-    pageDescription = "Découvrez la technologie de double authentification téléphonique SafeCallr pour valider l'identité de vos interlocuteurs en temps réel.";
+    pageTitle = "Comment fonctionne SafeCallr ? | Le Protocole d'Authentification Téléphonique 2FA";
+    pageDescription = "Découvrez la technologie brevetée SafeCallr : double authentification humaine d'appel, jetons cryptographiques éphémères et validation en temps réel sur mobile.";
+    pageKeywords = "fonctionnement SafeCallr, 2FA telephonique, jeton securite appel, protocole anti-spoofing, authentification vocale";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -1862,66 +2097,11 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
         </footer>
       </div>
     `;
-  } else if (url === "/actualite" || url === "/blog") {
-    pageTitle = "Actualités, Guides & Conseils Cybersécurité | Vigilance SafeCallr";
-    pageDescription = "Consultez nos articles, conseils et analyses d'experts sur la prévention des arnaques téléphoniques, le spoofing et la fraude au faux conseiller bancaire.";
-
-    let articlesListHtml = "";
-    if (db) {
-      try {
-        const snap = await db.collection("articles").where("published", "==", true).get();
-        if (!snap.empty) {
-          articlesListHtml = snap.docs.map((docSnap: any) => {
-            const data = docSnap.data();
-            const articleSlug = data.slug || data.metaTitle || docSnap.id;
-            return `
-              <article style="margin-bottom:30px;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
-                <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;">${escapeHtml(data.category || 'Actualités')}</span>
-                <h2 style="font-size:22px;font-weight:700;color:#ffffff;margin:8px 0;"><a href="/actualite/${encodeURIComponent(articleSlug)}" style="color:#ffffff;text-decoration:none;">${escapeHtml(data.title)}</a></h2>
-                <p style="color:#cbd5e1;font-size:15px;line-height:1.6;">${escapeHtml(data.summary || '')}</p>
-                <a href="/actualite/${encodeURIComponent(articleSlug)}" style="color:#00e676;font-weight:700;text-decoration:none;">Lire la suite →</a>
-              </article>
-            `;
-          }).join("");
-        }
-      } catch (err) {
-        console.warn("[SEO Server] Error fetching articles list:", err);
-      }
-    }
-
-    if (!articlesListHtml) {
-      articlesListHtml = `
-        <article style="margin-bottom:30px;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
-          <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;">Guide Sécurité</span>
-          <h2 style="font-size:22px;font-weight:700;color:#ffffff;margin:8px 0;">Comment reconnaître une arnaque au faux conseiller bancaire ?</h2>
-          <p style="color:#cbd5e1;font-size:15px;line-height:1.6;">Découvrez les signaux d'alerte essentiels et la conduite à tenir lorsque vous recevez un appel suspect de votre soi-disant banquier.</p>
-        </article>
-      `;
-    }
-
-    rootBodyHtml = `
-      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
-        <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
-          <h1 style="font-size:32px;font-weight:800;color:#00e676;margin:0 0 10px 0;">Actualités & Guides de Vigilance Cybersécurité — SafeCallr</h1>
-          <p style="font-size:18px;color:#94a3b8;margin:0;">Toutes les clés pour comprendre et vous protéger contre les arnaques téléphoniques, le spoofing et la fraude bancaire.</p>
-        </header>
-        <nav style="margin-bottom:40px;display:flex;gap:20px;flex-wrap:wrap;font-weight:600;">
-          <a href="/" style="color:#00e676;text-decoration:none;">Accueil</a>
-          <a href="/particuliers" style="color:#00e676;text-decoration:none;">Pour Particuliers</a>
-          <a href="/professionnels" style="color:#00e676;text-decoration:none;">Pour Professionnels</a>
-          <a href="/how-it-works" style="color:#00e676;text-decoration:none;">Comment ça marche</a>
-        </nav>
-        <section>
-          ${articlesListHtml}
-        </section>
-        <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
-          <p>© SafeCallr — Tous droits réservés. <a href="/cgu" style="color:#94a3b8;">CGU</a> | <a href="/confidentialite" style="color:#94a3b8;">Confidentialité</a> | <a href="/mentions-legales" style="color:#94a3b8;">Mentions Légales</a></p>
-        </footer>
-      </div>
-    `;
   } else if (url === "/company-contact") {
-    pageTitle = "Contact & Démo Entreprise | SafeCallr Cybersécurité";
-    pageDescription = "Contactez l'équipe SafeCallr pour organiser une démonstration ou échanger sur le déploiement de l'anti-spoofing dans votre organisation.";
+    pageTitle = "Contact & Demande de Démo | Équipe Cybersécurité SafeCallr";
+    pageDescription = "Contactez nos spécialistes en sécurité des télécommunications. Demandez une démonstration personnalisée de la solution SafeCallr pour votre organisation.";
+    pageKeywords = "contact SafeCallr, demo anti-spoofing, devis securite telephonique, equipe SafeCallr";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -1943,8 +2123,9 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       </div>
     `;
   } else if (url === "/cgu" || url === "/terms" || url === "/terms-of-use" || url === "/terminos" || url === "/condiciones-uso") {
-    pageTitle = "Conditions Générales d'Utilisation | SafeCallr";
+    pageTitle = "Conditions Générales d'Utilisation (CGU) | SafeCallr";
     pageDescription = "Consultez les Conditions Générales d'Utilisation (CGU) régissant l'accès et l'utilisation des services SafeCallr.";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -1966,8 +2147,9 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       </div>
     `;
   } else if (url === "/confidentialite" || url === "/privacy" || url === "/privacidad") {
-    pageTitle = "Politique de Confidentialité | SafeCallr";
+    pageTitle = "Politique de Confidentialité & RGPD | SafeCallr";
     pageDescription = "Découvrez comment SafeCallr traite et protège vos données personnelles conformément au Règlement Général sur la Protection des Données (RGPD).";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -1991,6 +2173,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
   } else if (url === "/mentions-legales" || url === "/legal-notice" || url === "/aviso-legal") {
     pageTitle = "Mentions Légales | SafeCallr";
     pageDescription = "Informations légales, éditeur du site et hébergement de la plateforme SafeCallr.";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -2004,7 +2187,7 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
         </nav>
         <section style="margin-bottom:30px;">
           <h2 style="font-size:24px;font-weight:700;color:#ffffff;">Éditeur du service</h2>
-          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">La plateforme SafeCallr est édité par la société SafeCallr, spécialisée dans la sécurité et l'authentification des télécommunications.</p>
+          <p style="font-size:16px;line-height:1.7;color:#cbd5e1;">La plateforme SafeCallr est éditée par la société SafeCallr, spécialisée dans la sécurité et l'authentification des télécommunications.</p>
         </section>
         <footer style="margin-top:50px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);font-size:14px;color:#64748b;">
           <p>© SafeCallr — Tous droits réservés.</p>
@@ -2012,8 +2195,9 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
       </div>
     `;
   } else if (url === "/sitemap" || url === "/plan-du-site") {
-    pageTitle = "Plan du Site | SafeCallr";
+    pageTitle = "Plan du Site & Navigation | SafeCallr";
     pageDescription = "Retrouvez l'ensemble des rubriques, services et guides du site SafeCallr.";
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -2036,6 +2220,31 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
     `;
   } else if (url === "/" || url === "") {
     // Default Landing Page HTML
+    pageTitle = "SafeCallr | Protection Anti-Spoofing & Authentification d'Appels";
+    pageDescription = "SafeCallr est la solution d'authentification humaine d'appels téléphoniques en temps réel. Protégez-vous contre le spoofing, l'usurpation d'identité et les faux conseillers bancaires.";
+    
+    jsonLdObj = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "SafeCallr",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "iOS, Android, Web",
+      "url": "https://safecallr.com",
+      "logo": "https://safecallr.com/logo.png",
+      "image": "https://safecallr.com/og-image.png",
+      "description": pageDescription,
+      "author": {
+        "@type": "Organization",
+        "name": "SafeCallr",
+        "url": "https://safecallr.com"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      }
+    };
+
     rootBodyHtml = `
       <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
         <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
@@ -2071,47 +2280,48 @@ async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any)
 
   let html = rawTemplate;
 
-  // Replace Title
-  html = html.replace(/<title>.*?<\/title>/gi, `<title>${escapeHtml(pageTitle)}</title>`);
+  // Clean existing SEO tags from template first
+  html = html.replace(/<title>[\s\S]*?<\/title>/gi, "");
+  html = html.replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, "");
+  html = html.replace(/<meta\s+name=["']keywords["'][\s\S]*?>/gi, "");
+  html = html.replace(/<link\s+rel=["']canonical["'][\s\S]*?>/gi, "");
+  html = html.replace(/<meta\s+property=["']og:[\s\S]*?>/gi, "");
+  html = html.replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, "");
+  html = html.replace(/<script\s+type=["']application\/ld\+json["']>[\s\S]*?<\/script>/gi, "");
 
-  // Replace Meta Description
-  if (html.includes('name="description"')) {
-    html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${escapeHtml(pageDescription)}" />`);
-  } else {
-    html = html.replace('</head>', `<meta name="description" content="${escapeHtml(pageDescription)}" />\n</head>`);
-  }
+  let newHeadTags = `
+    <title>${escapeHtml(pageTitle)}</title>
+    <meta name="description" content="${escapeHtml(pageDescription)}" />
+    <meta name="keywords" content="${escapeHtml(pageKeywords)}" />
+    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
 
-  // Replace Meta Keywords
-  if (html.includes('name="keywords"')) {
-    html = html.replace(/<meta name="keywords" content=".*?" \/>/gi, `<meta name="keywords" content="${escapeHtml(pageKeywords)}" />`);
-  }
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="${escapeHtml(ogType)}" />
+    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+    <meta property="og:site_name" content="SafeCallr" />
+    <meta property="og:title" content="${escapeHtml(pageTitle)}" />
+    <meta property="og:description" content="${escapeHtml(pageDescription)}" />
+    <meta property="og:image" content="${escapeHtml(pageImage)}" />
+    <meta property="og:locale" content="fr_FR" />
 
-  // Replace Canonical Link
-  if (html.includes('rel="canonical"')) {
-    html = html.replace(/<link rel="canonical" href=".*?" \/>/gi, `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`);
-  }
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
+    <meta name="twitter:title" content="${escapeHtml(pageTitle)}" />
+    <meta name="twitter:description" content="${escapeHtml(pageDescription)}" />
+    <meta name="twitter:image" content="${escapeHtml(pageImage)}" />
+  `;
 
-  // Replace OG tags
-  html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${escapeHtml(pageTitle)}" />`);
-  html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${escapeHtml(pageDescription)}" />`);
-  html = html.replace(/<meta property="og:url" content=".*?" \/>/gi, `<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />`);
-  html = html.replace(/<meta property="og:type" content=".*?" \/>/gi, `<meta property="og:type" content="${escapeHtml(ogType)}" />`);
-  html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${escapeHtml(pageImage)}" />`);
-
-  // Replace Twitter tags
-  html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${escapeHtml(pageTitle)}" />`);
-  html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${escapeHtml(pageDescription)}" />`);
-  html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${escapeHtml(pageImage)}" />`);
-
-  // Inject or replace JSON-LD if article
   if (jsonLdObj) {
-    const jsonLdStr = `<script type="application/ld+json">\n${JSON.stringify(jsonLdObj, null, 2)}\n</script>`;
-    if (html.includes('type="application/ld+json"')) {
-      html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, jsonLdStr);
-    } else {
-      html = html.replace('</head>', `${jsonLdStr}\n</head>`);
-    }
+    newHeadTags += `
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+${JSON.stringify(jsonLdObj, null, 2)}
+    </script>
+    `;
   }
+
+  html = html.replace("</head>", `${newHeadTags}\n</head>`);
 
   // Inject rootBodyHtml if specified
   if (rootBodyHtml) {
