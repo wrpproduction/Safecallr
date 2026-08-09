@@ -17,7 +17,7 @@ import {
   FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import SEOManager from "../components/seo/SEOManager";
+import PageContentManager from "../components/seo/PageContentManager";
 import AppLogo from "../components/AppLogo";
 import LanguageSelector from "../components/LanguageSelector";
 
@@ -80,20 +80,11 @@ export default function Particuliers() {
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
-      <SEOManager 
-        title={t("particuliers.seoTitle")}
-        description={t("particuliers.seoDesc")}
-        keywords={["arnaque téléphonique", "usurpation d'identité au téléphone", "vérifier un appel", "protéger ses proches", "fraude au faux proche", "deepfake voix", "spoofing vocal", "sécurité téléphonique", "SafeCallr"]}
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          "name": `Particuliers - SafeCallr`,
-          "description": t("particuliers.seoDesc"),
-          "inLanguage": lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-US",
-          "publisher": {
-            "@type": "Organization",
-            "name": "SafeCallr"
-          }
+      <PageContentManager 
+        route="/particuliers"
+        overrideMetadata={{
+          title: t("particuliers.seoTitle") || undefined,
+          description: t("particuliers.seoDesc") || undefined
         }}
       />
 

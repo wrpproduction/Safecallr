@@ -15,7 +15,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import SEOManager from "../components/seo/SEOManager";
+import PageContentManager from "../components/seo/PageContentManager";
 import AppLogo from "../components/AppLogo";
 import LanguageSelector from "../components/LanguageSelector";
 
@@ -78,20 +78,11 @@ export default function Entreprises() {
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
-      <SEOManager 
-        title={t("entreprises.seoTitle")}
-        description={t("entreprises.seoDesc")}
-        keywords={["fraude au président", "arnaque au faux dirigeant", "sécuriser virements internes", "usurpation CEO", "validation trésorerie", "fraude au faux RH", "FOVI", "ingénierie sociale", "sécurité financière entreprise", "SafeCallr Entreprise"]}
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          "name": `Entreprises - ${t("entreprises.badge")}`,
-          "description": t("entreprises.seoDesc"),
-          "inLanguage": lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-US",
-          "publisher": {
-            "@type": "Organization",
-            "name": "SafeCallr"
-          }
+      <PageContentManager 
+        route="/entreprises"
+        overrideMetadata={{
+          title: t("entreprises.seoTitle") || undefined,
+          description: t("entreprises.seoDesc") || undefined
         }}
       />
 

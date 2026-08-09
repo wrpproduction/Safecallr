@@ -15,7 +15,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import SEOManager from "../components/seo/SEOManager";
+import PageContentManager from "../components/seo/PageContentManager";
 import AppLogo from "../components/AppLogo";
 import LanguageSelector from "../components/LanguageSelector";
 
@@ -80,20 +80,11 @@ export default function Professionnels() {
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
-      <SEOManager 
-        title={t("professionnels.seoTitle")}
-        description={t("professionnels.seoDesc")}
-        keywords={["usurpation conseiller bancaire", "fraude au faux conseiller", "authentification professionnelle téléphone", "spoofing notaire", "vishing", "sécuriser appels clients", "conseiller financier", "gérant de patrimoine", "SafeCallr Pro"]}
-        jsonLd={{
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          "name": `Professionnels - ${t("professionnels.badge")}`,
-          "description": t("professionnels.seoDesc"),
-          "inLanguage": lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-US",
-          "publisher": {
-            "@type": "Organization",
-            "name": "SafeCallr"
-          }
+      <PageContentManager 
+        route="/professionnels"
+        overrideMetadata={{
+          title: t("professionnels.seoTitle") || undefined,
+          description: t("professionnels.seoDesc") || undefined
         }}
       />
 
