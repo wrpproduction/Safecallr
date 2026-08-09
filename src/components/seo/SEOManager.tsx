@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface SEOProps {
   title: string;
@@ -21,6 +22,7 @@ export default function SEOManager({
   jsonLd,
   keywords
 }: SEOProps) {
+  const { lang } = useLanguage();
   const siteName = "SafeCallr";
   const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -28,7 +30,7 @@ export default function SEOManager({
 
   return (
     <Helmet>
-      <html lang="fr" />
+      <html lang={lang} />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       {keywords && (
