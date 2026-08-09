@@ -22,8 +22,9 @@ export default function SEOManager({
   keywords
 }: SEOProps) {
   const siteName = "SafeCallr";
-  const fullTitle = `${title} | ${siteName}`;
-  const url = canonical || `https://safecallr.com${window.location.pathname}`;
+  const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const url = canonical || `https://safecallr.com${currentPath}`;
 
   return (
     <Helmet>

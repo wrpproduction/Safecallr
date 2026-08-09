@@ -1590,6 +1590,230 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     }
   });
 
+function convertMarkdownToSEOPageHTML(markdown: string): string {
+  if (!markdown) return "";
+  
+  const escapeHtml = (str: string) => 
+    (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const lines = markdown.split("\n");
+  let html = "";
+  let inList = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (inList) {
+        html += "</ul>";
+        inList = false;
+      }
+      continue;
+    }
+
+    if (line.startsWith("### ")) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<h3 style="font-size:20px;font-weight:700;color:#ffffff;margin:24px 0 12px 0;">${escapeHtml(line.slice(4))}</h3>`;
+    } else if (line.startsWith("## ")) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<h2 style="font-size:24px;font-weight:800;color:#00e676;margin:32px 0 16px 0;">${escapeHtml(line.slice(3))}</h2>`;
+    } else if (line.startsWith("# ")) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<h1 style="font-size:28px;font-weight:800;color:#ffffff;margin:32px 0 16px 0;">${escapeHtml(line.slice(2))}</h1>`;
+    } else if (line.startsWith("- ") || line.startsWith("* ")) {
+      if (!inList) {
+        html += '<ul style="margin:16px 0;padding-left:24px;color:#cbd5e1;">';
+        inList = true;
+      }
+      html += `<li style="margin-bottom:8px;">${escapeHtml(line.slice(2))}</li>`;
+    } else {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<p style="margin-bottom:16px;line-height:1.7;">${escapeHtml(line)}</p>`;
+    }
+  }
+
+  if (inList) {
+    html += "</ul>";
+  }
+
+  return html;
+}
+
+async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any): Promise<string> {
+  const url = reqPath || "/";
+  let pageTitle = "SafeCallr | Protection Anti-Spoofing & Authentification d'Appels";
+  let pageDescription = "SafeCallr est la solution d'authentification humaine d'appels téléphoniques en temps réel. Protégez-vous contre le spoofing, l'usurpation d'identité et les faux conseillers bancaires.";
+  let pageKeywords = "SafeCallr, authentification appels, spoofing, faux conseiller bancaire, sécurité téléphonique, 2FA téléphone, anti-fraude, protection usurpation, cybersécurité";
+  let pageImage = "https://safecallr.com/og-image.png";
+  let canonicalUrl = `https://safecallr.com${url}`;
+  let ogType = "website";
+  let jsonLdObj: any = null;
+  let rootBodyHtml = "";
+
+  const escapeHtml = (str: string) => (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  // Handle Blog Post Detail Route: /actualite/:slug
+  if (url.startsWith("/actualite/") && url.length > 11) {
+    const rawSlug = url.replace("/actualite/", "").split("?")[0];
+    const decodedSlug = decodeURIComponent(rawSlug);
+    let article: any = null;
+
+    if (db && decodedSlug) {
+      try {
+        let snap = await db.collection("articles").where("metaTitle", "==", decodedSlug).where("published", "==", true).limit(1).get();
+        if (snap.empty) {
+          snap = await db.collection("articles").where("slug", "==", decodedSlug).where("published", "==", true).limit(1).get();
+        }
+        if (snap.empty && decodedSlug.length > 5) {
+          const docRef = db.collection("articles").doc(decodedSlug);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) article = { id: docSnap.id, ...docSnap.data() };
+        }
+        if (!snap.empty && !article) {
+          article = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        }
+      } catch (err) {
+        console.warn("[SEO Dynamic Server] Error fetching article:", err);
+      }
+    }
+
+    if (article) {
+      pageTitle = `${article.title} | Vigilance SafeCallr`;
+      pageDescription = article.metaDescription || article.summary || article.title;
+      if (article.seoKeywords) pageKeywords = article.seoKeywords;
+      if (article.imageUrl) pageImage = article.imageUrl;
+      ogType = "article";
+      canonicalUrl = `https://safecallr.com/actualite/${encodeURIComponent(decodedSlug)}`;
+
+      jsonLdObj = {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": article.title,
+        "image": [pageImage],
+        "datePublished": article.createdAt || new Date().toISOString(),
+        "dateModified": article.updatedAt || article.createdAt || new Date().toISOString(),
+        "description": pageDescription,
+        "author": {
+          "@type": "Organization",
+          "name": "Comité de Vigilance SafeCallr",
+          "url": "https://safecallr.com"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "SafeCallr",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://safecallr.com/logo.png"
+          }
+        }
+      };
+
+      const articleBodyHtml = convertMarkdownToSEOPageHTML(article.content || "");
+
+      rootBodyHtml = `
+        <div style="max-width:900px;margin:0 auto;padding:40px 20px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+          <nav style="margin-bottom:20px;">
+            <a href="/actualite" style="color:#00e676;text-decoration:none;font-weight:700;">← Retour aux actualités & guides SafeCallr</a>
+          </nav>
+          <article>
+            <header style="margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:20px;">
+              <span style="color:#00e676;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(article.category || 'Actualités & Guides')}</span>
+              <h1 style="font-size:32px;font-weight:800;color:#ffffff;margin:10px 0;">${escapeHtml(article.title)}</h1>
+              <p style="color:#94a3b8;font-size:14px;margin:0;">Publié par le Comité de Vigilance SafeCallr</p>
+            </header>
+            ${article.imageUrl ? `<img src="${escapeHtml(article.imageUrl)}" alt="${escapeHtml(article.title)}" style="width:100%;max-height:450px;object-fit:cover;border-radius:16px;margin-bottom:30px;" />` : ''}
+            <div style="font-size:18px;line-height:1.6;color:#e2e8f0;margin-bottom:30px;">
+              <p><strong>${escapeHtml(article.summary || '')}</strong></p>
+            </div>
+            <div style="font-size:16px;line-height:1.8;color:#cbd5e1;">
+              ${articleBodyHtml}
+            </div>
+          </article>
+        </div>
+      `;
+    }
+  } else if (url === "/particuliers") {
+    pageTitle = "SafeCallr pour Particuliers | Protection contre les arnaques téléphoniques";
+    pageDescription = "Protégez votre famille et vos proches contre le spoofing, les faux conseillers bancaires et les usurpations d'identité grâce à SafeCallr.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <h1 style="font-size:36px;font-weight:800;color:#00e676;">SafeCallr pour Particuliers & Familles</h1>
+        <p style="font-size:18px;line-height:1.6;color:#cbd5e1;">Protégez-vous et vos proches contre les arnaques au faux conseiller bancaire et le spoofing d'appels grâce à notre technologie d'authentification humaine en temps réel.</p>
+        <nav style="margin-top:20px;"><a href="/" style="color:#00e676;text-decoration:none;">Accueil SafeCallr</a> | <a href="/actualite" style="color:#00e676;text-decoration:none;">Conseils Cybersécurité</a></nav>
+      </div>
+    `;
+  } else if (url === "/professionnels") {
+    pageTitle = "SafeCallr pour Professionnels & Indépendants | Authentifiez vos appels clients";
+    pageDescription = "Permettez à vos clients d'authentifier vos appels officiels en temps réel pour instaurer une confiance totale lors de vos démarches par téléphone.";
+    rootBodyHtml = `
+      <div style="max-width:1100px;margin:0 auto;padding:40px 20px;font-family:system-ui,sans-serif;color:#f8fafc;background-color:#0f1b3d;">
+        <h1 style="font-size:36px;font-weight:800;color:#00e676;">SafeCallr pour Professionnels & Indépendants</h1>
+        <p style="font-size:18px;line-height:1.6;color:#cbd5e1;">Rassurez vos clients en leur permettant d'authentifier vos appels officiels en temps réel avant tout échange d'informations stratégiques.</p>
+        <nav style="margin-top:20px;"><a href="/" style="color:#00e676;text-decoration:none;">Accueil SafeCallr</a> | <a href="/company-contact" style="color:#00e676;text-decoration:none;">Nous contacter</a></nav>
+      </div>
+    `;
+  } else if (url === "/entreprises") {
+    pageTitle = "SafeCallr pour Entreprises & Grandes Organisations | Anti-Spoofing & Fraude au Président";
+    pageDescription = "Sécurisez la voix de votre entreprise. Éliminez les risques de fraude au président, d'usurpation de marque et d'appels frauduleux auprès de vos clients.";
+  } else if (url === "/how-it-works") {
+    pageTitle = "Comment fonctionne SafeCallr ? | Authentification d'Appels en 3 Étapes";
+    pageDescription = "Découvrez la technologie 2FA humaine de SafeCallr pour valider en temps réel l'identité de vos interlocuteurs téléphoniques.";
+  } else if (url === "/actualite") {
+    pageTitle = "Actualités & Guides Cybersécurité | Vigilance SafeCallr";
+    pageDescription = "Retrouvez nos derniers articles, analyses et guides d'experts sur le spoofing téléphonique, la fraude au faux conseiller bancaire et la sécurité de la voix.";
+  }
+
+  let html = rawTemplate;
+
+  // Replace Title
+  html = html.replace(/<title>.*?<\/title>/gi, `<title>${escapeHtml(pageTitle)}</title>`);
+
+  // Replace Meta Description
+  if (html.includes('name="description"')) {
+    html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${escapeHtml(pageDescription)}" />`);
+  } else {
+    html = html.replace('</head>', `<meta name="description" content="${escapeHtml(pageDescription)}" />\n</head>`);
+  }
+
+  // Replace Meta Keywords
+  if (html.includes('name="keywords"')) {
+    html = html.replace(/<meta name="keywords" content=".*?" \/>/gi, `<meta name="keywords" content="${escapeHtml(pageKeywords)}" />`);
+  }
+
+  // Replace Canonical Link
+  if (html.includes('rel="canonical"')) {
+    html = html.replace(/<link rel="canonical" href=".*?" \/>/gi, `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`);
+  }
+
+  // Replace OG tags
+  html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${escapeHtml(pageTitle)}" />`);
+  html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${escapeHtml(pageDescription)}" />`);
+  html = html.replace(/<meta property="og:url" content=".*?" \/>/gi, `<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />`);
+  html = html.replace(/<meta property="og:type" content=".*?" \/>/gi, `<meta property="og:type" content="${escapeHtml(ogType)}" />`);
+  html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${escapeHtml(pageImage)}" />`);
+
+  // Replace Twitter tags
+  html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${escapeHtml(pageTitle)}" />`);
+  html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${escapeHtml(pageDescription)}" />`);
+  html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${escapeHtml(pageImage)}" />`);
+
+  // Inject or replace JSON-LD if article
+  if (jsonLdObj) {
+    const jsonLdStr = `<script type="application/ld+json">\n${JSON.stringify(jsonLdObj, null, 2)}\n</script>`;
+    if (html.includes('type="application/ld+json"')) {
+      html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, jsonLdStr);
+    } else {
+      html = html.replace('</head>', `${jsonLdStr}\n</head>`);
+    }
+  }
+
+  // Inject rootBodyHtml if specified
+  if (rootBodyHtml) {
+    html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/gi, `<div id="root">\n${rootBodyHtml}\n    </div>\n    <script`);
+  }
+
+  return html;
+}
+
   // Vite middleware pour le développement
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
@@ -1614,7 +1838,8 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       try {
         let template = fs.readFileSync(path.resolve(resolvedDirname, "index.html"), "utf-8");
         template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ "Content-Type": "text/html" }).end(template);
+        const seoHtml = await getSEORenderedHTML(req.path, template, db);
+        res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).end(seoHtml);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);
         next(e);
@@ -1634,22 +1859,10 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       }
     }));
 
-    // Routes prérendues : On vérifie si un fichier .html existe par dossier
-    const prerenderedRoutes = [
-      "/",
-      "/particuliers",
-      "/professionnels",
-      "/institutions",
-      "/how-it-works",
-      "/contact",
-      "/mentions-legales",
-      "/cgu",
-      "/confidentialite"
-    ];
-
-    app.get("*", (req, res) => {
+    app.get("*", async (req, res, next) => {
       const url = req.path;
-      
+      if (url.startsWith("/api/")) return next();
+
       if (url === "/sitemap.xml" || url.endsWith("sitemap.xml")) {
         const sitemapDist = path.join(distPath, "sitemap.xml");
         const sitemapPublic = path.join(process.cwd(), "public", "sitemap.xml");
@@ -1670,18 +1883,17 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
         }
       }
 
-      // Si c'est une route prérendue, on essaie de servir le index.html correspondant dans le dossier
-      if (prerenderedRoutes.includes(url) || (url === "/" && prerenderedRoutes.includes("/"))) {
-        const filePath = url === "/" 
-          ? path.join(distPath, "index.html")
-          : path.join(distPath, url, "index.html");
-        
-        if (fs.existsSync(filePath)) {
-          return res.sendFile(filePath);
+      try {
+        const indexPath = path.join(distPath, "index.html");
+        if (fs.existsSync(indexPath)) {
+          let rawHtml = fs.readFileSync(indexPath, "utf-8");
+          const seoHtml = await getSEORenderedHTML(url, rawHtml, db);
+          return res.status(200).set({ "Content-Type": "text/html; charset=utf-8" }).send(seoHtml);
         }
+      } catch (err) {
+        console.warn("[SEO Server Prod] Error serving SEO HTML:", err);
       }
 
-      // Fallback SPA classique pour le reste (dashboard, admin, me, etc.)
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

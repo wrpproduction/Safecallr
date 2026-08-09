@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import QuickResponse from "../components/seo/QuickResponse";
 import FAQSection from "../components/seo/FAQSection";
+import SEOManager from "../components/seo/SEOManager";
 import AppLogo from "../components/AppLogo";
 import { 
   Shield, 
@@ -99,6 +100,24 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
+      <SEOManager 
+        title="SafeCallr | Protection Anti-Spoofing & Authentification d'Appels"
+        description="SafeCallr est la solution d'authentification humaine d'appels téléphoniques en temps réel. Protégez-vous contre le spoofing, l'usurpation d'identité et le faux conseiller bancaire."
+        keywords={["SafeCallr", "authentification appels", "spoofing", "faux conseiller bancaire", "sécurité téléphonique", "2FA téléphone", "anti-fraude", "protection usurpation"]}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "SafeCallr",
+          "applicationCategory": "SecurityApplication",
+          "operatingSystem": "iOS, Android, Web",
+          "url": "https://safecallr.com",
+          "description": "Solution d'authentification humaine d'appels téléphoniques en temps réel contre le spoofing et la fraude au faux conseiller bancaire.",
+          "publisher": {
+            "@type": "Organization",
+            "name": "SafeCallr"
+          }
+        }}
+      />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
