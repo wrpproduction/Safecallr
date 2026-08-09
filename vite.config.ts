@@ -1,9 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import fs from 'fs';
 import {defineConfig, loadEnv} from 'vite';
-import prerender from 'vite-plugin-prerenderer';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // Polyfill for environments without full TTY support
@@ -12,181 +10,8 @@ if (process.stdout && !process.stdout.clearLine) {
   (process.stdout as any).cursorTo = () => {};
 }
 
-/**
- * Récupère publiquement les articles de blog publiés depuis Firestore (REST API non authentifiée)
- * pour inclure leurs URLs dynamique dans le tableau de prerender.
- */
-async function getPublishedArticleRoutes(): Promise<string[]> {
-  const routes: string[] = [];
-  try {
-    let projectId = "gen-lang-client-0258611834";
-    let databaseId = "ai-studio-ffb666f4-67e6-42be-a2e6-2406f74f5b0d";
-    let apiKey = "AIzaSyCPrcZlZIeHjJfWT_JiD_PiwzCbhMmmgH0";
-
-    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-    if (fs.existsSync(configPath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        if (config.projectId) projectId = config.projectId;
-        if (config.firestoreDatabaseId) databaseId = config.firestoreDatabaseId;
-        if (config.apiKey) apiKey = config.apiKey;
-      } catch (e) { /* ignore */ }
-    }
-
-    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
-    const body = {
-      structuredQuery: {
-        from: [{ collectionId: 'articles' }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'published' },
-            op: 'EQUAL',
-            value: { booleanValue: true },
-          },
-        },
-      },
-    };
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      console.warn('[Vite Prerender] runQuery HTTP', res.status);
-      return routes;
-    }
-
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        const fields = row.document?.fields;
-        if (!fields) continue; // ignore les lignes readTime sans document
-        const metaTitle = fields.metaTitle?.stringValue;
-        if (metaTitle) {
-          const route = `/actualite/${encodeURIComponent(metaTitle)}`;
-          if (!routes.includes(route)) routes.push(route);
-        }
-      }
-    }
-    console.log(`[Vite Prerender] ${routes.length} article(s) publié(s) trouvé(s).`);
-  } catch (err) {
-    console.warn('[Vite Prerender] Articles Firestore non chargés au build:', err);
-  }
-  return routes;
-}
-
 export default defineConfig(async ({mode}) => {
   const env = loadEnv(mode, '.', '');
-
-  // Liste réconciliée des vraies routes statiques React Router & Sitemap
-  const staticRoutes = [
-    '/',
-    '/particuliers',
-    '/professionnels',
-    '/entreprises',
-    '/company-contact',
-    '/how-it-works',
-    '/actualite',
-    '/sitemap',
-    '/plan-du-site',
-    '/mentions-legales',
-    '/legal-notice',
-    '/aviso-legal',
-    '/cgu',
-    '/terms',
-    '/terms-of-use',
-    '/terminos',
-    '/condiciones-uso',
-    '/confidentialite',
-    '/privacy',
-    '/privacidad',
-  ];
-
-  // Récupération des routes dynamiques d'articles publiés et options de prerender
-  let allPrerenderRoutes = [...staticRoutes];
-  let prerenderRendererOptions: any = {
-    renderAfterTime: 4000,
-  };
-  let enablePrerenderPlugin = false;
-
-  if (process.env.ENABLE_PRERENDER === 'true') {
-    try {
-      const articleRoutes = await getPublishedArticleRoutes();
-      allPrerenderRoutes = Array.from(new Set([...staticRoutes, ...articleRoutes]));
-
-      let executablePath: string | undefined;
-
-      // 1. Tenter d'utiliser @sparticuz/chromium (environnement Lambda/Serverless)
-      try {
-        const chromium = (await import('@sparticuz/chromium')).default;
-        chromium.setGraphicsMode = false;
-        executablePath = await chromium.executablePath();
-      } catch (e) {
-        /* ignore */
-      }
-
-      // 2. Détecter un binaire Chrome/Chromium système si disponible
-      if (!executablePath) {
-        const candidatePaths = [
-          process.env.PUPPETEER_EXECUTABLE_PATH,
-          process.env.CHROME_BIN,
-          '/usr/bin/google-chrome',
-          '/usr/bin/chromium',
-          '/usr/bin/chromium-browser',
-        ].filter(Boolean) as string[];
-
-        for (const p of candidatePaths) {
-          if (fs.existsSync(p)) {
-            executablePath = p;
-            break;
-          }
-        }
-      }
-
-      if (executablePath) {
-        // Test d'instanciation puppeteer pour vérifier que l'exécutable fonctionne sur l'hôte
-        const puppeteerCore = await import('puppeteer-core');
-        const testBrowser = await puppeteerCore.launch({
-          headless: true,
-          executablePath,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--single-process',
-            '--no-zygote'
-          ],
-        });
-        await testBrowser.close();
-
-        prerenderRendererOptions = {
-          renderAfterTime: 4000,
-          maxConcurrentRoutes: 1,
-          launchOptions: {
-            headless: true,
-            executablePath: executablePath,
-            args: [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-gpu',
-              '--single-process',
-              '--no-zygote'
-            ],
-          },
-        };
-        enablePrerenderPlugin = true;
-        console.log('[Vite Prerender] Chromium validé et prerender activé avec succès.');
-      } else {
-        console.warn('[Vite Prerender] Aucun exécutable Chrome/Chromium trouvé. Prerender désactivé proprement.');
-      }
-    } catch (err: any) {
-      console.warn('[Vite Prerender] Chrome non disponible/exécutable sur cet environnement CI (prerender désactivé):', err?.message || err);
-      enablePrerenderPlugin = false;
-    }
-  }
 
   return {
     plugins: [
@@ -257,12 +82,7 @@ export default defineConfig(async ({mode}) => {
             },
           ],
         }
-      }),
-      enablePrerenderPlugin ? prerender({
-        routes: allPrerenderRoutes,
-        renderer: '@prerenderer/renderer-puppeteer',
-        rendererOptions: prerenderRendererOptions
-      }) : null
+      })
     ].filter(Boolean),
     build: {
       chunkSizeWarningLimit: 2000,
