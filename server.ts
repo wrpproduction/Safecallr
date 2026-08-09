@@ -207,7 +207,9 @@ async function createAuditLog(orgId: string, actor: { uid: string, email: string
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const rawPort = process.env.PORT;
+  const parsedPort = rawPort ? parseInt(rawPort, 10) : 3000;
+  const PORT = !isNaN(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
 
   app.use(express.json());
 
