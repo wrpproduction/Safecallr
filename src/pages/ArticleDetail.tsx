@@ -18,6 +18,7 @@ import SEOManager from "../components/seo/SEOManager";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { toast } from "sonner";
 import AppLogo from "../components/AppLogo";
+import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -32,7 +33,9 @@ export default function ArticleDetail() {
       if (!slug) return;
       setLoading(true);
       try {
-        // Query article by metaTitle slug
+        let currentArticle: any = null;
+
+        // Query article by metaTitle slug in Firestore
         const q = query(
           collection(db, "articles"), 
           where("metaTitle", "==", slug),
@@ -40,39 +43,60 @@ export default function ArticleDetail() {
         );
         const querySnapshot = await getDocs(q);
         
-        if (querySnapshot.empty) {
-          setArticle(null);
-          setLoading(false);
-          return;
+        if (!querySnapshot.empty) {
+          querySnapshot.forEach((doc) => {
+            currentArticle = { id: doc.id, ...doc.data() };
+          });
         }
 
-        let currentArticle: any = null;
-        querySnapshot.forEach((doc) => {
-          currentArticle = { id: doc.id, ...doc.data() };
-        });
+        // Fallback to default articles if not found in Firestore
+        if (!currentArticle) {
+          currentArticle = DEFAULT_BLOG_ARTICLES.find(
+            a => a.slug === slug || a.metaTitle === slug || a.id === slug
+          ) || null;
+        }
 
         setArticle(currentArticle);
 
-        // Fetch related articles of same category (limit to 3)
+        // Fetch related articles of same category
         if (currentArticle) {
-          const relatedQ = query(
-            collection(db, "articles"),
-            where("category", "==", currentArticle.category),
-            where("published", "==", true)
-          );
-          const relatedSnapshot = await getDocs(relatedQ);
-          const relatedList: any[] = [];
-          relatedSnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (doc.id !== currentArticle.id) {
-              relatedList.push({ id: doc.id, ...data });
-            }
-          });
+          let relatedList: any[] = [];
+          try {
+            const relatedQ = query(
+              collection(db, "articles"),
+              where("category", "==", currentArticle.category),
+              where("published", "==", true)
+            );
+            const relatedSnapshot = await getDocs(relatedQ);
+            relatedSnapshot.forEach((doc) => {
+              const data = doc.data();
+              if (doc.id !== currentArticle.id) {
+                relatedList.push({ id: doc.id, ...data });
+              }
+            });
+          } catch (e) {
+            console.warn("Could not fetch related articles from Firestore:", e);
+          }
+
+          // Fill related with defaults if empty
+          if (relatedList.length === 0) {
+            relatedList = DEFAULT_BLOG_ARTICLES.filter(
+              a => a.id !== currentArticle.id && a.slug !== slug
+            );
+          }
+
           setRelatedArticles(relatedList.slice(0, 3));
         }
 
       } catch (err) {
         console.error("Error fetching article details:", err);
+        const def = DEFAULT_BLOG_ARTICLES.find(
+          a => a.slug === slug || a.metaTitle === slug || a.id === slug
+        );
+        setArticle(def || null);
+        if (def) {
+          setRelatedArticles(DEFAULT_BLOG_ARTICLES.filter(a => a.id !== def.id).slice(0, 3));
+        }
       } finally {
         setLoading(false);
       }

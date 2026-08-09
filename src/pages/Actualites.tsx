@@ -14,6 +14,7 @@ import {
 import { db, collection, getDocs, query, where, orderBy } from "../firebase";
 import SEOManager from "../components/seo/SEOManager";
 import AppLogo from "../components/AppLogo";
+import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 
 export default function Actualites() {
   const [articles, setArticles] = useState<any[]>([]);
@@ -24,7 +25,6 @@ export default function Actualites() {
     const fetchArticles = async () => {
       setLoading(true);
       try {
-        // Query only published articles ordered by creation date
         const q = query(
           collection(db, "articles"), 
           where("published", "==", true)
@@ -35,16 +35,24 @@ export default function Actualites() {
           items.push({ id: doc.id, ...doc.data() });
         });
         
-        // Sort by createdAt since complex Firestore query without composite index might fail
-        items.sort((a, b) => {
+        // Merge with defaults if not present
+        const merged = [...items];
+        for (const defArt of DEFAULT_BLOG_ARTICLES) {
+          if (!merged.some(a => a.slug === defArt.slug || a.metaTitle === defArt.metaTitle || a.id === defArt.id)) {
+            merged.push(defArt);
+          }
+        }
+
+        merged.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateB - dateA;
         });
 
-        setArticles(items);
+        setArticles(merged);
       } catch (err) {
         console.error("Error fetching articles:", err);
+        setArticles(DEFAULT_BLOG_ARTICLES);
       } finally {
         setLoading(false);
       }
