@@ -135,6 +135,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
     // Fail-safe timeout to dismiss the splash loading spinner after 6 seconds
     const timeoutId = setTimeout(() => {
       setLoading((prevLoading) => {

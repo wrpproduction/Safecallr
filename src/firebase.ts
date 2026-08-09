@@ -1,18 +1,25 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, signInWithPopup as fbSignInWithPopup, signOut, onAuthStateChanged, getIdToken } from "firebase/auth";
-import { initializeFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
+import { initializeFirestore, getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
 
 // Configuration Firebase
-// Note: Dans cet environnement, on utilise le fichier de config injecté
 import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth based on platform to prevent background gapi loading or redirect setups on native mobile apps
+const isServer = typeof window === "undefined";
+
+// Initialize Auth based on platform to prevent background gapi loading or redirect setups on native mobile apps / SSR
 export const auth = (() => {
+  if (isServer) {
+    return {
+      onAuthStateChanged: () => () => {},
+      currentUser: null,
+    } as any;
+  }
   if (Capacitor.isNativePlatform()) {
     console.log("[SafeCallr] Native platform detected. Initializing Auth with indexedDBLocalPersistence...");
     return initializeAuth(app, {
@@ -24,11 +31,14 @@ export const auth = (() => {
   }
 })();
 
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId);
+export const db = isServer 
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    }, firebaseConfig.firestoreDatabaseId);
+
 export const storage = getStorage(app);
-export const googleProvider = Capacitor.isNativePlatform() ? null : new GoogleAuthProvider();
+export const googleProvider = (isServer || Capacitor.isNativePlatform()) ? null : new GoogleAuthProvider();
 
 // Safe wrapper for Google popup sign in to prevent crashes on native Capacitor platforms
 export const signInWithPopup = async (authInstance: any, provider: any) => {
