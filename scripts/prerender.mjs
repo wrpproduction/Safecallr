@@ -85,7 +85,7 @@ async function main() {
       const { html, head } = await render(route, preloadedData);
 
       let cleanedTemplate = template
-        .replace(/<title>[\s\S]*?<\/title>/i, '')
+        .replace(/<title>[\s\S]*?<\/title>/gi, '')
         .replace(/<meta\s+name="description"[^>]*>/gi, '')
         .replace(/<meta\s+property="og:[^"]*"[^>]*>/gi, '')
         .replace(/<meta\s+name="twitter:[^"]*"[^>]*>/gi, '')
