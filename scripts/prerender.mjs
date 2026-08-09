@@ -84,7 +84,7 @@ async function main() {
         preloadedData = articlesMap[decodedSlug] || articlesMap[rawSlug] || null;
       }
 
-      const { html, head } = await render(route, preloadedData);
+      const { html, head, htmlAttrs } = await render(route, preloadedData);
 
       let cleanedTemplate = template
         .replace(/<title>[\s\S]*?<\/title>/gi, '')
@@ -92,6 +92,10 @@ async function main() {
         .replace(/<meta\s+property="og:[^"]*"[^>]*>/gi, '')
         .replace(/<meta\s+name="twitter:[^"]*"[^>]*>/gi, '')
         .replace(/<link\s+rel="canonical"[^>]*>/gi, '');
+
+      if (htmlAttrs) {
+        cleanedTemplate = cleanedTemplate.replace(/<html[^>]*>/i, `<html ${htmlAttrs}>`);
+      }
 
       let fullHtml = cleanedTemplate;
 

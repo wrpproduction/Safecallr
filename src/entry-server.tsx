@@ -5,7 +5,7 @@ import { StaticRouter } from 'react-router';
 import App from './App';
 import { PreloadContext } from './contexts/PreloadContext';
 
-export async function render(url: string, preloadedData?: any): Promise<{ html: string; head: string }> {
+export async function render(url: string, preloadedData?: any): Promise<{ html: string; head: string; htmlAttrs: string }> {
   const helmetContext: { helmet?: any } = {};
 
   const lang: 'fr' | 'en' | 'es' = (url.startsWith('/en/') || url === '/en')
@@ -34,5 +34,7 @@ export async function render(url: string, preloadedData?: any): Promise<{ html: 
     .filter(Boolean)
     .join('\n');
 
-  return { html, head };
+  const htmlAttrs = helmet?.htmlAttributes?.toString() || '';
+
+  return { html, head, htmlAttrs };
 }
