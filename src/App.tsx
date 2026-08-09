@@ -132,7 +132,7 @@ const WEBSITE_JSON_LD = {
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(typeof window !== 'undefined');
 
   useEffect(() => {
     if (typeof window === 'undefined') {
