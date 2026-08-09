@@ -105,7 +105,7 @@ export function LanguageProvider({ children, user }: { children: React.ReactNode
     }
   };
 
-  const t = (path: string, params?: Record<string, string | number>): string => {
+  const t = (path: string, params?: Record<string, string | number>, fallback?: string): string => {
     try {
       const activeDictionary = translations[lang] || translations.fr;
       const parts = path.split(".");
@@ -129,14 +129,14 @@ export function LanguageProvider({ children, user }: { children: React.ReactNode
           if (typeof fallbackCurrent === "string") {
             current = fallbackCurrent;
           } else {
-            return path; // Return the path if key completely missing
+            return fallback !== undefined ? fallback : "";
           }
           break;
         }
       }
 
       if (typeof current !== "string") {
-        return path;
+        return fallback !== undefined ? fallback : "";
       }
 
       let text = current;
@@ -149,7 +149,7 @@ export function LanguageProvider({ children, user }: { children: React.ReactNode
       return text;
     } catch (e) {
       console.error("[SafeCallr] Translation lookup error:", e);
-      return path;
+      return fallback !== undefined ? fallback : "";
     }
   };
 

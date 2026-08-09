@@ -36,7 +36,19 @@ export const translations = {
       verify: "Vérifier",
       history: "Historique",
       help: "Aide",
-      profile: "Profil"
+      profile: "Profil",
+      particuliers: "Particuliers",
+      professionnels: "Professionnels",
+      entreprises: "Entreprises",
+      login: "Connexion",
+      register: "S'inscrire",
+      particulier: "Particulier",
+      professionnel: "Professionnel",
+      entreprise: "Entreprise",
+      personalAccess: "Accès personnel",
+      proSpace: "Espace Pro",
+      businessSpace: "Espace Business",
+      quickVerify: "Vérification rapide"
     },
     landing: {
       probleme: "Problème",
@@ -642,7 +654,19 @@ export const translations = {
       verify: "Verify",
       history: "History",
       help: "Help",
-      profile: "Profile"
+      profile: "Profile",
+      particuliers: "Individuals",
+      professionnels: "Professionals",
+      entreprises: "Businesses",
+      login: "Log In",
+      register: "Sign Up",
+      particulier: "Individual",
+      professionnel: "Professional",
+      entreprise: "Business",
+      personalAccess: "Personal access",
+      proSpace: "Pro Space",
+      businessSpace: "Business Space",
+      quickVerify: "Quick verify"
     },
     landing: {
       probleme: "Problem",
@@ -1248,7 +1272,19 @@ export const translations = {
       verify: "Verificar",
       history: "Historial",
       help: "Ayuda",
-      profile: "Perfil"
+      profile: "Perfil",
+      particuliers: "Particulares",
+      professionnels: "Profesionales",
+      entreprises: "Empresas",
+      login: "Iniciar sesión",
+      register: "Registrarse",
+      particulier: "Particular",
+      professionnel: "Profesional",
+      entreprise: "Empresa",
+      personalAccess: "Acceso personal",
+      proSpace: "Espacio Pro",
+      businessSpace: "Espacio Empresa",
+      quickVerify: "Verificación rápida"
     },
     landing: {
       probleme: "Problema",

@@ -108,28 +108,35 @@ export default defineConfig(async ({mode}) => {
   let prerenderRendererOptions: any = {
     renderAfterTime: 4000,
   };
+  let enablePrerenderPlugin = false;
 
   if (process.env.ENABLE_PRERENDER === 'true') {
-    const articleRoutes = await getPublishedArticleRoutes();
-    allPrerenderRoutes = Array.from(new Set([...staticRoutes, ...articleRoutes]));
-
     try {
+      const articleRoutes = await getPublishedArticleRoutes();
+      allPrerenderRoutes = Array.from(new Set([...staticRoutes, ...articleRoutes]));
+
       const chromium = (await import('@sparticuz/chromium')).default;
       // Rendu HTML simple : pas besoin du mode graphique
       chromium.setGraphicsMode = false;
       const executablePath = await chromium.executablePath();
 
-      prerenderRendererOptions = {
-        renderAfterTime: 4000,
-        maxConcurrentRoutes: 1,
-        launchOptions: {
-          headless: true,
-          executablePath: executablePath,
-          args: chromium.args,
-        },
-      };
+      if (executablePath) {
+        prerenderRendererOptions = {
+          renderAfterTime: 4000,
+          maxConcurrentRoutes: 1,
+          launchOptions: {
+            headless: true,
+            executablePath: executablePath,
+            args: chromium.args,
+          },
+        };
+        enablePrerenderPlugin = true;
+      } else {
+        console.warn('[Vite Prerender] Aucun chemin exécutable Chromium trouvé.');
+      }
     } catch (err) {
-      console.warn('[Vite Prerender] Erreur init @sparticuz/chromium:', err);
+      console.warn('[Vite Prerender] Erreur init @sparticuz/chromium, désactivation du prerender:', err);
+      enablePrerenderPlugin = false;
     }
   }
 
@@ -203,7 +210,7 @@ export default defineConfig(async ({mode}) => {
           ],
         }
       }),
-      process.env.ENABLE_PRERENDER === 'true' ? prerender({
+      enablePrerenderPlugin ? prerender({
         routes: allPrerenderRoutes,
         renderer: '@prerenderer/renderer-puppeteer',
         rendererOptions: prerenderRendererOptions

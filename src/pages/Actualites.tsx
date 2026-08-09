@@ -72,7 +72,7 @@ export default function Actualites() {
     "@context": "https://schema.org",
     "@type": "Blog",
     "name": "Le Blog de la Sécurité Téléphonique - SafeCallr",
-    "description": "Conseils, décryptages d'arnaques et actualités sur la sécurité des appels pour les particuliers et les professionnels.",
+    "description": "Centre d'information, d'enquêtes et d'actualités sur le spoofing téléphonique, la sécurité bancaire et la prévention des fraudes vocales.",
     "publisher": {
       "@type": "Organization",
       "name": "SafeCallr",
@@ -94,8 +94,9 @@ export default function Actualites() {
   return (
     <div className="min-h-screen bg-background text-on-background selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
-        title="Actualités de Sécurité Téléphonique & Anti-Spoofing"
-        description="Retrouvez nos derniers articles, décryptages d'arnaques (faux conseiller, usurpation) et conseils de cybersécurité pour particuliers et entreprises."
+        title="Blog & Actualités Cybersécurité Téléphonique | SafeCallr"
+        description="Retrouvez nos enquêtes, guides pratiques et actualités sur la sécurité téléphonique. Apprenez à déjouer les arnaques au faux conseiller bancaire, le spoofing et le vishing."
+        keywords={["blog cybersécurité", "actualités arnaques téléphoniques", "guide anti-spoofing", "alertes faux conseiller bancaire", "prévention vishing", "conseils sécurité téléphonique"]}
         jsonLd={blogJsonLd}
       />
 
@@ -132,7 +133,7 @@ export default function Actualites() {
             Le Blog de la <span className="text-primary">Sécurité Téléphonique</span>
           </h1>
           <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
-            Protégez vos proches et vos collaborateurs contre le spoofing, l'usurpation d'identité et les arnaques de faux conseillers bancaires.
+            Guides d'experts, alertes de sécurité et décryptages pour vous informer et vous prémunir contre les nouvelles formes d'escroqueries téléphoniques.
           </p>
         </div>
       </section>

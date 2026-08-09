@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { db, collection, getDocs, query, where } from "../firebase";
 import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelector from "../components/LanguageSelector";
+import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 
 export default function Landing({ persona, legal }: { persona?: string; legal?: string }) {
   const { t, lang } = useLanguage();
@@ -80,16 +81,24 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           items.push({ id: doc.id, ...doc.data() });
         });
 
+        const merged = [...items];
+        for (const defArt of DEFAULT_BLOG_ARTICLES) {
+          if (!merged.some(a => a.slug === defArt.slug || a.metaTitle === defArt.metaTitle || a.id === defArt.id)) {
+            merged.push(defArt);
+          }
+        }
+
         // Sort by date manually and take first 3
-        items.sort((a, b) => {
+        merged.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateB - dateA;
         });
 
-        setLatestArticles(items.slice(0, 3));
+        setLatestArticles(merged.slice(0, 3));
       } catch (err) {
         console.error("Error loading latest articles:", err);
+        setLatestArticles(DEFAULT_BLOG_ARTICLES.slice(0, 3));
       } finally {
         setBlogLoading(false);
       }
@@ -102,8 +111,8 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
     <div className="min-h-screen bg-background text-on-background font-body selection:bg-primary/30 selection:text-primary overflow-x-hidden">
       <SEOManager 
         title="SafeCallr | Protection Anti-Spoofing & Authentification d'Appels"
-        description="SafeCallr est la solution d'authentification humaine d'appels téléphoniques en temps réel. Protégez-vous contre le spoofing, l'usurpation d'identité et le faux conseiller bancaire."
-        keywords={["SafeCallr", "authentification appels", "spoofing", "faux conseiller bancaire", "sécurité téléphonique", "2FA téléphone", "anti-fraude", "protection usurpation"]}
+        description="Découvrez l'application SafeCallr : la solution d'authentification humaine d'appels téléphoniques en temps réel. Validez l'identité de vos interlocuteurs, éliminez le spoofing et sécurisez vos échanges bancaires et professionnels."
+        keywords={["SafeCallr", "authentification appels", "solution anti-spoofing", "sécurité téléphonique", "vérification appelant", "application anti-fraude", "protection 2FA vocal"]}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
@@ -111,7 +120,7 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           "applicationCategory": "SecurityApplication",
           "operatingSystem": "iOS, Android, Web",
           "url": "https://safecallr.com",
-          "description": "Solution d'authentification humaine d'appels téléphoniques en temps réel contre le spoofing et la fraude au faux conseiller bancaire.",
+          "description": "Plateforme d'authentification certifiée d'appels téléphoniques en temps réel pour particuliers, professionnels et institutions.",
           "publisher": {
             "@type": "Organization",
             "name": "SafeCallr"
