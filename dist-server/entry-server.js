@@ -43989,4 +43989,4 @@ var init_index_node_esm = __esm({
 });
 
 // node_modules/@firebase/component/dist/esm/index.esm.js
-function normalizeIdentifierForFactory(i
+function normalizeIdentifierForFactory(ident

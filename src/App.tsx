@@ -241,6 +241,8 @@ export default function App() {
           } />
           
           <Route path="/particuliers" element={<Particuliers />} />
+          <Route path="/en/particuliers" element={<Particuliers />} />
+          <Route path="/es/particuliers" element={<Particuliers />} />
 
           <Route path="/professionnels" element={<Professionnels />} />
 
