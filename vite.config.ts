@@ -103,11 +103,34 @@ export default defineConfig(async ({mode}) => {
     '/privacidad',
   ];
 
-  // Récupération des routes dynamiques d'articles publiés au moment du build
+  // Récupération des routes dynamiques d'articles publiés et options de prerender
   let allPrerenderRoutes = [...staticRoutes];
+  let prerenderRendererOptions: any = {
+    renderAfterTime: 500,
+  };
+
   if (process.env.ENABLE_PRERENDER === 'true') {
     const articleRoutes = await getPublishedArticleRoutes();
     allPrerenderRoutes = Array.from(new Set([...staticRoutes, ...articleRoutes]));
+
+    try {
+      const chromium = (await import('@sparticuz/chromium')).default;
+      // Rendu HTML simple : pas besoin du mode graphique
+      chromium.setGraphicsMode = false;
+      const executablePath = await chromium.executablePath();
+
+      prerenderRendererOptions = {
+        renderAfterTime: 1000,
+        maxConcurrentRoutes: 1,
+        launchOptions: {
+          headless: true,
+          executablePath: executablePath,
+          args: chromium.args,
+        },
+      };
+    } catch (err) {
+      console.warn('[Vite Prerender] Erreur init @sparticuz/chromium:', err);
+    }
   }
 
   return {
@@ -183,9 +206,7 @@ export default defineConfig(async ({mode}) => {
       process.env.ENABLE_PRERENDER === 'true' ? prerender({
         routes: allPrerenderRoutes,
         renderer: '@prerenderer/renderer-puppeteer',
-        rendererOptions: {
-          renderAfterTime: 500,
-        }
+        rendererOptions: prerenderRendererOptions
       }) : null
     ].filter(Boolean),
     define: {
