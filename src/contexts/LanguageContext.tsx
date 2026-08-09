@@ -37,8 +37,8 @@ export const getSyncDefault = (): LanguageType => {
   return "fr"; // Racine et toutes les autres URLs non préfixées = fr
 };
 
-export function LanguageProvider({ children, user }: { children: React.ReactNode; user: any }) {
-  const [lang, setLang] = useState<LanguageType>(getSyncDefault());
+export function LanguageProvider({ children, user, forcedLang }: { children: React.ReactNode; user: any; forcedLang?: LanguageType }) {
+  const [lang, setLang] = useState<LanguageType>(forcedLang || getSyncDefault());
 
   useEffect(() => {
     const initLanguage = async () => {

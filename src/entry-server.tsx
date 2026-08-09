@@ -8,11 +8,17 @@ import { PreloadContext } from './contexts/PreloadContext';
 export async function render(url: string, preloadedData?: any): Promise<{ html: string; head: string }> {
   const helmetContext: { helmet?: any } = {};
 
+  const lang: 'fr' | 'en' | 'es' = (url.startsWith('/en/') || url === '/en')
+    ? 'en'
+    : (url.startsWith('/es/') || url === '/es')
+    ? 'es'
+    : 'fr';
+
   const html = renderToString(
     <HelmetProvider context={helmetContext}>
       <StaticRouter location={url}>
         <PreloadContext.Provider value={preloadedData}>
-          <App />
+          <App forcedLang={lang} />
         </PreloadContext.Provider>
       </StaticRouter>
     </HelmetProvider>

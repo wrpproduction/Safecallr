@@ -130,7 +130,7 @@ const WEBSITE_JSON_LD = {
   }
 };
 
-export default function App() {
+export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } = {}) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(typeof window !== 'undefined');
 
@@ -209,7 +209,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <LanguageProvider user={user}>
+      <LanguageProvider user={user} forcedLang={forcedLang}>
         <Toaster position="top-right" richColors />
         <ScrollToTop />
         <NotificationController user={user} />
