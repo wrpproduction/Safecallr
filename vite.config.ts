@@ -106,7 +106,7 @@ export default defineConfig(async ({mode}) => {
   // Récupération des routes dynamiques d'articles publiés et options de prerender
   let allPrerenderRoutes = [...staticRoutes];
   let prerenderRendererOptions: any = {
-    renderAfterTime: 500,
+    renderAfterTime: 4000,
   };
 
   if (process.env.ENABLE_PRERENDER === 'true') {
@@ -120,7 +120,7 @@ export default defineConfig(async ({mode}) => {
       const executablePath = await chromium.executablePath();
 
       prerenderRendererOptions = {
-        renderAfterTime: 1000,
+        renderAfterTime: 4000,
         maxConcurrentRoutes: 1,
         launchOptions: {
           headless: true,
