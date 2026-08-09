@@ -245,11 +245,33 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/es/particuliers" element={<Particuliers />} />
 
           <Route path="/professionnels" element={<Professionnels />} />
+          <Route path="/en/professionnels" element={<Professionnels />} />
+          <Route path="/es/professionnels" element={<Professionnels />} />
 
           <Route path="/entreprises" element={<Entreprises />} />
+          <Route path="/en/entreprises" element={<Entreprises />} />
+          <Route path="/es/entreprises" element={<Entreprises />} />
           <Route path="/institutions" element={<Entreprises />} />
 
           <Route path="/company-contact" element={
+            <>
+              <SEOManager 
+                title="Contactez un expert en sécurité téléphonique"
+                description="Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
+              />
+              <CompanyContact />
+            </>
+          } />
+          <Route path="/en/company-contact" element={
+            <>
+              <SEOManager 
+                title="Contactez un expert en sécurité téléphonique"
+                description="Une question sur le déploiement ou besoin d'une démo ? Contactez l'équipe SafeCallr pour sécuriser vos communications professionnelles."
+              />
+              <CompanyContact />
+            </>
+          } />
+          <Route path="/es/company-contact" element={
             <>
               <SEOManager 
                 title="Contactez un expert en sécurité téléphonique"
@@ -328,6 +350,8 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           } />
 
           <Route path="/actualite" element={<Actualites />} />
+          <Route path="/en/actualite" element={<Actualites />} />
+          <Route path="/es/actualite" element={<Actualites />} />
           <Route path="/actualite/:slug" element={<ArticleDetail />} />
 
           <Route path="/sitemap" element={<SitemapPage />} />
@@ -388,6 +412,8 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
             <Route path="/request/:id" element={renderProtectedRoute(RequestStatus)} />
             <Route path="/auth-request/:id" element={renderProtectedRoute(AuthRequestDetails)} />
             <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/en/how-it-works" element={<HowItWorks />} />
+            <Route path="/es/how-it-works" element={<HowItWorks />} />
             <Route path="/history" element={renderProtectedRoute(History)} />
             <Route path="/contacts" element={renderProtectedRoute(Contacts)} />
             <Route path="/profile" element={renderProtectedRoute(Profile)} />
