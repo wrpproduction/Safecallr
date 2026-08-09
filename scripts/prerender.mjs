@@ -26,6 +26,8 @@ async function main() {
   const staticRoutes = [
     '/',
     '/particuliers',
+    '/en/particuliers',
+    '/es/particuliers',
     '/professionnels',
     '/entreprises',
     '/company-contact',
