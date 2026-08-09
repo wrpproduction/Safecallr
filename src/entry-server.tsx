@@ -1,8 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { HelmetProvider } from 'react-helmet-async';
-// @ts-ignore
-import { StaticRouter } from 'react-router-dom/server';
+import { StaticRouter } from 'react-router';
 import App from './App';
 
 export async function render(url: string): Promise<{ html: string; head: string }> {
