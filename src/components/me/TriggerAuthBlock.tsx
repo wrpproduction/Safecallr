@@ -100,7 +100,7 @@ export default function TriggerAuthBlock({ organization, member }: TriggerAuthBl
         memberId: member.id,
         memberName: `${member.firstName} ${member.lastName}`,
         clientPhone: cleanPhone,
-        createdAt: new Date(),
+        createdAt: new Date() as any,
         completedAt: null,
         ipAddress: "..."
       });

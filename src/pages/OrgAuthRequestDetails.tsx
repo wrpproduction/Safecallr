@@ -131,7 +131,7 @@ export default function OrgAuthRequestDetails() {
           </div>
 
           <AnimatePresence mode="wait">
-            {request.status === "pending" || request.status === "code_generated" ? (
+            {(request.status as string) === "pending" || (request.status as string) === "code_generated" ? (
               <motion.div 
                 key="waiting"
                 initial={{ opacity: 0 }}

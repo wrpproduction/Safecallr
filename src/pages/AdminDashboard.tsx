@@ -28,7 +28,7 @@ import { fr } from "date-fns/locale";
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
-import { safeFormatDate } from "../lib/dateUtils";
+import { safeFormatDate, parseToDate } from "../lib/dateUtils";
 import { Link } from "react-router-dom";
 
 // Mock data for the chart
@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const [recentMembers, setRecentMembers] = useState<any[]>([]);
   const [recentPros, setRecentPros] = useState<any[]>([]);
   const [recentConns, setRecentConns] = useState<any[]>([]);
+  const [orgsChartData, setOrgsChartData] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({
     users: 0,
     pros: 0,
@@ -303,6 +304,24 @@ export default function AdminDashboard() {
         setOrganizations(orgs.slice(0, 5));
         setRecentOrgs(orgs.slice(0, 10));
 
+        // Compute real cumulative org growth over 6 months
+        const monthNames = ["Janv", "Févr", "Mars", "Avril", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
+        const now = new Date();
+        const orgChart: { name: string; orgs: number }[] = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+          const label = monthNames[d.getMonth()];
+          
+          const count = orgs.filter((o: any) => {
+            const created = parseToDate(o.createdAt);
+            return created && created <= endOfMonth;
+          }).length;
+
+          orgChart.push({ name: label, orgs: count });
+        }
+        setOrgsChartData(orgChart);
+
         // Check Resend Status
         try {
           const res = await fetch("/api/resend-status");
@@ -324,10 +343,10 @@ export default function AdminDashboard() {
   }, []);
 
   const displayStats = [
-    { label: "Utilisateurs Totaux", value: realStats.users.toLocaleString(), icon: Users, color: "#60a5fa", trend: "+12%", trendUp: true, path: "/admin/users" },
-    { label: "Pros Actifs", value: realStats.pros.toLocaleString(), icon: ShieldCheck, color: "#4ade80", trend: "+5%", trendUp: true, path: "/admin/pros" },
-    { label: "Organisations", value: realStats.orgs.toString(), icon: Building2, color: "#a78bfa", trend: "+2", trendUp: true, path: "/admin/organizations" },
-    { label: "Demandes (Total)", value: realStats.requests.toLocaleString(), icon: History, color: "var(--color-primary)", trend: "+18%", trendUp: true, path: "/admin/requests" },
+    { label: "Utilisateurs Totaux", value: realStats.users.toLocaleString(), icon: Users, color: "#60a5fa", sub: "Base Firestore", path: "/admin/users" },
+    { label: "Pros Actifs", value: realStats.pros.toLocaleString(), icon: ShieldCheck, color: "#4ade80", sub: "Comptes certifiés", path: "/admin/pros" },
+    { label: "Organisations", value: realStats.orgs.toString(), icon: Building2, color: "#a78bfa", sub: "Espaces créés", path: "/admin/organizations" },
+    { label: "Demandes (Total)", value: realStats.requests.toLocaleString(), icon: History, color: "var(--color-primary)", sub: "Vérifications faites", path: "/admin/requests" },
   ];
 
   if (loading) {
@@ -403,9 +422,8 @@ export default function AdminDashboard() {
                 >
                   <stat.icon size={24} />
                 </div>
-                <div className={`flex items-center gap-1 text-sm font-medium ${stat.trendUp ? "text-[#4ade80]" : "text-[#f87171]"}`}>
-                  {stat.trend}
-                  {stat.trendUp ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                <div className="text-xs font-semibold text-slate-400 bg-[#111113] px-2.5 py-1 rounded-full border border-[#2e2e34]">
+                  {stat.sub}
                 </div>
               </div>
               <div className="space-y-1">
@@ -414,25 +432,21 @@ export default function AdminDashboard() {
               </div>
             </Link>
           ))}
-        </div>        {/* Chart Section */}
+        </div>
+
+        {/* Chart Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-[#1e1e22] border border-[#2e2e34] p-8 rounded-3xl">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-xl font-bold">Croissance de la plateforme</h2>
-                  <p className="text-xs text-[#9a9a9f] mt-1 font-bold uppercase tracking-widest">Évolution du nombre d'organisations sur 12 mois</p>
+                  <p className="text-xs text-[#9a9a9f] mt-1 font-bold uppercase tracking-widest">Nombre réel d'organisations sur les 6 derniers mois</p>
                 </div>
               </div>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={[
-                    { name: 'Jan', orgs: 2 },
-                    { name: 'Fév', orgs: 5 },
-                    { name: 'Mar', orgs: 8 },
-                    { name: 'Avr', orgs: 15 },
-                    { name: 'Mai', orgs: 22 },
-                  ]}>
+                  <AreaChart data={orgsChartData}>
                     <defs>
                       <linearGradient id="colorOrgs" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.3}/>
@@ -440,10 +454,10 @@ export default function AdminDashboard() {
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} allowDecimals={false} />
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2e2e34" />
                     <Tooltip contentStyle={{ backgroundColor: '#111113', border: '1px solid #2e2e34', borderRadius: '12px' }} />
-                    <Area type="monotone" dataKey="orgs" stroke="#60a5fa" fillOpacity={1} fill="url(#colorOrgs)" strokeWidth={3} />
+                    <Area type="monotone" dataKey="orgs" stroke="#60a5fa" fillOpacity={1} fill="url(#colorOrgs)" strokeWidth={3} name="Organisations" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

@@ -33,7 +33,7 @@ interface BlogArticle {
 }
 
 export default function SitemapPage() {
-  const { language, t } = useLanguage();
+  const { lang: language, t } = useLanguage();
   const [articles, setArticles] = useState<BlogArticle[]>([]);
   const [loadingBlog, setLoadingBlog] = useState(true);
 

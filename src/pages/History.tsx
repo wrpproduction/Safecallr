@@ -7,7 +7,7 @@ import { fr, enUS, es } from "date-fns/locale";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export default function History({ user }: { user: any }) {
-  const { t, language } = useLanguage();
+  const { t, lang: language } = useLanguage();
   const dateLocale = language === "en" ? enUS : language === "es" ? es : fr;
   const [requests, setRequests] = useState<any[]>([]);
   const [userConnections, setUserConnections] = useState<any[]>([]);

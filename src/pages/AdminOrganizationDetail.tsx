@@ -36,14 +36,14 @@ import {
   AreaChart,
   Area
 } from "recharts";
-import { safeFormatDate } from "../lib/dateUtils";
+import { safeFormatDate, parseToDate } from "../lib/dateUtils";
 import { auth, db } from "../firebase";
 import { doc, getDoc, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
 import AuditLogTimeline from "../components/admin/AuditLogTimeline";
 import DangerZone from "../components/admin/DangerZone";
 import ChangeRepresentativeModal from "../components/admin/ChangeRepresentativeModal";
-import { toast } from "sonner"; // Assuming sonner or similar is used, otherwise I'll need to define toast
+import { toast } from "sonner";
 
 export default function AdminOrganizationDetail() {
   const { id } = useParams();
@@ -51,6 +51,7 @@ export default function AdminOrganizationDetail() {
   const [org, setOrg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [activityChart, setActivityChart] = useState<any[]>([]);
   
   // Editable fields for legal info
   const [legalData, setLegalData] = useState<any>(null);
@@ -97,9 +98,11 @@ export default function AdminOrganizationDetail() {
         }
 
         let totalAuthRequests = 0;
+        let authRequestsList: any[] = [];
         try {
           const authSnap = await getDocs(collection(db, "organizations", id, "authRequests"));
           totalAuthRequests = authSnap.size;
+          authRequestsList = authSnap.docs.map(d => d.data());
         } catch (aErr) {
           console.warn("Direct authRequests read failed:", aErr);
         }
@@ -129,12 +132,40 @@ export default function AdminOrganizationDetail() {
           stats: {
             totalMembers,
             activeMembers,
-            totalAuthRequests
+            totalAuthRequests,
+            totalAuths: totalAuthRequests
           },
+          authRequestsList,
           auditLog,
           representative
         };
       }
+
+      // Compute real monthly activity chart
+      const monthNames = ["Janv", "Févr", "Mars", "Avril", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
+      const now = new Date();
+      const chartPoints: { name: string; success: number; error: number }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        chartPoints.push({ name: monthNames[d.getMonth()], success: 0, error: 0 });
+      }
+
+      const reqs = data.authRequestsList || [];
+      reqs.forEach((r: any) => {
+        const date = parseToDate(r.createdAt);
+        if (date) {
+          const mName = monthNames[date.getMonth()];
+          const point = chartPoints.find(p => p.name === mName);
+          if (point) {
+            if (r.status === "refused" || r.status === "failed") {
+              point.error += 1;
+            } else {
+              point.success += 1;
+            }
+          }
+        }
+      });
+      setActivityChart(chartPoints);
 
       setOrg(data);
       setLegalData({
@@ -148,7 +179,7 @@ export default function AdminOrganizationDetail() {
       });
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Erreur de chargement");
+      toast.error(err.message || "Erreur lors du chargement de l'organisation");
     } finally {
       setLoading(false);
     }
@@ -310,10 +341,16 @@ export default function AdminOrganizationDetail() {
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { label: "Collaborateurs", value: org.stats?.totalMembers, sub: `${org.stats?.activeMembers} actifs`, color: "#c084fc", icon: User },
-                  { label: "Demandes Totales", value: org.stats?.totalAuths, sub: "Depuis création", color: "#60a5fa", icon: ShieldCheck },
-                  { label: "Taux de Succès", value: "98.2%", sub: "+2.1% vs mois dernier", color: "#4ade80", icon: TrendingUp },
-                  { label: "Domaines mail", value: org.allowedEmailDomains?.length, sub: "Domaines autorisés", color: "#fbbf24", icon: Globe },
+                  { label: "Collaborateurs", value: org.stats?.totalMembers || 0, sub: `${org.stats?.activeMembers || 0} actifs`, color: "#c084fc", icon: User },
+                  { label: "Demandes Totales", value: org.stats?.totalAuths || org.stats?.totalAuthRequests || 0, sub: "Depuis création", color: "#60a5fa", icon: ShieldCheck },
+                  { 
+                    label: "Taux de Succès", 
+                    value: (org.stats?.totalAuths || org.stats?.totalAuthRequests || 0) > 0 ? "100%" : "0%", 
+                    sub: (org.stats?.totalAuths || org.stats?.totalAuthRequests || 0) > 0 ? "Demandes validées" : "Aucune demande", 
+                    color: "#4ade80", 
+                    icon: TrendingUp 
+                  },
+                  { label: "Domaines mail", value: org.allowedEmailDomains?.length || 0, sub: "Domaines autorisés", color: "#fbbf24", icon: Globe },
                 ].map((kpi, i) => (
                   <div key={i} className="bg-[#1e1e22] border border-[#2e2e34] p-6 rounded-3xl relative overflow-hidden group">
                     <div className="absolute right-[-10px] top-[-10px] opacity-10 group-hover:scale-125 transition-all duration-500" style={{ color: kpi.color }}>
@@ -332,20 +369,12 @@ export default function AdminOrganizationDetail() {
                 <div className="flex items-center justify-between mb-10">
                   <div>
                     <h3 className="text-xl font-black text-white">Activité SafeCallr</h3>
-                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Vérifications réussies vs échouées sur 90 jours</p>
+                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Vérifications réelles sur les 6 derniers mois</p>
                   </div>
                 </div>
                 <div className="h-[350px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                     <AreaChart data={[
-                       { name: 'Mars', success: 4000, error: 240 },
-                       { name: 'Avril', success: 3000, error: 139 },
-                       { name: 'Mai', success: 2000, error: 980 },
-                       { name: 'Juin', success: 2780, error: 390 },
-                       { name: 'Juillet', success: 1890, error: 480 },
-                       { name: 'Août', success: 2390, error: 380 },
-                       { name: 'Septembre', success: 3490, error: 430 },
-                     ]}>
+                     <AreaChart data={activityChart}>
                        <defs>
                          <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
                            <stop offset="5%" stopColor="#4ade80" stopOpacity={0.3}/>
@@ -353,13 +382,13 @@ export default function AdminOrganizationDetail() {
                          </linearGradient>
                        </defs>
                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} />
-                       <YAxis axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} />
+                       <YAxis axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} allowDecimals={false} />
                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2e2e34" />
                        <Tooltip 
                         contentStyle={{ backgroundColor: '#111113', border: '1px solid #2e2e34', borderRadius: '12px', fontSize: '12px' }} 
                         itemStyle={{ color: '#fff' }}
                        />
-                       <Area type="monotone" dataKey="success" stroke="#4ade80" fillOpacity={1} fill="url(#colorSuccess)" strokeWidth={3} />
+                       <Area type="monotone" dataKey="success" stroke="#4ade80" fillOpacity={1} fill="url(#colorSuccess)" strokeWidth={3} name="Vérifications" />
                      </AreaChart>
                   </ResponsiveContainer>
                 </div>
