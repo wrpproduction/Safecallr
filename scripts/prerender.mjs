@@ -139,6 +139,79 @@ async function main() {
     }
   }
 
+  // 5.b Générer/Mettre à jour sitemap.xml dans dist/ et public/ avec les articles publiés
+  try {
+    const baseUrl = 'https://safecallr.com';
+    const staticPages = [
+      { url: '/', priority: '1.0', changefreq: 'daily' },
+      { url: '/particuliers', priority: '0.9', changefreq: 'weekly' },
+      { url: '/en/particuliers', priority: '0.8', changefreq: 'weekly' },
+      { url: '/es/particuliers', priority: '0.8', changefreq: 'weekly' },
+      { url: '/professionnels', priority: '0.9', changefreq: 'weekly' },
+      { url: '/en/professionnels', priority: '0.8', changefreq: 'weekly' },
+      { url: '/es/professionnels', priority: '0.8', changefreq: 'weekly' },
+      { url: '/entreprises', priority: '0.9', changefreq: 'weekly' },
+      { url: '/en/entreprises', priority: '0.8', changefreq: 'weekly' },
+      { url: '/es/entreprises', priority: '0.8', changefreq: 'weekly' },
+      { url: '/institutions', priority: '0.8', changefreq: 'weekly' },
+      { url: '/how-it-works', priority: '0.8', changefreq: 'monthly' },
+      { url: '/en/how-it-works', priority: '0.7', changefreq: 'monthly' },
+      { url: '/es/how-it-works', priority: '0.7', changefreq: 'monthly' },
+      { url: '/actualite', priority: '0.8', changefreq: 'daily' },
+      { url: '/en/actualite', priority: '0.7', changefreq: 'daily' },
+      { url: '/es/actualite', priority: '0.7', changefreq: 'daily' },
+      { url: '/company-contact', priority: '0.7', changefreq: 'monthly' },
+      { url: '/en/company-contact', priority: '0.6', changefreq: 'monthly' },
+      { url: '/es/company-contact', priority: '0.6', changefreq: 'monthly' },
+      { url: '/sitemap', priority: '0.7', changefreq: 'weekly' },
+      { url: '/plan-du-site', priority: '0.7', changefreq: 'weekly' },
+      { url: '/cgu', priority: '0.5', changefreq: 'monthly' },
+      { url: '/terms', priority: '0.5', changefreq: 'monthly' },
+      { url: '/terms-of-use', priority: '0.5', changefreq: 'monthly' },
+      { url: '/terminos', priority: '0.5', changefreq: 'monthly' },
+      { url: '/condiciones-uso', priority: '0.5', changefreq: 'monthly' },
+      { url: '/confidentialite', priority: '0.5', changefreq: 'monthly' },
+      { url: '/privacy', priority: '0.5', changefreq: 'monthly' },
+      { url: '/privacidad', priority: '0.5', changefreq: 'monthly' },
+      { url: '/mentions-legales', priority: '0.5', changefreq: 'monthly' },
+      { url: '/legal-notice', priority: '0.5', changefreq: 'monthly' },
+      { url: '/aviso-legal', priority: '0.5', changefreq: 'monthly' },
+    ];
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const staticXml = staticPages.map(page => `  <url>
+    <loc>${baseUrl + page.url}</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`).join('\n');
+
+    const articlesList = Object.values(articlesMap);
+    const dynamicXml = articlesList.map(art => {
+      const slug = art.slug || art.metaTitle || art.id;
+      const artDate = art.updatedAt || art.createdAt;
+      const lastmodStr = artDate ? (typeof artDate === 'string' ? artDate.split('T')[0] : new Date(artDate).toISOString().split('T')[0]) : todayStr;
+      return `  <url>
+    <loc>${baseUrl + '/actualite/' + encodeURIComponent(slug)}</loc>
+    <lastmod>${lastmodStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+    }).join('\n');
+
+    const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticXml}
+${dynamicXml ? dynamicXml + '\n' : ''}</urlset>`;
+
+    fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapContent, 'utf-8');
+    fs.writeFileSync(path.resolve('public/sitemap.xml'), sitemapContent, 'utf-8');
+    console.log(`[Prerender] sitemap.xml updated successfully with ${articlesList.length} article(s).`);
+  } catch (err) {
+    console.warn(`[Prerender] Warning: Could not generate sitemap.xml:`, err?.message || err);
+  }
+
   // 6. Récapitulatif final
   console.log(`[Prerender] Complete. ${successCount}/${allRoutes.length} page(s) prerendered successfully.`);
 }

@@ -2482,6 +2482,26 @@ ${JSON.stringify(jsonLdObj, null, 2)}
     });
   } else {
     const distPath = path.join(process.cwd(), "dist");
+
+    // Serve dynamic sitemap.xml before static files so it always fetches live articles from Firestore
+    app.get("/sitemap.xml", async (req, res) => {
+      try {
+        const xml = await getSEOSitemapXML(db);
+        res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        return res.status(200).send(xml);
+      } catch (err) {
+        console.warn("[SEO Server Prod] Error serving dynamic sitemap.xml:", err);
+      }
+      const sitemapDist = path.join(distPath, "sitemap.xml");
+      const sitemapPublic = path.join(process.cwd(), "public", "sitemap.xml");
+      const fileToServe = fs.existsSync(sitemapDist) ? sitemapDist : fs.existsSync(sitemapPublic) ? sitemapPublic : null;
+      if (fileToServe) {
+        res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        return res.sendFile(fileToServe);
+      }
+      return res.status(404).send("Sitemap not found");
+    });
+
     app.use(express.static(distPath, {
       setHeaders: (res, filePath) => {
         if (filePath.endsWith(".webmanifest") || filePath.endsWith("manifest.webmanifest")) {
