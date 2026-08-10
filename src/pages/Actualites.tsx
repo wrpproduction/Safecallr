@@ -17,6 +17,32 @@ import AppLogo from "../components/AppLogo";
 import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 import { useLanguage } from "../contexts/LanguageContext";
 
+const formatGeoTargeting = (geo: string, targetLang: string) => {
+  if (!geo) return "";
+  const lower = geo.trim().toLowerCase();
+  if (lower === "espagne" || lower === "spain" || lower === "españa") {
+    if (targetLang === "es") return "España";
+    if (targetLang === "en") return "Spain";
+    return "Espagne";
+  }
+  if (lower === "mondial" || lower === "global" || lower === "mundial") {
+    if (targetLang === "es") return "Mundial";
+    if (targetLang === "en") return "Global";
+    return "Mondial";
+  }
+  if (lower.includes("france") && lower.includes("europe")) {
+    if (targetLang === "es") return "Francia y Europa";
+    if (targetLang === "en") return "France & Europe";
+    return "France & Europe";
+  }
+  if (lower.includes("b2b") && lower.includes("france")) {
+    if (targetLang === "es") return "B2B Francia e Internacional";
+    if (targetLang === "en") return "B2B France & International";
+    return "B2B France & International";
+  }
+  return geo;
+};
+
 export default function Actualites() {
   const { lang, t } = useLanguage();
   const [articles, setArticles] = useState<any[]>([]);
@@ -271,7 +297,7 @@ export default function Actualites() {
                         </span>
                         {featuredArticle.geoTargeting && (
                           <span className="flex items-center gap-1 text-[10px] text-primary font-bold uppercase tracking-widest">
-                            <Globe size={10} /> {featuredArticle.geoTargeting}
+                            <Globe size={10} /> {formatGeoTargeting(featuredArticle.geoTargeting, selectedLang)}
                           </span>
                         )}
                       </div>
@@ -284,7 +310,7 @@ export default function Actualites() {
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-slate-500">
                       <span>
-                        {featuredArticle.createdAt ? new Date(featuredArticle.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}
+                        {featuredArticle.createdAt ? new Date(featuredArticle.createdAt).toLocaleDateString(selectedLang === "es" ? "es-ES" : selectedLang === "en" ? "en-US" : "fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}
                       </span>
                       <span className="text-primary font-bold uppercase tracking-wider flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                         {t('blogUI.readMore')} <ArrowRight size={14} />
@@ -330,13 +356,13 @@ export default function Actualites() {
                         <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-medium">
                           {art.geoTargeting ? (
                             <span className="flex items-center gap-1 text-primary">
-                              <Globe size={10} /> {art.geoTargeting}
+                              <Globe size={10} /> {formatGeoTargeting(art.geoTargeting, selectedLang)}
                             </span>
                           ) : (
                             <span></span>
                           )}
                           <span>
-                            {art.createdAt ? new Date(art.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : ""}
+                            {art.createdAt ? new Date(art.createdAt).toLocaleDateString(selectedLang === "es" ? "es-ES" : selectedLang === "en" ? "en-US" : "fr-FR", { day: "numeric", month: "short" }) : ""}
                           </span>
                         </div>
                       </div>

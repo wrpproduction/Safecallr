@@ -207,7 +207,7 @@ async function createAuditLog(orgId: string, actor: { uid: string, email: string
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(express.json());
 
@@ -1638,6 +1638,107 @@ function convertMarkdownToSEOPageHTML(markdown: string): string {
   return html;
 }
 
+async function getSEOSitemapXML(db: any): Promise<string> {
+  const baseUrl = "https://safecallr.com";
+  const staticPages = [
+    { url: "/", priority: "1.0", changefreq: "daily" },
+    { url: "/particuliers", priority: "0.9", changefreq: "weekly" },
+    { url: "/en/particuliers", priority: "0.8", changefreq: "weekly" },
+    { url: "/es/particuliers", priority: "0.8", changefreq: "weekly" },
+    { url: "/professionnels", priority: "0.9", changefreq: "weekly" },
+    { url: "/en/professionnels", priority: "0.8", changefreq: "weekly" },
+    { url: "/es/professionnels", priority: "0.8", changefreq: "weekly" },
+    { url: "/entreprises", priority: "0.9", changefreq: "weekly" },
+    { url: "/en/entreprises", priority: "0.8", changefreq: "weekly" },
+    { url: "/es/entreprises", priority: "0.8", changefreq: "weekly" },
+    { url: "/institutions", priority: "0.8", changefreq: "weekly" },
+    { url: "/how-it-works", priority: "0.8", changefreq: "monthly" },
+    { url: "/en/how-it-works", priority: "0.7", changefreq: "monthly" },
+    { url: "/es/how-it-works", priority: "0.7", changefreq: "monthly" },
+    { url: "/actualite", priority: "0.8", changefreq: "daily" },
+    { url: "/en/actualite", priority: "0.7", changefreq: "daily" },
+    { url: "/es/actualite", priority: "0.7", changefreq: "daily" },
+    { url: "/company-contact", priority: "0.7", changefreq: "monthly" },
+    { url: "/en/company-contact", priority: "0.6", changefreq: "monthly" },
+    { url: "/es/company-contact", priority: "0.6", changefreq: "monthly" },
+    { url: "/sitemap", priority: "0.7", changefreq: "weekly" },
+    { url: "/plan-du-site", priority: "0.7", changefreq: "weekly" },
+    { url: "/cgu", priority: "0.5", changefreq: "monthly" },
+    { url: "/terms", priority: "0.5", changefreq: "monthly" },
+    { url: "/terms-of-use", priority: "0.5", changefreq: "monthly" },
+    { url: "/terminos", priority: "0.5", changefreq: "monthly" },
+    { url: "/condiciones-uso", priority: "0.5", changefreq: "monthly" },
+    { url: "/confidentialite", priority: "0.5", changefreq: "monthly" },
+    { url: "/privacy", priority: "0.5", changefreq: "monthly" },
+    { url: "/privacidad", priority: "0.5", changefreq: "monthly" },
+    { url: "/mentions-legales", priority: "0.5", changefreq: "monthly" },
+    { url: "/legal-notice", priority: "0.5", changefreq: "monthly" },
+    { url: "/aviso-legal", priority: "0.5", changefreq: "monthly" },
+  ];
+
+  const DEFAULT_ARTICLES_SLUGS = [
+    { slug: "comment-reconnaitre-arnaque-faux-conseiller-bancaire", date: "2026-02-01" },
+    { slug: "spoofing-telephonique-comment-les-escrocs-usurpent-votre-numero", date: "2026-01-20" },
+    { slug: "fraude-au-president-proteger-votre-entreprise", date: "2026-01-10" }
+  ];
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  let articlesList: any[] = [];
+
+  if (db) {
+    try {
+      const snap = await db.collection("articles").where("published", "==", true).get();
+      if (!snap.empty) {
+        articlesList = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      }
+    } catch (err) {
+      console.warn("[SEO Server] Error fetching articles for sitemap XML:", err);
+    }
+  }
+
+  for (const def of DEFAULT_ARTICLES_SLUGS) {
+    if (!articlesList.some(a => a.slug === def.slug || a.metaTitle === def.slug || a.id === def.slug)) {
+      articlesList.push({ slug: def.slug, updatedAt: def.date });
+    }
+  }
+
+  const escapeXml = (unsafe: string) =>
+    (unsafe || "").replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+
+  const staticXml = staticPages.map(page => `  <url>
+    <loc>${escapeXml(baseUrl + page.url)}</loc>
+    <lastmod>${todayStr}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`).join('\n');
+
+  const dynamicXml = articlesList.map(art => {
+    const slug = art.slug || art.metaTitle || art.id;
+    const artDate = art.updatedAt || art.createdAt;
+    const lastmodStr = artDate ? (typeof artDate === 'string' ? artDate.split("T")[0] : new Date(artDate).toISOString().split("T")[0]) : todayStr;
+    return `  <url>
+    <loc>${escapeXml(baseUrl + "/actualite/" + encodeURIComponent(slug))}</loc>
+    <lastmod>${lastmodStr}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+  }).join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticXml}
+${dynamicXml ? dynamicXml + '\n' : ''}</urlset>`;
+}
+
 async function getSEORenderedHTML(reqPath: string, rawTemplate: string, db: any): Promise<string> {
   const url = (reqPath || "/").split("?")[0];
   const escapeHtml = (str: string) => (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -2348,11 +2449,24 @@ ${JSON.stringify(jsonLdObj, null, 2)}
     app.get("*", async (req, res, next) => {
       const url = req.originalUrl;
       if (url.startsWith("/api/")) return next();
-      if (url.includes("sitemap.xml") || url.includes("robots.txt")) {
-        const staticFile = url.includes("sitemap.xml") ? "sitemap.xml" : "robots.txt";
-        const staticPath = path.join(process.cwd(), "public", staticFile);
+      if (url.includes("sitemap.xml")) {
+        try {
+          const xml = await getSEOSitemapXML(db);
+          res.setHeader("Content-Type", "application/xml; charset=utf-8");
+          return res.status(200).send(xml);
+        } catch (err) {
+          console.warn("[SEO Server Dev] Error serving dynamic sitemap.xml:", err);
+        }
+        const staticPath = path.join(process.cwd(), "public", "sitemap.xml");
         if (fs.existsSync(staticPath)) {
-          res.setHeader("Content-Type", staticFile.endsWith(".xml") ? "application/xml; charset=utf-8" : "text/plain; charset=utf-8");
+          res.setHeader("Content-Type", "application/xml; charset=utf-8");
+          return res.sendFile(staticPath);
+        }
+      }
+      if (url.includes("robots.txt")) {
+        const staticPath = path.join(process.cwd(), "public", "robots.txt");
+        if (fs.existsSync(staticPath)) {
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
           return res.sendFile(staticPath);
         }
       }
@@ -2385,6 +2499,13 @@ ${JSON.stringify(jsonLdObj, null, 2)}
       if (url.startsWith("/api/")) return next();
 
       if (url === "/sitemap.xml" || url.endsWith("sitemap.xml")) {
+        try {
+          const xml = await getSEOSitemapXML(db);
+          res.setHeader("Content-Type", "application/xml; charset=utf-8");
+          return res.status(200).send(xml);
+        } catch (err) {
+          console.warn("[SEO Server Prod] Error serving dynamic sitemap.xml:", err);
+        }
         const sitemapDist = path.join(distPath, "sitemap.xml");
         const sitemapPublic = path.join(process.cwd(), "public", "sitemap.xml");
         const fileToServe = fs.existsSync(sitemapDist) ? sitemapDist : fs.existsSync(sitemapPublic) ? sitemapPublic : null;

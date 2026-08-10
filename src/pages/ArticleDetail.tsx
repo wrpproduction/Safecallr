@@ -20,8 +20,36 @@ import { toast } from "sonner";
 import AppLogo from "../components/AppLogo";
 import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 import { usePreloadedData } from "../contexts/PreloadContext";
+import { useLanguage } from "../contexts/LanguageContext";
+
+const formatGeoTargeting = (geo: string, targetLang: string) => {
+  if (!geo) return "";
+  const lower = geo.trim().toLowerCase();
+  if (lower === "espagne" || lower === "spain" || lower === "españa") {
+    if (targetLang === "es") return "España";
+    if (targetLang === "en") return "Spain";
+    return "Espagne";
+  }
+  if (lower === "mondial" || lower === "global" || lower === "mundial") {
+    if (targetLang === "es") return "Mundial";
+    if (targetLang === "en") return "Global";
+    return "Mondial";
+  }
+  if (lower.includes("france") && lower.includes("europe")) {
+    if (targetLang === "es") return "Francia y Europa";
+    if (targetLang === "en") return "France & Europe";
+    return "France & Europe";
+  }
+  if (lower.includes("b2b") && lower.includes("france")) {
+    if (targetLang === "es") return "B2B Francia e Internacional";
+    if (targetLang === "en") return "B2B France & International";
+    return "B2B France & International";
+  }
+  return geo;
+};
 
 export default function ArticleDetail() {
+  const { lang, t } = useLanguage();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const preloadedContextData = usePreloadedData();
@@ -54,6 +82,9 @@ export default function ArticleDetail() {
   const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(!initialArticle);
   const [copied, setCopied] = useState(false);
+
+  const activeLang = (article?.lang || lang || "fr") as "fr" | "en" | "es";
+  const formattedGeo = formatGeoTargeting(article?.geoTargeting || "", activeLang);
 
   useEffect(() => {
     const fetchArticleAndRelated = async () => {
@@ -141,7 +172,7 @@ export default function ArticleDetail() {
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    toast.success("Lien de l'article copié dans le presse-papiers !");
+    toast.success(t("articleUI.copiedToast"));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -149,7 +180,7 @@ export default function ArticleDetail() {
     return (
       <div className="min-h-screen bg-background text-on-background flex flex-col items-center justify-center">
         <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-        <p className="text-slate-400 text-sm">Chargement de l'article en cours...</p>
+        <p className="text-slate-400 text-sm">{t("articleUI.loading")}</p>
       </div>
     );
   }
@@ -158,16 +189,16 @@ export default function ArticleDetail() {
     return (
       <div className="min-h-screen bg-background text-on-background flex flex-col items-center justify-center p-6 text-center">
         <Shield className="w-16 h-16 text-primary mb-6 animate-bounce" />
-        <h1 className="font-headline font-black text-3xl mb-2">Article introuvable</h1>
+        <h1 className="font-headline font-black text-3xl mb-2">{t("articleUI.notFound")}</h1>
         <p className="text-slate-400 max-w-md mb-8">
-          L'article que vous recherchez n'existe pas ou a été retiré par nos administrateurs de sécurité.
+          {t("articleUI.notFoundDesc")}
         </p>
         <Link 
           to="/actualite" 
           className="bg-primary text-on-primary px-6 py-3 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
         >
           <ArrowLeft size={16} />
-          Retour aux Actualités
+          {t("articleUI.backToNews")}
         </Link>
       </div>
     );
@@ -200,7 +231,7 @@ export default function ArticleDetail() {
   return (
     <div className="min-h-screen bg-background text-on-background selection:bg-primary/30 selection:text-primary">
       <SEOManager 
-        title={`${article.title} | Vigilance SafeCallr`}
+        title={`${article.title} | ${formattedGeo ? t("articleUI.localVigilanceTitle", { geo: formattedGeo }) : "SafeCallr"}`}
         description={article.metaDescription || article.summary}
         jsonLd={articleJsonLd}
       />
@@ -217,9 +248,9 @@ export default function ArticleDetail() {
             />
           </Link>
           <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap">
-            <Link to="/" className="hover:text-primary transition-colors shrink-0">Accueil</Link>
+            <Link to="/" className="hover:text-primary transition-colors shrink-0">{t("articleUI.home")}</Link>
             <span className="text-slate-700">/</span>
-            <Link to="/actualite" className="hover:text-primary transition-colors shrink-0">Actualités</Link>
+            <Link to="/actualite" className="hover:text-primary transition-colors shrink-0">{t("articleUI.news")}</Link>
             <span className="text-slate-700">/</span>
             <span className="text-white truncate max-w-[120px] md:max-w-[200px]">{article.title}</span>
           </div>
@@ -237,7 +268,7 @@ export default function ArticleDetail() {
             to="/actualite"
             className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors"
           >
-            <ArrowLeft size={14} /> Retour aux actualités
+            <ArrowLeft size={14} /> {t("articleUI.backToNews")}
           </Link>
 
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
@@ -246,12 +277,12 @@ export default function ArticleDetail() {
                 ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" 
                 : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
             }`}>
-              {article.category === "grand_public" ? "Grand Public" : "Professionnel"}
+              {article.category === "grand_public" ? t("articleUI.generalPublic") : t("articleUI.professional")}
             </span>
 
-            {article.geoTargeting && (
+            {formattedGeo && (
               <span className="flex items-center gap-1.5 text-xs text-primary font-bold uppercase tracking-widest bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
-                <Globe size={12} /> {article.geoTargeting}
+                <Globe size={12} /> {formattedGeo}
               </span>
             )}
           </div>
@@ -263,18 +294,18 @@ export default function ArticleDetail() {
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-slate-400 font-medium border-t border-white/5 pt-6">
             <span className="flex items-center gap-2">
               <Calendar size={14} className="text-primary" />
-              {article.createdAt ? new Date(article.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}
+              {article.createdAt ? new Date(article.createdAt).toLocaleDateString(activeLang === "es" ? "es-ES" : activeLang === "en" ? "en-US" : "fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}
             </span>
             <span className="flex items-center gap-2">
               <User size={14} className="text-primary" />
-              Rédaction SafeCallr
+              {article.author || t("articleUI.editorialTeam")}
             </span>
             <button 
               onClick={handleCopyLink}
               className="flex items-center gap-1.5 text-slate-400 hover:text-primary transition-colors cursor-pointer"
             >
               {copied ? <Check size={14} className="text-green-400" /> : <Share2 size={14} />}
-              Partager
+              {t("articleUI.share")}
             </button>
           </div>
         </div>
@@ -294,7 +325,7 @@ export default function ArticleDetail() {
 
             {/* Quick summary box */}
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 italic text-slate-300 text-sm md:text-base leading-relaxed">
-              <strong>Résumé :</strong> {article.summary}
+              <strong>{t("articleUI.summary")}</strong> {article.summary}
             </div>
 
             {/* Structured Content Renderer */}
@@ -306,10 +337,10 @@ export default function ArticleDetail() {
             {article.geoTargeting && (
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 space-y-3 mt-10">
                 <h4 className="font-bold text-amber-300 text-sm uppercase tracking-wider flex items-center gap-2">
-                  <Globe size={16} /> Vigilance Locale - {article.geoTargeting}
+                  <Globe size={16} /> {t("articleUI.localVigilanceTitle", { geo: formattedGeo })}
                 </h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Cet article contient des optimisations de sécurité et des recommandations pertinentes pour la région de <strong>{article.geoTargeting}</strong>. Restez vigilants et prévenez vos proches locaux.
+                  {t("articleUI.localVigilanceDesc", { geo: formattedGeo })}
                 </p>
               </div>
             )}
@@ -321,22 +352,22 @@ export default function ArticleDetail() {
               <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <Shield className="text-on-primary w-6 h-6" />
               </div>
-              <h3 className="font-headline font-black text-xl text-white">Sécurisez vos appels</h3>
+              <h3 className="font-headline font-black text-xl text-white">{t("articleUI.secureCallsTitle")}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                SafeCallr empêche les fraudeurs d'usurper vos numéros de téléphone et d'arnaquer vos clients ou vos collaborateurs en authentifiant chaque appel en temps réel.
+                {t("articleUI.secureCallsDesc")}
               </p>
               <Link 
                 to="/" 
                 className="block text-center bg-primary text-on-primary py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-primary/25 hover:scale-105 active:scale-95 transition-all"
               >
-                Découvrir SafeCallr
+                {t("articleUI.discoverSafeCallr")}
               </Link>
             </div>
 
             {/* Share and SEO tag highlights */}
             {article.seoKeywords && (
               <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Mots-clés</h4>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">{t("articleUI.keywords")}</h4>
                 <div className="flex flex-wrap gap-1.5">
                   {article.seoKeywords.split(",").map((kw: string) => (
                     <span key={kw} className="bg-white/5 border border-white/5 text-[10px] px-2 py-1 rounded-md text-slate-300">
@@ -355,7 +386,7 @@ export default function ArticleDetail() {
         <section className="py-16 border-t border-white/5 bg-surface-container-lowest/50 px-6">
           <div className="max-w-4xl mx-auto space-y-8">
             <h3 className="font-headline font-black text-2xl md:text-3xl tracking-tight text-white">
-              Articles recommandés de la même catégorie
+              {t("articleUI.recommendedArticles")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {relatedArticles.map(art => (
@@ -372,7 +403,7 @@ export default function ArticleDetail() {
                         {art.title}
                       </h4>
                       <span className="text-[10px] text-primary font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
-                        Lire l'article <ChevronRight size={10} />
+                        {t("articleUI.readArticle")} <ChevronRight size={10} />
                       </span>
                     </div>
                   </Link>
@@ -388,11 +419,11 @@ export default function ArticleDetail() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
           <AppLogo className="gap-3" />
           <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-            © 2026 SafeCallr Technologies. Tous droits réservés.
+            © 2026 SafeCallr Technologies. {t("articleUI.rights")}
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            <Link to="/" className="hover:text-primary transition-colors">Accueil</Link>
-            <Link to="/actualite" className="hover:text-primary transition-colors">Actualités</Link>
+            <Link to="/" className="hover:text-primary transition-colors">{t("articleUI.home")}</Link>
+            <Link to="/actualite" className="hover:text-primary transition-colors">{t("articleUI.news")}</Link>
           </div>
         </div>
       </footer>

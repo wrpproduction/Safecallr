@@ -20,7 +20,8 @@ import {
 import AppLogo from "../components/AppLogo";
 import SEOManager from "../components/seo/SEOManager";
 import { useLanguage } from "../contexts/LanguageContext";
-import { db, collection, query, orderBy, getDocs } from "../firebase";
+import { db, collection, query, where, getDocs } from "../firebase";
+import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 
 interface BlogArticle {
   id: string;
@@ -39,25 +40,31 @@ export default function SitemapPage() {
   useEffect(() => {
     async function fetchBlogArticles() {
       try {
-        const q = query(collection(db, "blog"));
+        const q = query(collection(db, "articles"), where("published", "==", true));
         const snapshot = await getDocs(q);
         const fetched: BlogArticle[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
-          if (data.status === "published" || !data.status) {
-            fetched.push({
-              id: doc.id,
-              title: data.title || "Article sans titre",
-              slug: data.slug,
-              metaTitle: data.metaTitle,
-              category: data.category,
-              createdAt: data.createdAt
-            });
-          }
+          fetched.push({
+            id: doc.id,
+            title: data.title || "Article sans titre",
+            slug: data.slug,
+            metaTitle: data.metaTitle,
+            category: data.category,
+            createdAt: data.createdAt
+          });
         });
-        setArticles(fetched);
+
+        const merged = [...fetched];
+        for (const defArt of DEFAULT_BLOG_ARTICLES) {
+          if (!merged.some(a => a.slug === defArt.slug || a.metaTitle === defArt.metaTitle || a.id === defArt.id)) {
+            merged.push(defArt);
+          }
+        }
+        setArticles(merged);
       } catch (err) {
         console.error("Error fetching blog for sitemap:", err);
+        setArticles(DEFAULT_BLOG_ARTICLES);
       } finally {
         setLoadingBlog(false);
       }

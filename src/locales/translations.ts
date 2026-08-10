@@ -646,6 +646,29 @@ export const translations = {
       langFr: "Français",
       langEn: "Anglais",
       langEs: "Espagnol"
+    },
+    articleUI: {
+      loading: "Chargement de l'article en cours...",
+      notFound: "Article introuvable",
+      notFoundDesc: "L'article que vous recherchez n'existe pas ou a été retiré par nos administrateurs de sécurité.",
+      backToNews: "Retour aux actualités",
+      home: "Accueil",
+      news: "Actualités",
+      generalPublic: "Grand Public",
+      professional: "Professionnel",
+      editorialTeam: "Rédaction SafeCallr",
+      share: "Partager",
+      copiedToast: "Lien de l'article copié dans le presse-papiers !",
+      summary: "Résumé :",
+      localVigilanceTitle: "Vigilance Locale - {geo}",
+      localVigilanceDesc: "Cet article contient des optimisations de sécurité et des recommandations pertinentes pour la région de {geo}. Restez vigilants et prévenez vos proches locaux.",
+      secureCallsTitle: "Sécurisez vos appels",
+      secureCallsDesc: "SafeCallr empêche les fraudeurs d'usurper vos numéros de téléphone et d'arnaquer vos clients ou vos collaborateurs en authentifiant chaque appel en temps réel.",
+      discoverSafeCallr: "Découvrir SafeCallr",
+      keywords: "Mots-clés",
+      recommendedArticles: "Articles recommandés de la même catégorie",
+      readArticle: "Lire l'article",
+      rights: "Tous droits réservés."
     }
   },
   en: {
@@ -1295,6 +1318,29 @@ export const translations = {
       langFr: "French",
       langEn: "English",
       langEs: "Spanish"
+    },
+    articleUI: {
+      loading: "Loading article...",
+      notFound: "Article not found",
+      notFoundDesc: "The article you are looking for does not exist or has been removed by our security administrators.",
+      backToNews: "Back to news",
+      home: "Home",
+      news: "News",
+      generalPublic: "General Public",
+      professional: "Professional",
+      editorialTeam: "SafeCallr Editorial Team",
+      share: "Share",
+      copiedToast: "Article link copied to clipboard!",
+      summary: "Summary:",
+      localVigilanceTitle: "Local Vigilance - {geo}",
+      localVigilanceDesc: "This article contains security optimizations and relevant recommendations for the region of {geo}. Stay vigilant and alert your local contacts.",
+      secureCallsTitle: "Secure your calls",
+      secureCallsDesc: "SafeCallr prevents fraudsters from spoofing your phone numbers and scamming your customers or staff by authenticating every call in real time.",
+      discoverSafeCallr: "Discover SafeCallr",
+      keywords: "Keywords",
+      recommendedArticles: "Recommended articles in the same category",
+      readArticle: "Read article",
+      rights: "All rights reserved."
     }
   },
   es: {
@@ -1944,6 +1990,29 @@ export const translations = {
       langFr: "Francés",
       langEn: "Inglés",
       langEs: "Español"
+    },
+    articleUI: {
+      loading: "Cargando el artículo...",
+      notFound: "Artículo no encontrado",
+      notFoundDesc: "El artículo que busca no existe o ha sido retirado por nuestros administradores de seguridad.",
+      backToNews: "Volver a noticias",
+      home: "Inicio",
+      news: "Noticias",
+      generalPublic: "Público General",
+      professional: "Profesional",
+      editorialTeam: "Redacción SafeCallr",
+      share: "Compartir",
+      copiedToast: "¡Enlace del artículo copiado al portapapeles!",
+      summary: "Resumen:",
+      localVigilanceTitle: "Vigilancia Local - {geo}",
+      localVigilanceDesc: "Este artículo contiene optimizaciones de seguridad y recomendaciones pertinentes para la región de {geo}. Manténgase vigilante y alerte a sus allegados locales.",
+      secureCallsTitle: "Asegure sus llamadas",
+      secureCallsDesc: "SafeCallr evita que los estafadores suplanten sus números de teléfono y estafen a sus clientes o colaboradores autenticando cada llamada en tiempo real.",
+      discoverSafeCallr: "Descubrir SafeCallr",
+      keywords: "Palabras clave",
+      recommendedArticles: "Artículos recomendados en la misma categoría",
+      readArticle: "Leer artículo",
+      rights: "Todos los derechos reservados."
     }
   }
 };

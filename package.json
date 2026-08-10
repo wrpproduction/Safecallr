@@ -33,6 +33,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "esbuild": "^0.28.0",
     "express": "^4.21.2",
     "firebase": "^12.11.0",
     "firebase-admin": "^12.7.0",
@@ -51,6 +52,8 @@
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "vite-plugin-prerender": "^1.0.8",
     "vite-plugin-prerenderer": "^1.0.1",
@@ -62,10 +65,6 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
-    "esbuild": "^0.28.0",
-    "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "tailwindcss": "^4.1.14"
   }
 }
