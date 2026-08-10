@@ -69,6 +69,7 @@ import SitemapXmlPage from "./pages/SitemapXmlPage";
 
 import { Capacitor } from "@capacitor/core";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
+import { WorkspaceProvider } from "./contexts/WorkspaceContext";
 
 function CompanyContactPage() {
   const { t } = useLanguage();
@@ -223,10 +224,11 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
   return (
     <ErrorBoundary>
       <LanguageProvider user={user} forcedLang={forcedLang}>
-        <Toaster position="top-right" richColors />
-        <ScrollToTop />
-        <NotificationController user={user} />
-        <Routes>
+        <WorkspaceProvider user={user}>
+          <Toaster position="top-right" richColors />
+          <ScrollToTop />
+          <NotificationController user={user} />
+          <Routes>
           <Route path="/" element={
             <>
               <SEOManager 
@@ -382,6 +384,8 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/admin/organizations" element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/new" element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
+          <Route path="/admin/companies/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
+          <Route path="/admin/licences" element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
           <Route path="/admin/business/billing" element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
           
           {/* SafeCallr Business Administrator Routes */}
@@ -413,6 +417,7 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/account-suspended" element={<InstitutionErrorPage type="suspended" />} />
           <Route path="/organization-inactive" element={<InstitutionErrorPage type="inactive" />} />
         </Routes>
+        </WorkspaceProvider>
       </LanguageProvider>
     </ErrorBoundary>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { 
   Search, 
   Filter, 
@@ -17,7 +18,8 @@ import {
   Phone,
   Calendar,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from "lucide-react";
 import { 
   collection, 
@@ -54,6 +56,7 @@ interface Company {
   category?: string;
   rcs?: string;
   rcsCity?: string;
+  collaboratorsCount?: number;
 }
 
 interface Pro {
@@ -192,7 +195,7 @@ export default function AdminCompanies() {
         snapshot = await getDocs(fallbackQuery);
       }
 
-      let fetchedCompanies = snapshot.docs.map(doc => {
+      let fetchedCompanies = await Promise.all(snapshot.docs.map(async doc => {
         const data = doc.data();
         let createdAt = data.createdAt;
         
@@ -205,13 +208,23 @@ export default function AdminCompanies() {
         } else {
           createdAt = null;
         }
+
+        let collaboratorsCount = 0;
+        try {
+          // Count pros associated with this company
+          const prosSnap = await getDocs(query(collection(db, "pros"), where("companyId", "==", doc.id)));
+          collaboratorsCount = prosSnap.size;
+        } catch (pErr) {
+          console.warn("Could not fetch pros count for company", doc.id, pErr);
+        }
         
         return {
           id: doc.id,
           ...data,
-          createdAt
+          createdAt,
+          collaboratorsCount
         };
-      }) as Company[];
+      })) as any[];
 
       // Client-side filtering if status filter was not applied due to fallback
       if (statusFilter !== "all") {
@@ -415,6 +428,7 @@ export default function AdminCompanies() {
                 <tr className="bg-[#111113] border-bottom border-[#2e2e34]">
                   <th className="px-6 py-4 text-[11px] font-bold text-[#9a9a9f] uppercase tracking-widest">Entreprise</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-[#9a9a9f] uppercase tracking-widest">Domaine / SIRET</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-[#9a9a9f] uppercase tracking-widest">Collaborateurs inscrits</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-[#9a9a9f] uppercase tracking-widest">Statut</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-[#9a9a9f] uppercase tracking-widest">Date Ajout</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-[#9a9a9f] uppercase tracking-widest text-right">Actions</th>
@@ -423,7 +437,7 @@ export default function AdminCompanies() {
               <tbody className="divide-y divide-[#2e2e34]">
                 {loading && companies.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center">
+                    <td colSpan={6} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Loader2 className="w-8 h-8 text-[#4ade80] animate-spin" />
                         <p className="text-[#9a9a9f]">Chargement des entreprises...</p>
@@ -432,7 +446,7 @@ export default function AdminCompanies() {
                   </tr>
                 ) : filteredCompanies.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center text-[#9a9a9f]">
+                    <td colSpan={6} className="px-6 py-20 text-center text-[#9a9a9f]">
                       Aucune entreprise trouvée.
                     </td>
                   </tr>
@@ -448,7 +462,9 @@ export default function AdminCompanies() {
                             <Building2 size={20} />
                           </div>
                           <div>
-                            <p className="font-semibold text-[#e4e4e8]">{company.name}</p>
+                            <Link to={`/admin/companies/${company.id}`} className="font-semibold text-[#e4e4e8] hover:text-[#4ade80] transition-colors">
+                              {company.name}
+                            </Link>
                             <p className="text-xs text-[#9a9a9f]">ID: {company.id.substring(0, 8)}...</p>
                           </div>
                         </div>
@@ -457,6 +473,15 @@ export default function AdminCompanies() {
                         <div className="space-y-1">
                           <p className="text-sm text-[#e4e4e8]">{company.domain}</p>
                           <p className="text-xs text-[#9a9a9f]">SIRET: {company.siret}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Users size={14} className="text-[#3dffa0]" />
+                          <span className="text-sm font-bold text-white font-mono">
+                            {company.collaboratorsCount ?? 0}
+                          </span>
+                          <span className="text-xs text-[#9a9a9f]">inscrit{(company.collaboratorsCount ?? 0) > 1 ? 's' : ''}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -645,12 +670,24 @@ export default function AdminCompanies() {
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedCompany(null)}
-                className="p-3 bg-[#111113] border border-[#2e2e34] rounded-2xl text-[#9a9a9f] hover:text-white transition-all"
-              >
-                <X size={24} />
-              </button>
+              <div className="flex items-center gap-3">
+                <a 
+                  href={`/dashboard/${selectedCompany.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 bg-[#3dffa0] text-black hover:bg-[#3dffa0]/90 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-[#3dffa0]/20"
+                  title="Accéder au backoffice du référent de cette entreprise"
+                >
+                  <ExternalLink size={16} />
+                  <span>Backoffice Référent</span>
+                </a>
+                <button 
+                  onClick={() => setSelectedCompany(null)}
+                  className="p-3 bg-[#111113] border border-[#2e2e34] rounded-2xl text-[#9a9a9f] hover:text-white transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}

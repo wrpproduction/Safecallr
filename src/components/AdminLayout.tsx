@@ -10,7 +10,8 @@ import {
   X,
   AlertCircle,
   PlusCircle,
-  FileText
+  FileText,
+  CreditCard
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
@@ -29,7 +30,7 @@ const navItems = [
   { label: "Entreprises", icon: Building2, path: "/admin/companies" },
   { label: "Demandes", icon: History, path: "/admin/requests" },
   { label: "Alertes", icon: AlertCircle, path: "/admin/alerts" },
-  { label: "Business", icon: ShieldCheck, path: "/admin/business/billing" },
+  { label: "Gestion licence", icon: CreditCard, path: "/admin/licences" },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

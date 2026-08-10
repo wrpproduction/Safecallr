@@ -5,6 +5,8 @@ import { db, collection, query, where, onSnapshot } from "../firebase";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useWorkspace } from "../contexts/WorkspaceContext";
+import { Shield, Briefcase, Building2 } from "lucide-react";
 import AppLogo from "./AppLogo";
 
 function cn(...inputs: ClassValue[]) {
@@ -15,6 +17,7 @@ export default function Layout({ user }: { user: any }) {
   const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
   const { t } = useLanguage();
+  const { activeMode } = useWorkspace();
 
   useEffect(() => {
     if (!user || !user.uid) return;
@@ -45,11 +48,41 @@ export default function Layout({ user }: { user: any }) {
       {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-surface-container-low/80 backdrop-blur-xl border-b border-white/5 px-6 h-16 flex justify-between items-center">
         <AppLogo />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {user && (
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">
-              <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" />
-            </Link>
+            <>
+              <Link
+                to="/profile"
+                className={`px-3 py-1 rounded-full text-[10px] font-headline font-black uppercase tracking-wider flex items-center gap-1.5 transition-all border ${
+                  activeMode === "business"
+                    ? "bg-blue-600/20 text-blue-300 border-blue-500/40 shadow-sm shadow-blue-500/20"
+                    : activeMode === "pro"
+                    ? "bg-blue-500/20 text-blue-400 border-blue-400/40 shadow-sm shadow-blue-400/20"
+                    : "bg-[#3dffa0]/10 text-[#3dffa0] border-[#3dffa0]/30"
+                }`}
+                title="Changer d'espace ou gérer mon profil"
+              >
+                {activeMode === "business" ? (
+                  <>
+                    <Building2 size={12} />
+                    <span>Business</span>
+                  </>
+                ) : activeMode === "pro" ? (
+                  <>
+                    <Briefcase size={12} />
+                    <span>Pro</span>
+                  </>
+                ) : (
+                  <>
+                    <Shield size={12} />
+                    <span>Perso</span>
+                  </>
+                )}
+              </Link>
+              <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">
+                <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" />
+              </Link>
+            </>
           )}
         </div>
       </header>

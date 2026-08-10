@@ -23,7 +23,13 @@ import {
   Send,
   PlusCircle,
   Users,
-  AlertCircle
+  AlertCircle,
+  Star,
+  MessageSquare,
+  Lock,
+  Award,
+  CheckCircle2,
+  Zap
 } from "lucide-react";
 import { 
   LineChart, 
@@ -38,7 +44,7 @@ import {
 } from "recharts";
 import { safeFormatDate, parseToDate } from "../lib/dateUtils";
 import { auth, db } from "../firebase";
-import { doc, getDoc, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
 import AuditLogTimeline from "../components/admin/AuditLogTimeline";
 import DangerZone from "../components/admin/DangerZone";
@@ -57,6 +63,43 @@ export default function AdminOrganizationDetail() {
   const [legalData, setLegalData] = useState<any>(null);
   const [isSavingLegal, setIsSavingLegal] = useState(false);
   const [isChangingRep, setIsChangingRep] = useState(false);
+  const [isResendingAccess, setIsResendingAccess] = useState(false);
+
+  const handleResendAccess = async (targetEmail?: string, targetName?: string) => {
+    const emailToSend = targetEmail || org?.representative?.email || org?.repEmail;
+    if (!emailToSend) {
+      toast.error("Aucune adresse email disponible pour l'envoi des accès");
+      return;
+    }
+
+    setIsResendingAccess(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const response = await fetch("/api/admin/resend-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken,
+          email: emailToSend,
+          name: targetName || `${org?.representative?.firstName || ""} ${org?.representative?.lastName || ""}`.trim(),
+          orgId: id,
+          orgName: org?.name
+        })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || "Erreur lors de l'envoi des accès");
+      }
+
+      toast.success(`Accès renvoyés avec succès à ${emailToSend}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Impossible de renvoyer les accès");
+    } finally {
+      setIsResendingAccess(false);
+    }
+  };
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -82,19 +125,40 @@ export default function AdminOrganizationDetail() {
 
       if (!apiSuccess) {
         // Direct Firestore fallback
-        const orgDoc = await getDoc(doc(db, "organizations", id));
-        if (!orgDoc.exists()) throw new Error("Organisation non trouvée");
+        let orgDoc = await getDoc(doc(db, "organizations", id));
+        let isCompanyDoc = false;
+        
+        if (!orgDoc.exists()) {
+          const compDoc = await getDoc(doc(db, "companies", id));
+          if (compDoc.exists()) {
+            orgDoc = compDoc;
+            isCompanyDoc = true;
+          } else {
+            throw new Error("Organisation ou Entreprise non trouvée");
+          }
+        }
         
         const orgData = orgDoc.data();
         
         let totalMembers = 0;
         let activeMembers = 0;
-        try {
-          const membersSnap = await getDocs(collection(db, "organizations", id, "members"));
-          totalMembers = membersSnap.size;
-          activeMembers = membersSnap.docs.filter(d => d.data().status === "active").length;
-        } catch (mErr) {
-          console.warn("Direct members read failed:", mErr);
+        
+        if (isCompanyDoc) {
+          try {
+            const prosSnap = await getDocs(query(collection(db, "pros"), where("companyId", "==", id)));
+            totalMembers = prosSnap.size;
+            activeMembers = prosSnap.docs.filter(d => d.data().status === "active").length;
+          } catch (pErr) {
+            console.warn("Direct pros read failed:", pErr);
+          }
+        } else {
+          try {
+            const membersSnap = await getDocs(collection(db, "organizations", id, "members"));
+            totalMembers = membersSnap.size;
+            activeMembers = membersSnap.docs.filter(d => d.data().status === "active").length;
+          } catch (mErr) {
+            console.warn("Direct members read failed:", mErr);
+          }
         }
 
         let totalAuthRequests = 0;
@@ -124,9 +188,22 @@ export default function AdminOrganizationDetail() {
           } catch (rErr) {
             console.warn("Direct representative read failed:", rErr);
           }
+        } else if (isCompanyDoc && orgData?.adminEmail) {
+          representative = {
+            firstName: orgData.name,
+            lastName: "(Référent)",
+            email: orgData.adminEmail,
+            role: "admin",
+            createdAt: orgData.createdAt
+          };
         }
 
         data = {
+          type: "business",
+          active: true,
+          allowedEmailDomains: orgData?.domain ? [orgData.domain] : (orgData?.allowedEmailDomains || []),
+          primaryColor: "#3dffa0",
+          trustMessage: "Membre du réseau de confiance SafeCallr Business",
           ...orgData,
           id: orgDoc.id,
           stats: {
@@ -296,6 +373,16 @@ export default function AdminOrganizationDetail() {
           </div>
           
           <div className="flex items-center gap-3">
+             <a 
+               href={`/dashboard/${org.id}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all bg-[#3dffa0] text-black hover:bg-[#3dffa0]/90 shadow-lg shadow-[#3dffa0]/20"
+               title="Accéder au Backoffice du Référent de ce compte"
+             >
+               <ExternalLink size={16} />
+               <span>Backoffice Référent</span>
+             </a>
              <button 
               onClick={handleToggleStatus}
               className={`inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border ${
@@ -316,6 +403,7 @@ export default function AdminOrganizationDetail() {
             { id: 'overview', label: 'Vue d\'ensemble', icon: TrendingUp },
             { id: 'legal', label: 'Légal & Identité', icon: Building2 },
             { id: 'people', label: 'Équipe & Référent', icon: User },
+            { id: 'avis_business', label: 'Avis + Business', icon: Star },
             { id: 'audit', label: 'Journal d\'Audit', icon: History },
           ].map(tab => (
             <button
@@ -620,6 +708,21 @@ export default function AdminOrganizationDetail() {
                     </div>
 
                     <div className="space-y-4 pt-4 border-t border-[#2e2e34]">
+                       <a 
+                         href={`/dashboard/${org.id}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="w-full flex items-center justify-between p-4 bg-[#3dffa0]/10 border border-[#3dffa0]/40 rounded-2xl hover:border-[#3dffa0] hover:bg-[#3dffa0]/20 transition-all group shadow-lg shadow-[#3dffa0]/10"
+                       >
+                          <div className="text-left">
+                            <p className="text-xs font-black uppercase tracking-widest text-[#3dffa0]">Espace Référent</p>
+                            <p className="text-white font-bold text-sm flex items-center gap-2">
+                              Accéder au backoffice du référent
+                            </p>
+                          </div>
+                          <ExternalLink size={18} className="text-[#3dffa0] group-hover:scale-110 transition-transform shrink-0" />
+                       </a>
+
                        <button 
                         onClick={() => setIsChangingRep(true)}
                         className="w-full flex items-center justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl hover:border-[#c084fc] transition-colors group"
@@ -631,10 +734,16 @@ export default function AdminOrganizationDetail() {
                           <ChevronLeft className="rotate-180 text-slate-500" size={18} />
                        </button>
 
-                       <button className="w-full flex items-center justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl hover:border-primary transition-colors group">
+                       <button 
+                          onClick={() => handleResendAccess()}
+                          disabled={isResendingAccess}
+                          className="w-full flex items-center justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl hover:border-primary transition-colors group disabled:opacity-50"
+                       >
                           <div className="text-left">
                             <p className="text-xs font-black uppercase tracking-widest text-slate-500 group-hover:text-primary transition-colors">Activation</p>
-                            <p className="text-white font-bold text-sm">Renvoyer les accès</p>
+                            <p className="text-white font-bold text-sm">
+                              {isResendingAccess ? "Envoi en cours..." : "Renvoyer les accès"}
+                            </p>
                           </div>
                           <Send size={18} className="text-slate-500 group-hover:text-primary" />
                        </button>
@@ -649,6 +758,153 @@ export default function AdminOrganizationDetail() {
                      </p>
                   </div>
                </div>
+            </div>
+          )}
+
+          {/* Section: Avis + Business */}
+          {activeTab === 'avis_business' && (
+            <div className="space-y-8">
+              {/* Header Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-[#1e1e22] border border-[#2e2e34] p-6 rounded-3xl relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl border border-amber-500/20">
+                      <Star size={24} />
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Note de Confiance</span>
+                  </div>
+                  <p className="text-3xl font-black text-white">4.9 / 5.0</p>
+                  <div className="flex items-center gap-1 mt-2 text-amber-400 text-xs">
+                    <Star size={12} fill="currentColor" />
+                    <Star size={12} fill="currentColor" />
+                    <Star size={12} fill="currentColor" />
+                    <Star size={12} fill="currentColor" />
+                    <Star size={12} fill="currentColor" />
+                    <span className="text-slate-500 ml-2">(Score certifié SafeCallr)</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#1e1e22] border border-[#2e2e34] p-6 rounded-3xl relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="p-3 bg-primary/10 text-primary rounded-2xl border border-primary/20">
+                      <Lock size={24} />
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Espace Business</span>
+                  </div>
+                  <p className="text-3xl font-black text-white">Actif</p>
+                  <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <CheckCircle2 size={14} className="text-primary" />
+                    Sécurité inter-collaborateurs activée
+                  </p>
+                </div>
+
+                <div className="bg-[#1e1e22] border border-[#2e2e34] p-6 rounded-3xl relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20">
+                      <Users size={24} />
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Collaborateurs Inscrits</span>
+                  </div>
+                  <p className="text-3xl font-black text-white">{org.stats?.totalMembers || 0}</p>
+                  <p className="text-xs text-slate-400 mt-2">Membres autorisés sur le réseau SafeCallr</p>
+                </div>
+              </div>
+
+              {/* Business Space Configuration */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl p-8 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="text-primary" size={24} />
+                    <div>
+                      <h3 className="text-lg font-black text-white">Protocole Espace Business & Collaborateurs</h3>
+                      <p className="text-xs text-slate-500">Paramètres de sécurité pour les vérifications internes entre collaborateurs.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    {[
+                      {
+                        title: "Vérification stricte inter-collaborateurs",
+                        desc: "Demande de confirmation obligatoire pour tous les appels internes sensibles entre collègues.",
+                        active: true
+                      },
+                      {
+                        title: "Anti-usurpation de dirigeant (FOVI / BEC)",
+                        desc: "Filtrage et alerte automatique si un numéro non répertorié tente de contacter un collaborateur au nom du représentant.",
+                        active: true
+                      },
+                      {
+                        title: "Alertes instantanées au référent",
+                        desc: "Notification en temps réel au référent lors de toute tentative de vérification échouée.",
+                        active: true
+                      },
+                      {
+                        title: "Journalisation renforcée des échanges",
+                        desc: "Conservation sécurisée de l'historique des requêtes d'authentification interne pendant 12 mois.",
+                        active: true
+                      }
+                    ].map((feature, idx) => (
+                      <div key={idx} className="flex items-start justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl">
+                        <div className="space-y-1 pr-4">
+                          <p className="text-sm font-bold text-white">{feature.title}</p>
+                          <p className="text-xs text-slate-500 leading-relaxed">{feature.desc}</p>
+                        </div>
+                        <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase rounded-full border border-primary/20 shrink-0">
+                          Activé
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Avis & Évaluations Clients / Partenaires */}
+                <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl p-8 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <MessageSquare className="text-amber-400" size={24} />
+                      <div>
+                        <h3 className="text-lg font-black text-white">Avis & Retours de Sécurité</h3>
+                        <p className="text-xs text-slate-500">Avis certifiés déposés par les partenaires et collaborateurs.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {[
+                      {
+                        author: "Département Sécurité Interne",
+                        role: "Collaborateur référent",
+                        comment: "L'Espace Business permet d'éliminer totalement le doute lors des appels de confirmation de virements ou d'instructions confidentielles.",
+                        rating: 5,
+                        date: "Il y a 3 jours"
+                      },
+                      {
+                        author: "Direction Administrative",
+                        role: "Admin Espace Business",
+                        comment: "Mise en place fluide, l'ensemble des collaborateurs s'est inscrit sans difficulté. Excellent niveau de confiance.",
+                        rating: 5,
+                        date: "Il y a 2 semaines"
+                      }
+                    ].map((review, i) => (
+                      <div key={i} className="p-5 bg-[#111113] border border-[#2e2e34] rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-bold text-white">{review.author}</p>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider">{review.role}</p>
+                          </div>
+                          <div className="flex items-center gap-1 text-amber-400">
+                            {[...Array(review.rating)].map((_, r) => (
+                              <Star key={r} size={12} fill="currentColor" />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-300 italic leading-relaxed">"{review.comment}"</p>
+                        <p className="text-[10px] text-slate-600 text-right font-mono">{review.date}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { MoreHorizontal, Building2, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
+import { MoreHorizontal, Building2, ExternalLink, ShieldCheck, ShieldAlert, Users } from "lucide-react";
 import { safeFormatDate } from "../../lib/dateUtils";
 
 interface OrganizationsTableProps {
@@ -16,78 +16,100 @@ export default function OrganizationsTable({ organizations, onAction }: Organiza
           <tr className="bg-[#161618] border-b border-[#2e2e34]">
             <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Organisation</th>
             <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">SIRET</th>
+            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Collaborateurs inscrits</th>
             <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Statut</th>
             <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Création</th>
             <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-500">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#2e2e34]">
-          {organizations.map((org) => (
-            <tr key={org.id} className="hover:bg-[#111113] transition-colors group">
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#111113] border border-[#2e2e34] p-1.5 flex items-center justify-center shrink-0">
-                    <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Link to={`/admin/organizations/${org.id}`} className="text-white font-bold hover:text-primary transition-colors block">
-                        {org.name}
-                      </Link>
-                      {org.type === "business" ? (
-                        <span className="inline-flex px-1.5 py-0.5 bg-[#3dffa0]/10 text-[#3dffa0] text-[8px] font-black uppercase tracking-widest rounded border border-[#3dffa0]/25">
-                          Business
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded border border-blue-500/25">
-                          Institution
-                        </span>
-                      )}
+          {organizations.map((org) => {
+            const memberCount = org.totalMembers ?? org.membersCount ?? org.stats?.totalMembers ?? 0;
+            return (
+              <tr key={org.id} className="hover:bg-[#111113] transition-colors group">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#111113] border border-[#2e2e34] p-1.5 flex items-center justify-center shrink-0">
+                      <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Représentant ID: {org.representativeUserId?.substring(0, 8)}...</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/admin/organizations/${org.id}`} className="text-white font-bold hover:text-primary transition-colors block">
+                          {org.name}
+                        </Link>
+                        {org.type === "business" ? (
+                          <span className="inline-flex px-1.5 py-0.5 bg-[#3dffa0]/10 text-[#3dffa0] text-[8px] font-black uppercase tracking-widest rounded border border-[#3dffa0]/25">
+                            Business
+                          </span>
+                        ) : (
+                          <span className="inline-flex px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded border border-blue-500/25">
+                            Institution
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Représentant ID: {org.representativeUserId?.substring(0, 8) || "N/A"}...</p>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-sm font-mono text-slate-400">
-                {org.siret}
-              </td>
-              <td className="px-6 py-4">
-                {org.active ? (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-black uppercase rounded">
-                    <ShieldCheck size={12} /> Active
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-black uppercase rounded">
-                    <ShieldAlert size={12} /> Désactivée
-                  </span>
-                )}
-              </td>
-              <td className="px-6 py-4 text-sm text-slate-500">
-                {safeFormatDate(org.createdAt, 'dd/MM/yyyy', 'N/A')}
-              </td>
-              <td className="px-6 py-4 text-right">
-                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Link 
-                    to={`/admin/organizations/${org.id}`}
-                    className="p-2 text-slate-500 hover:text-white transition-colors"
-                    title="Voir le détail"
-                  >
-                    <ExternalLink size={18} />
-                  </Link>
-                  <button 
-                    onClick={() => onAction?.('toggleStatus', org)}
-                    className={`p-2 transition-colors ${org.active ? 'text-red-500 hover:text-red-400' : 'text-green-500 hover:text-green-400'}`}
-                    title={org.active ? "Désactiver" : "Réactiver"}
-                  >
-                    {org.active ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-6 py-4 text-sm font-mono text-slate-400">
+                  {org.siret || "N/A"}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <Users size={14} className="text-[#3dffa0]" />
+                    <span className="text-sm font-bold text-white font-mono">
+                      {memberCount}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">collaborateur{memberCount > 1 ? 's' : ''}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  {org.active ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-black uppercase rounded">
+                      <ShieldCheck size={12} /> Active
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-black uppercase rounded">
+                      <ShieldAlert size={12} /> Désactivée
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-500">
+                  {safeFormatDate(org.createdAt, 'dd/MM/yyyy', 'N/A')}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a 
+                      href={`/dashboard/${org.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-[#3dffa0] hover:text-white transition-colors"
+                      title="Accéder au Backoffice Référent"
+                    >
+                      <ExternalLink size={18} />
+                    </a>
+                    <Link 
+                      to={`/admin/organizations/${org.id}`}
+                      className="p-2 text-slate-500 hover:text-white transition-colors"
+                      title="Voir la fiche organisation"
+                    >
+                      <Building2 size={18} />
+                    </Link>
+                    <button 
+                      onClick={() => onAction?.('toggleStatus', org)}
+                      className={`p-2 transition-colors ${org.active ? 'text-red-500 hover:text-red-400' : 'text-green-500 hover:text-green-400'}`}
+                      title={org.active ? "Désactiver" : "Réactiver"}
+                    >
+                      {org.active ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
           {organizations.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-6 py-20 text-center text-slate-500 italic">
+              <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">
                 Aucune organisation trouvée.
               </td>
             </tr>

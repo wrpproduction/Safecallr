@@ -180,8 +180,13 @@ export default function AuthRequestDetails({ user }: { user: any }) {
               <User size={20} />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Contact</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Interlocuteur Sollicitant</p>
               <p className="text-sm font-semibold text-on-surface">{request.fromProName}</p>
+              {(request.fromProJobTitle || pro?.fonction || pro?.jobTitle || request.fromJobTitle) && (
+                <p className="text-xs text-blue-400 font-medium">
+                  {request.fromProJobTitle || pro?.fonction || pro?.jobTitle || request.fromJobTitle}
+                </p>
+              )}
             </div>
           </div>
           

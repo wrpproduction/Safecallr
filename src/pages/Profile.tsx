@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelector from "../components/LanguageSelector";
+import WorkspaceManager from "../components/WorkspaceManager";
 
 export default function Profile({ user }: { user: any }) {
   const { t, lang } = useLanguage();
@@ -269,6 +270,8 @@ export default function Profile({ user }: { user: any }) {
           </button>
         </form>
       </motion.div>
+
+      <WorkspaceManager />
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}

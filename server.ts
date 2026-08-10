@@ -215,9 +215,54 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Helper to dynamically get Resend API Key from process.env or Firestore settings
+  async function getResendApiKey(): Promise<string | null> {
+    const envKey = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY;
+    if (envKey && envKey.trim().length > 0) {
+      return envKey.trim();
+    }
+    if (firebaseInitialized && db) {
+      try {
+        const emailDoc = await db.collection("settings").doc("email").get();
+        if (emailDoc.exists && emailDoc.data()?.resendApiKey) {
+          return emailDoc.data().resendApiKey.trim();
+        }
+        const systemDoc = await db.collection("settings").doc("system").get();
+        if (systemDoc.exists && systemDoc.data()?.resendApiKey) {
+          return systemDoc.data().resendApiKey.trim();
+        }
+      } catch (e) {
+        console.warn("[Resend] Error reading API key from Firestore settings:", e);
+      }
+    }
+    return null;
+  }
+
   // API: Status of Resend configuration
-  app.get("/api/resend-status", (req, res) => {
-    res.json({ configured: !!process.env.RESEND_API_KEY });
+  app.get("/api/resend-status", async (req, res) => {
+    const apiKey = await getResendApiKey();
+    res.json({ configured: !!apiKey });
+  });
+
+  // API: Save or update Resend API Key directly in Firestore settings (Admin)
+  app.post("/api/resend-config", requireAuth, async (req, res) => {
+    try {
+      const { apiKey } = req.body;
+      if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
+        return res.status(400).json({ error: "Clé API Resend requise." });
+      }
+      if (firebaseInitialized && db) {
+        await db.collection("settings").doc("email").set({
+          resendApiKey: apiKey.trim(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        return res.json({ success: true, message: "Clé API Resend enregistrée avec succès dans la base de données." });
+      } else {
+        return res.status(500).json({ error: "Base de données non initialisée." });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
   });
 
   // API: AI-powered blog post generation with Gemini (SEO & GEO optimized)
@@ -297,7 +342,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(400).json({ error: "Les champs 'to' et 'subject' sont requis." });
       }
 
-      const apiKey = process.env.RESEND_API_KEY;
+      const apiKey = await getResendApiKey();
       if (!apiKey) {
         console.warn("[Resend Backend] RESEND_API_KEY non configurée. Envoi direct via Resend désactivé.");
         return res.json({ 
@@ -313,13 +358,25 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
 
       console.log(`[Resend Backend] Tentative d'envoi d'un mail à : ${to} (Sujet : ${subject})`);
       
-      const emailResult = await resend.emails.send({
-        from: `${fromName} <${fromAddress}>`,
-        to: to,
-        subject: subject,
-        html: html || text,
-        text: text || ""
-      });
+      let emailResult;
+      try {
+        emailResult = await resend.emails.send({
+          from: `${fromName} <${fromAddress}>`,
+          to: to,
+          subject: subject,
+          html: html || text,
+          text: text || ""
+        });
+      } catch (domainErr: any) {
+        console.warn("[Resend Backend] Sending from custom domain failed, falling back to onboarding@resend.dev:", domainErr.message);
+        emailResult = await resend.emails.send({
+          from: `${fromName} <onboarding@resend.dev>`,
+          to: to,
+          subject: subject,
+          html: html || text,
+          text: text || ""
+        });
+      }
 
       console.log(`[Resend Backend] Mail envoyé avec succès à ${to} via Resend. ID:`, emailResult.data?.id);
 
@@ -335,7 +392,6 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
         } catch (dbErr) {
-          // Ignorer l'erreur d'écriture en base de données si l'admin n'a pas les droits en écriture sur Firestore
           console.warn("[Resend Backend] Sauvegarde de l'audit logFirestore ignorée (Droits Firestore Admin limités).");
         }
       }
@@ -344,6 +400,126 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
     } catch (err: any) {
       console.error("[Resend Backend] Échec d'envoi d'email via l'API Resend:", err);
       return res.status(500).json({ error: err.message, sentVia: "error" });
+    }
+  });
+
+  // API: Resend access / reset password link to a user or representative (Admin)
+  app.post("/api/admin/resend-access", async (req, res) => {
+    try {
+      const { idToken, email, name, orgId, orgName } = req.body;
+      const actor = await verifyAdmin(idToken);
+
+      if (!email) {
+        return res.status(400).json({ error: "L'adresse email est requise." });
+      }
+
+      const targetEmail = email.trim();
+      const targetName = name || targetEmail.split("@")[0];
+      const targetOrg = orgName || "SafeCallr";
+
+      let resetLink = "";
+      if (firebaseInitialized) {
+        try {
+          try {
+            await admin.auth().getUserByEmail(targetEmail);
+          } catch (getUserErr: any) {
+            if (getUserErr.code === "auth/user-not-found") {
+              await admin.auth().createUser({
+                email: targetEmail,
+                displayName: targetName
+              });
+            }
+          }
+          resetLink = await admin.auth().generatePasswordResetLink(targetEmail);
+        } catch (authErr: any) {
+          console.warn("[Resend Access] Warning during generatePasswordResetLink:", authErr);
+        }
+      }
+
+      const resendApiKey = await getResendApiKey();
+      const emailSubject = `[SafeCallr] Activation et réinitialisation de vos accès (${targetOrg})`;
+      const emailHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0b0e; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: 0 auto; border: 1px solid #2e2e34;">
+          <div style="margin-bottom: 24px; text-align: center;">
+            <h2 style="color: #3DFFA0; margin: 0; font-size: 24px; font-weight: 800;">SafeCallr</h2>
+            <p style="color: #9a9a9f; font-size: 13px; margin-top: 4px;">Protection et Authentification Sécurisée des Appels</p>
+          </div>
+          <div style="background: #111113; border: 1px solid #2e2e34; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <p style="font-size: 16px; font-weight: bold; margin-top: 0; color: #ffffff;">Bonjour ${targetName},</p>
+            <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">Un administrateur vient de vous renvoyer votre lien d'activation et de connexion à votre espace professionnel <strong>${targetOrg}</strong>.</p>
+            ${resetLink ? `
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${resetLink}" style="background-color: #3DFFA0; color: #000000; font-weight: bold; font-size: 14px; padding: 14px 28px; border-radius: 8px; text-decoration: none; display: inline-block;">Activer et définir mon mot de passe</a>
+              </div>
+              <p style="color: #6b7280; font-size: 12px; line-height: 1.5; word-break: break-all;">
+                Si le bouton ci-dessus ne fonctionne pas, vous pouvez copier/coller ce lien sécurisé dans votre navigateur :<br/>
+                <a href="${resetLink}" style="color: #3DFFA0;">${resetLink}</a>
+              </p>
+            ` : `
+              <p style="color: #eab308; font-size: 13px;">Veuillez vous rendre sur <a href="https://safecallr.com/login" style="color: #3DFFA0;">safecallr.com/login</a> et utiliser la fonction "Mot de passe oublié" avec votre email <strong>${targetEmail}</strong>.</p>
+            `}
+          </div>
+          <p style="color: #6b7280; font-size: 11px; text-align: center; margin: 0;">Cet e-mail est destiné à ${targetEmail}. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.</p>
+        </div>
+      `;
+
+      let sentVia = "mail_queue";
+      if (resendApiKey) {
+        try {
+          const resend = new Resend(resendApiKey);
+          let fromAddress = process.env.EMAIL_FROM_ADDRESS || "contact@safecallr.com";
+          const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
+
+          try {
+            await resend.emails.send({
+              from: `${fromName} <${fromAddress}>`,
+              to: targetEmail,
+              subject: emailSubject,
+              html: emailHtml
+            });
+            sentVia = "resend";
+          } catch (resendDomainErr: any) {
+            console.warn("[Resend Access] Primary email send failed, retrying with onboarding@resend.dev:", resendDomainErr.message);
+            await resend.emails.send({
+              from: `${fromName} <onboarding@resend.dev>`,
+              to: targetEmail,
+              subject: emailSubject,
+              html: emailHtml
+            });
+            sentVia = "resend_onboarding";
+          }
+        } catch (resendErr: any) {
+          console.error("[Resend Access] Direct Resend error, falling back to Firestore /mail collection:", resendErr);
+        }
+      }
+
+      if (firebaseInitialized && db) {
+        try {
+          await db.collection("mail").add({
+            to: targetEmail,
+            message: {
+              subject: emailSubject,
+              html: emailHtml
+            },
+            status: sentVia.startsWith("resend") ? "sent" : "queued",
+            sentVia,
+            orgId: orgId || null,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (mErr) {
+          console.warn("[Resend Access] Could not queue in Firestore mail collection:", mErr);
+        }
+      }
+
+      return res.json({ 
+        success: true, 
+        message: `Accès renvoyés avec succès à ${targetEmail}`,
+        sentVia,
+        email: targetEmail 
+      });
+    } catch (error: any) {
+      console.error("[Resend Access Error]:", error);
+      return res.status(500).json({ error: error.message || "Erreur lors de l'envoi des accès." });
     }
   });
 
@@ -1110,8 +1286,14 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        // Optionnel : compter les membres en parallèle?
-        orgs.push({ id: doc.id, ...data });
+        let totalMembers = 0;
+        try {
+          const membersSnap = await db.collection("organizations").doc(doc.id).collection("members").get();
+          totalMembers = membersSnap.size;
+        } catch (mErr) {
+          console.warn(`Could not count members for org ${doc.id}`, mErr);
+        }
+        orgs.push({ id: doc.id, ...data, totalMembers });
       }
 
       res.json(orgs);
@@ -1419,6 +1601,119 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
     } catch (error: any) {
       console.error("Create Member Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // API: Import massif CSV de collaborateurs (SafeCallr Business & Organisations)
+  app.post("/api/dashboard/import-members-csv", async (req, res) => {
+    try {
+      const { idToken, orgId, members, lang } = req.body;
+      if (!idToken || !orgId || !Array.isArray(members)) {
+        return res.status(400).json({ error: "Données requises manquantes ou format invalide." });
+      }
+
+      // Verify Auth Token
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const callerUid = decodedToken.uid;
+
+      // Check Organization or Company
+      let orgDoc = await db.collection("organizations").doc(orgId).get();
+      let collectionName = "organizations";
+      if (!orgDoc.exists) {
+        orgDoc = await db.collection("companies").doc(orgId).get();
+        collectionName = "companies";
+      }
+
+      const orgData = orgDoc.data();
+      const allowedDomains = orgData?.allowedEmailDomains || (orgData?.domain ? [orgData.domain] : []);
+
+      let importedCount = 0;
+      const errors: Array<{ email: string; reason: string }> = [];
+
+      for (const m of members) {
+        try {
+          const email = (m.email || "").trim().toLowerCase();
+          const firstName = (m.firstName || m.prenom || "").trim();
+          const lastName = (m.lastName || m.nom || "").trim();
+          const phone = (m.phone || m.telephone || "").trim();
+          const jobTitle = (m.jobTitle || m.fonction || "").trim();
+
+          if (!email || !firstName || !lastName) {
+            errors.push({ email: email || "N/A", reason: "Champs nom, prénom ou email manquants." });
+            continue;
+          }
+
+          // Domain check if allowed domains defined
+          if (allowedDomains.length > 0) {
+            const emailDomain = email.split("@")[1];
+            if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+              errors.push({ email, reason: `Domaine '@${emailDomain}' non autorisé. Domaines autorisés: ${allowedDomains.join(", ")}` });
+              continue;
+            }
+          }
+
+          // Check or create auth user
+          let memberUid: string;
+          try {
+            const existingUser = await admin.auth().getUserByEmail(email);
+            memberUid = existingUser.uid;
+          } catch {
+            const userRecord = await admin.auth().createUser({
+              email: email,
+              phoneNumber: phone ? (phone.startsWith("+") ? phone : undefined) : undefined,
+              displayName: `${firstName} ${lastName}`
+            });
+            memberUid = userRecord.uid;
+          }
+
+          // Save member in collection
+          const memberRef = db.collection(collectionName).doc(orgId).collection("members").doc(memberUid);
+          await memberRef.set({
+            id: memberUid,
+            firstName,
+            lastName,
+            displayName: `${firstName} ${lastName}`,
+            email,
+            phone,
+            jobTitle,
+            role: "collaborator",
+            status: "active",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: callerUid
+          }, { merge: true });
+
+          // Also mirror in global 'users' collection
+          await db.collection("users").doc(memberUid).set({
+            uid: memberUid,
+            orgId: orgId,
+            userClass: "professional",
+            firstName,
+            lastName,
+            displayName: `${firstName} ${lastName}`,
+            email,
+            phone,
+            jobTitle,
+            role: "pro_collaborator",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+
+          importedCount++;
+        } catch (mErr: any) {
+          console.error(`Error importing member ${m.email}:`, mErr);
+          errors.push({ email: m.email || "N/A", reason: mErr.message || "Erreur d'importation" });
+        }
+      }
+
+      res.json({
+        success: true,
+        importedCount,
+        failedCount: errors.length,
+        errors
+      });
+
+    } catch (error: any) {
+      console.error("CSV Import Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

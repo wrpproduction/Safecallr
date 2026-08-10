@@ -12,12 +12,15 @@ import {
   X,
   UserX,
   UserCheck,
-  Edit2
+  Edit2,
+  FileSpreadsheet,
+  Phone
 } from "lucide-react";
 import { Member, Organization } from "../../lib/types";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { auth, getIdToken } from "../../firebase";
+import CsvImportModal from "./CsvImportModal";
 
 interface CollaboratorSectionProps {
   members: Member[];
@@ -28,12 +31,13 @@ export default function CollaboratorSection({ members, organization }: Collabora
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isAddLoading, setIsAddLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Filtered members
   const filteredMembers = members.filter(m => {
-    const matchesSearch = `${m.firstName} ${m.lastName} ${m.email}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = `${m.firstName} ${m.lastName} ${m.email} ${(m as any).phone || m.directPhone || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || m.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -47,10 +51,11 @@ export default function CollaboratorSection({ members, organization }: Collabora
     const email = formData.get("email") as string;
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
+    const phone = formData.get("phone") as string;
     const jobTitle = formData.get("jobTitle") as string;
 
     const emailDomain = email.split("@")[1];
-    if (!organization.allowedEmailDomains.includes(emailDomain)) {
+    if (organization.allowedEmailDomains?.length > 0 && !organization.allowedEmailDomains.includes(emailDomain)) {
       setError(`L'email doit appartenir à l'un des domaines autorisés : ${organization.allowedEmailDomains.join(", ")}`);
       setIsAddLoading(false);
       return;
@@ -68,7 +73,7 @@ export default function CollaboratorSection({ members, organization }: Collabora
           idToken,
           orgId: organization.id,
           lang: localStorage.getItem("app_lang") || "fr",
-          memberData: { firstName, lastName, email, jobTitle }
+          memberData: { firstName, lastName, email, phone, jobTitle }
         })
       });
 
@@ -107,17 +112,26 @@ export default function CollaboratorSection({ members, organization }: Collabora
         <div>
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <Users className="text-primary" size={24} />
-            Collaborateurs
+            Collaborateurs ({members.length})
           </h3>
-          <p className="text-xs text-[#9a9a9f]">Gérez les accès de votre équipe</p>
+          <p className="text-xs text-[#9a9a9f]">Gérez les accès et autorisations de votre équipe</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-primary text-black px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
-        >
-          <UserPlus size={18} />
-          Ajouter un collaborateur
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button 
+            onClick={() => setIsCsvModalOpen(true)}
+            className="bg-[#111113] border border-[#2e2e34] hover:border-primary text-white px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all"
+          >
+            <FileSpreadsheet size={16} className="text-[#3dffa0]" />
+            Import CSV
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-primary text-black px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+          >
+            <UserPlus size={18} />
+            Ajouter un collaborateur
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -262,7 +276,11 @@ export default function CollaboratorSection({ members, organization }: Collabora
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Email professionnel</label>
                 <input required name="email" type="email" className="w-full bg-[#111113] border-none rounded-xl py-4 px-4 text-white font-bold" placeholder="jean.dupont@banque.fr" />
               </div>
-              <div className="col-span-2 space-y-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Numéro de téléphone</label>
+                <input name="phone" className="w-full bg-[#111113] border-none rounded-xl py-4 px-4 text-white font-bold" placeholder="+33 6 12 34 56 78" />
+              </div>
+              <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Fonction / Titre</label>
                 <input name="jobTitle" className="w-full bg-[#111113] border-none rounded-xl py-4 px-4 text-white font-bold" placeholder="Conseiller clientèle" />
               </div>
@@ -280,6 +298,18 @@ export default function CollaboratorSection({ members, organization }: Collabora
           </div>
         </div>
       )}
+
+      {/* CSV Import Modal */}
+      <CsvImportModal 
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        orgId={organization.id}
+        orgName={organization.name}
+        allowedEmailDomains={organization.allowedEmailDomains || []}
+        onSuccess={() => {
+          // Trigger refresh if needed or auto handled by Firestore listener
+        }}
+      />
     </div>
   );
 }

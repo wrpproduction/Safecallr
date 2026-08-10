@@ -3,9 +3,12 @@ import { db, auth, collection, query, where, onSnapshot, updateDoc, doc, serverT
 import { UserPlus, Check, X, Shield, Building2, Phone, Mail, Clock, Search, User, Plus, Trash2, MapPin, Globe, CheckCircle2, ShieldCheck, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useWorkspace } from "../contexts/WorkspaceContext";
+import { Briefcase } from "lucide-react";
 
 export default function Contacts({ user }: { user: any }) {
   const { t } = useLanguage();
+  const { activeMode, linkedPro, linkedBusiness } = useWorkspace();
   const [connections, setConnections] = useState<any[]>([]);
   const [validatedAuthRequests, setValidatedAuthRequests] = useState<any[]>([]);
   const [userConnections, setUserConnections] = useState<any[]>([]);
@@ -16,7 +19,15 @@ export default function Contacts({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newContact, setNewContact] = useState({ firstName: "", name: "", phone: "", email: "", description: "" });
+  const [newContact, setNewContact] = useState({
+    firstName: "",
+    name: "",
+    phone: "",
+    email: "",
+    description: "",
+    fonction: "",
+    targetCategory: "particulier" as "particulier" | "pro"
+  });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [addSuccess, setAddSuccess] = useState("");
@@ -212,20 +223,47 @@ export default function Contacts({ user }: { user: any }) {
       } else {
         currentStep = "ajout_contact_local";
         // Person not in base, add as local contact
-        await addDoc(collection(db, "personalContacts"), {
+        const contactData: any = {
           ownerId: user.uid || "",
           firstName: newContact.firstName,
           name: newContact.name,
           phone: newContact.phone,
           email: newContact.email,
           description: newContact.description,
+          workspaceMode: activeMode,
           createdAt: serverTimestamp()
-        });
-        setAddSuccess(t("contacts.successLocal"));
+        };
+
+        if (activeMode === "business") {
+          contactData.fonction = newContact.fonction || "Collaborateur Business";
+          contactData.companyName = linkedBusiness?.companyName || "Entreprise";
+        }
+
+        if (activeMode === "pro" && newContact.targetCategory === "pro") {
+          contactData.isProContact = true;
+          // If in an organization and not referent, requires referent validation
+          if (linkedPro?.organizationName && !linkedPro?.isReferent) {
+            contactData.referentValidationStatus = "pending_referent";
+            contactData.referentValidationNote = "En attente de validation par le référent de l'organisation.";
+          } else {
+            contactData.referentValidationStatus = "approved";
+          }
+        }
+
+        await addDoc(collection(db, "personalContacts"), contactData);
+
+        if (activeMode === "pro" && newContact.targetCategory === "pro" && linkedPro?.organizationName && !linkedPro?.isReferent) {
+          setAddSuccess("Contact Pro enregistré. La demande d'ajout a été transmise au référent de votre organisation pour validation.");
+        } else if (activeMode === "business") {
+          setAddSuccess(`Contact Business (${newContact.fonction || 'Membre'}) enregistré avec succès.`);
+        } else {
+          setAddSuccess(t("contacts.successLocal"));
+        }
+
         setTimeout(() => setShowAddModal(false), 2000);
       }
       
-      setNewContact({ firstName: "", name: "", phone: "", email: "", description: "" });
+      setNewContact({ firstName: "", name: "", phone: "", email: "", description: "", fonction: "", targetCategory: "particulier" });
     } catch (err: any) {
       console.error(`Add contact error during step [${currentStep}]:`, err);
       setAddError(
@@ -751,38 +789,112 @@ export default function Contacts({ user }: { user: any }) {
               <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-8 sm:hidden" />
               
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  activeMode === "business"
+                    ? "bg-blue-600/20 text-blue-300"
+                    : activeMode === "pro"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "bg-primary/10 text-primary"
+                }`}>
                   <UserPlus size={24} />
                 </div>
                 <div>
-                  <h3 className="font-headline font-bold text-xl text-on-surface">{t("contacts.addTitle")}</h3>
-                  <p className="text-slate-500 text-xs">{t("contacts.addSubtitle")}</p>
+                  <h3 className="font-headline font-bold text-xl text-on-surface">
+                    {activeMode === "business" 
+                      ? "Nouveau Contact Business" 
+                      : activeMode === "pro" 
+                      ? "Nouveau Contact Pro / Client" 
+                      : t("contacts.addTitle")}
+                  </h3>
+                  <p className="text-slate-500 text-xs">
+                    {activeMode === "business"
+                      ? "Saisissez les informations professionnelles du collaborateur"
+                      : activeMode === "pro"
+                      ? "Ajoutez un particulier ou un confrère professionnel"
+                      : t("contacts.addSubtitle")}
+                  </p>
                 </div>
               </div>
 
-              <form onSubmit={handleAddContact} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.firstNameLabel")}</label>
-                  <input 
-                    type="text" 
-                    placeholder={t("contacts.firstNamePlaceholder")}
-                    required
-                    value={newContact.firstName}
-                    onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
-                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all"
-                  />
+              <form onSubmit={handleAddContact} className="space-y-5">
+                {activeMode === "pro" && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">
+                      Type de contact à ajouter
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewContact({ ...newContact, targetCategory: "particulier" })}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                          newContact.targetCategory === "particulier"
+                            ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                            : "bg-surface-container-highest text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        👤 Client Particulier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewContact({ ...newContact, targetCategory: "pro" })}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                          newContact.targetCategory === "pro"
+                            ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                            : "bg-surface-container-highest text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        💼 Contact Pro
+                      </button>
+                    </div>
+                    {newContact.targetCategory === "pro" && linkedPro?.organizationName && !linkedPro?.isReferent && (
+                      <p className="text-[10px] text-blue-300 bg-blue-500/10 p-2 rounded-xl border border-blue-500/20 mt-1">
+                        ℹ️ L'ajout d'un contact Pro nécessitera la validation du référent de votre organisation.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.firstNameLabel")}</label>
+                    <input 
+                      type="text" 
+                      placeholder={t("contacts.firstNamePlaceholder")}
+                      required
+                      value={newContact.firstName}
+                      onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
+                      className="w-full bg-surface-container-highest border-none rounded-2xl py-3.5 px-4 text-on-surface text-sm placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.lastNameLabel")}</label>
+                    <input 
+                      type="text" 
+                      placeholder={t("contacts.lastNamePlaceholder")}
+                      required
+                      value={newContact.name}
+                      onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                      className="w-full bg-surface-container-highest border-none rounded-2xl py-3.5 px-4 text-on-surface text-sm placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.lastNameLabel")}</label>
-                  <input 
-                    type="text" 
-                    placeholder={t("contacts.lastNamePlaceholder")}
-                    required
-                    value={newContact.name}
-                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all"
-                  />
-                </div>
+
+                {activeMode === "business" && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-blue-400 px-1">
+                      Fonction / Poste dans l'entreprise
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="ex. Directeur Financier, Responsable Achats..."
+                      required
+                      value={newContact.fonction}
+                      onChange={(e) => setNewContact({ ...newContact, fonction: e.target.value })}
+                      className="w-full bg-surface-container-highest border border-blue-500/30 rounded-2xl py-3.5 px-4 text-on-surface text-sm placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{t("contacts.phoneLabel")}</label>
                   <input 
@@ -791,7 +903,7 @@ export default function Contacts({ user }: { user: any }) {
                     required
                     value={newContact.phone}
                     onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full bg-surface-container-highest border-none rounded-2xl py-3.5 px-4 text-on-surface text-sm placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
 
@@ -803,7 +915,7 @@ export default function Contacts({ user }: { user: any }) {
                     required
                     value={newContact.email}
                     onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all"
+                    className="w-full bg-surface-container-highest border-none rounded-2xl py-3.5 px-4 text-on-surface text-sm placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
 
@@ -814,7 +926,7 @@ export default function Contacts({ user }: { user: any }) {
                     value={newContact.description}
                     onChange={(e) => setNewContact({ ...newContact, description: e.target.value })}
                     rows={2}
-                    className="w-full bg-surface-container-highest border-none rounded-2xl py-4 px-6 text-on-surface placeholder:text-slate-600 focus:ring-2 focus:ring-primary transition-all resize-none"
+                    className="w-full bg-surface-container-highest border-none rounded-2xl py-3 px-4 text-on-surface text-sm placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500 transition-all resize-none"
                   />
                 </div>
 

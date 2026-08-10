@@ -28,6 +28,7 @@ import { fr } from "date-fns/locale";
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
+import { toast } from "sonner";
 import { safeFormatDate, parseToDate } from "../lib/dateUtils";
 import { Link } from "react-router-dom";
 
@@ -45,7 +46,42 @@ const chartData = [
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [resendConfigured, setResendConfigured] = useState<boolean | null>(null);
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [isSavingKey, setIsSavingKey] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) {
+      toast.error("Veuillez saisir une clé API Resend (ex: re_123456789)");
+      return;
+    }
+    setIsSavingKey(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/resend-config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ apiKey: apiKeyInput.trim() })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de la sauvegarde de la clé API");
+      }
+
+      toast.success("Clé API Resend enregistrée avec succès !");
+      setResendConfigured(true);
+      setShowKeyInput(false);
+    } catch (err: any) {
+      toast.error(err.message || "Échec de l'enregistrement de la clé API");
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [recentOrgs, setRecentOrgs] = useState<any[]>([]);
   const [recentRequests, setRecentRequests] = useState<any[]>([]);
@@ -446,26 +482,57 @@ export default function AdminDashboard() {
 
         {/* Notice of Missing Email Config (RESEND_API_KEY) */}
         {resendConfigured === false && (
-          <div className="bg-[#ea580c]/10 border border-[#ea580c]/30 rounded-2xl p-6 flex gap-4 animate-in slide-in-from-top duration-300">
+          <div className="bg-[#ea580c]/10 border border-[#ea580c]/30 rounded-2xl p-6 flex flex-col md:flex-row gap-4 animate-in slide-in-from-top duration-300">
             <div className="p-3 bg-[#ea580c]/10 text-[#ea580c] rounded-xl shrink-0 h-fit self-start">
               <AlertCircle size={24} />
             </div>
-            <div className="space-y-2">
-              <h4 className="font-bold text-white text-base">Configuration des emails à finaliser (RESEND_API_KEY requis)</h4>
+            <div className="space-y-3 flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h4 className="font-bold text-white text-base">Configuration des emails à finaliser (RESEND_API_KEY)</h4>
+                <button
+                  onClick={() => setShowKeyInput(!showKeyInput)}
+                  className="px-3 py-1.5 bg-[#ea580c] hover:bg-[#ea580c]/80 text-white font-bold text-xs rounded-xl transition-colors self-start sm:self-auto"
+                >
+                  {showKeyInput ? "Masquer la saisie" : "Saisir la clé API ici"}
+                </button>
+              </div>
+
               <p className="text-[#9a9a9f] text-sm leading-relaxed">
-                Vous n'avez pas encore configuré la clé d'environnement <code className="text-white bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs">RESEND_API_KEY</code> dans vos paramètres Google AI Studio. 
-                De ce fait, les e-mails réels (confirmations d'inscription, notifications, validations professionnelles) ne sont pas physiquement envoyés à vos destinataires.
+                Si vous n'avez pas défini <code className="text-white bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs">RESEND_API_KEY</code> dans l'environnement, vous pouvez la renseigner directement ci-dessous pour activer immédiatement l'envoi d'emails.
               </p>
+
+              {showKeyInput && (
+                <div className="p-4 bg-[#111113] border border-[#ea580c]/40 rounded-xl space-y-3 animate-in fade-in duration-200">
+                  <label className="text-xs font-bold text-white uppercase tracking-wider block">Clé API Resend (ex: re_123456789...)</label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="password"
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
+                      className="flex-1 px-4 py-2 bg-[#1e1e22] border border-[#2e2e34] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-[#ea580c]"
+                    />
+                    <button
+                      onClick={handleSaveApiKey}
+                      disabled={isSavingKey}
+                      className="px-5 py-2 bg-[#ea580c] hover:bg-[#ea580c]/90 text-white font-bold text-xs rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isSavingKey ? "Enregistrement..." : "Enregistrer et activer"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="text-[#9a9a9f] text-sm leading-relaxed space-y-1">
-                <p><strong>Pour activer les envois :</strong></p>
-                <ol className="list-decimal list-inside pl-1 space-y-1 text-slate-300">
+                <p><strong>Pour obtenir une clé :</strong></p>
+                <ol className="list-decimal list-inside pl-1 space-y-1 text-slate-300 text-xs">
                   <li>Inscrivez-vous gratuitement sur <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline font-bold">Resend.com</a></li>
                   <li>Copiez votre clé API de test ou de production</li>
-                  <li>Ouvrez l'onglet de configuration <strong>Secrets / Paramètres</strong> de Google AI Studio et définissez <code className="text-white bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs">RESEND_API_KEY="votre_cle"</code></li>
+                  <li>Saisissez-la ci-dessus ou ajoutez-la dans les secrets du projet</li>
                 </ol>
               </div>
               <p className="text-xs text-[#9a9a9f] italic pt-1 border-t border-white/5">
-                Note : Pendant ce temps, par sécurité, tous les emails générés par vos utilisateurs et administrateurs sont conservés en file d'attente sous forme de brouillons dans la collection Firestore <code className="text-white bg-white/10 px-1 py-0.5 rounded font-mono text-xs">/mail</code>.
+                Note : Tous les e-mails générés sont également sauvegardés dans la collection Firestore <code className="text-white bg-white/10 px-1 py-0.5 rounded font-mono text-xs">/mail</code>.
               </p>
             </div>
           </div>
