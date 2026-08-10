@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild src/entry-server.tsx --bundle --platform=node --format=esm --target=node20 --conditions=node --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" --alias:virtual:pwa-register=./src/pwa-stub.ts --outfile=dist-server/entry-server.js && node scripts/prerender.mjs && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",

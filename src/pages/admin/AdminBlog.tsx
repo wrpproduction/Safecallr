@@ -70,6 +70,7 @@ export default function AdminBlog() {
   const [formSummary, setFormSummary] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formCategory, setFormCategory] = useState<"grand_public" | "professionnel">("grand_public");
+  const [formLang, setFormLang] = useState<"fr" | "en" | "es">("fr");
   const [formPublished, setFormPublished] = useState(true);
   const [formMetaTitle, setFormMetaTitle] = useState("");
   const [formMetaDescription, setFormMetaDescription] = useState("");
@@ -194,6 +195,7 @@ export default function AdminBlog() {
     setFormSummary("");
     setFormImageUrl(PRESET_IMAGES[0].url);
     setFormCategory("grand_public");
+    setFormLang("fr");
     setFormPublished(true);
     setFormMetaTitle("");
     setFormMetaDescription("");
@@ -212,6 +214,7 @@ export default function AdminBlog() {
     setFormSummary(article.summary || "");
     setFormImageUrl(article.imageUrl || "");
     setFormCategory(article.category || "grand_public");
+    setFormLang(article.lang || "fr");
     setFormPublished(article.published !== false);
     setFormMetaTitle(article.metaTitle || "");
     setFormMetaDescription(article.metaDescription || "");
@@ -239,6 +242,7 @@ export default function AdminBlog() {
       summary: formSummary,
       imageUrl: formImageUrl,
       category: formCategory,
+      lang: formLang,
       published: formPublished,
       metaTitle: cleanSlug,
       metaDescription: formMetaDescription,
@@ -474,6 +478,19 @@ export default function AdminBlog() {
                     >
                       <option value="grand_public">Grand Public / Particulier</option>
                       <option value="professionnel">Professionnel & Entreprise</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest font-bold text-slate-400 mb-2">Langue de l'article *</label>
+                    <select 
+                      value={formLang}
+                      onChange={(e) => setFormLang(e.target.value as any)}
+                      className="w-full bg-[#0a0a0c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary focus:outline-none transition-all"
+                    >
+                      <option value="fr">Français</option>
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
                     </select>
                   </div>
 

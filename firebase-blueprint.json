@@ -278,6 +278,7 @@
         "summary": { "type": "string" },
         "imageUrl": { "type": "string" },
         "category": { "type": "string", "enum": ["grand_public", "professionnel"] },
+        "lang": { "type": "string", "enum": ["fr", "en", "es"] },
         "published": { "type": "boolean" },
         "metaTitle": { "type": "string" },
         "metaDescription": { "type": "string" },
