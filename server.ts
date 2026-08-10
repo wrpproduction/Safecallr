@@ -5,9 +5,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import { Resend } from "resend";
-import { sendAdminNotification } from "./server/notify";
-import { getPlatformStats } from "./server/stats";
-import { EmailData, buildActivationEmail, buildOrganizationEmail } from "./src/lib/emailTemplates";
+import { sendAdminNotification } from "./server/notify.js";
+import { getPlatformStats } from "./server/stats.js";
+import { EmailData, buildActivationEmail, buildOrganizationEmail } from "./src/lib/emailTemplates.js";
 
 // Global process exception handlers to prevent any unhandled error from crashing the server
 process.on("unhandledRejection", (reason, promise) => {
