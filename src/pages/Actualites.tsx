@@ -18,10 +18,11 @@ import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export default function Actualites() {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<"all" | "grand_public" | "professionnel">("all");
+  const [selectedLang, setSelectedLang] = useState<"fr" | "en" | "es">((lang as "fr" | "en" | "es") || "fr");
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -52,19 +53,36 @@ export default function Actualites() {
         });
 
         setArticles(merged);
+
+        // Repli anti-page-vide : si aucun article n'existe dans la langue de l'interface, repli sur "fr"
+        const currentLang = (lang as "fr" | "en" | "es") || "fr";
+        const hasCurrentLangArticles = merged.some(art => (art.lang || "fr") === currentLang);
+        if (!hasCurrentLangArticles) {
+          setSelectedLang("fr");
+        } else {
+          setSelectedLang(currentLang);
+        }
       } catch (err) {
         console.error("Error fetching articles:", err);
         setArticles(DEFAULT_BLOG_ARTICLES);
+        const currentLang = (lang as "fr" | "en" | "es") || "fr";
+        if (currentLang !== "fr" && !DEFAULT_BLOG_ARTICLES.some(art => (art.lang || "fr") === currentLang)) {
+          setSelectedLang("fr");
+        } else {
+          setSelectedLang(currentLang);
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchArticles();
-  }, []);
+  }, [lang]);
 
-  const filteredArticles = selectedCategory === "all" 
-    ? articles 
-    : articles.filter(art => art.category === selectedCategory);
+  const filteredArticles = articles.filter(art => {
+    const matchCategory = selectedCategory === "all" || art.category === selectedCategory;
+    const matchLang = (art.lang || "fr") === selectedLang;
+    return matchCategory && matchLang;
+  });
 
   const featuredArticle = filteredArticles[0];
   const regularArticles = filteredArticles.slice(1);
@@ -142,39 +160,76 @@ export default function Actualites() {
 
       {/* Filters */}
       <section className="py-6 border-y border-white/5 bg-surface-container-lowest/50">
-        <div className="max-w-7xl mx-auto px-6 flex justify-center gap-4">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-              selectedCategory === "all"
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
-            }`}
-          >
-            {t('blogUI.allArticles')}
-          </button>
-          <button
-            onClick={() => setSelectedCategory("grand_public")}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
-              selectedCategory === "grand_public"
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
-            }`}
-          >
-            <Users size={12} />
-            {t('blogUI.generalPublic')}
-          </button>
-          <button
-            onClick={() => setSelectedCategory("professionnel")}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
-              selectedCategory === "professionnel"
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
-            }`}
-          >
-            <Building2 size={12} />
-            {t('blogUI.professionals')}
-          </button>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
+          {/* Category Filters */}
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                selectedCategory === "all"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
+              }`}
+            >
+              {t('blogUI.allArticles')}
+            </button>
+            <button
+              onClick={() => setSelectedCategory("grand_public")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+                selectedCategory === "grand_public"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
+              }`}
+            >
+              <Users size={12} />
+              {t('blogUI.generalPublic')}
+            </button>
+            <button
+              onClick={() => setSelectedCategory("professionnel")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+                selectedCategory === "professionnel"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
+              }`}
+            >
+              <Building2 size={12} />
+              {t('blogUI.professionals')}
+            </button>
+          </div>
+
+          {/* Language Filters */}
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => setSelectedLang("fr")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                selectedLang === "fr"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
+              }`}
+            >
+              Français
+            </button>
+            <button
+              onClick={() => setSelectedLang("en")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                selectedLang === "en"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setSelectedLang("es")}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                selectedLang === "es"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
+              }`}
+            >
+              Español
+            </button>
+          </div>
         </div>
       </section>
 

@@ -14,6 +14,7 @@ export interface BlogArticle {
   content: string;
   geoTargeting?: string;
   published?: boolean;
+  lang?: "fr" | "en" | "es";
 }
 
 export const DEFAULT_BLOG_ARTICLES: BlogArticle[] = [
