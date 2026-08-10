@@ -1,6 +1,5 @@
 import React from "react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../../lib/dateUtils";
 import { 
   PlusCircle, 
   Settings, 
@@ -59,7 +58,7 @@ export default function AuditLogTimeline({ logs }: AuditLogTimelineProps) {
               <div className="flex items-center justify-between">
                 <p className="text-white font-bold text-sm">{config.label}</p>
                 <span className="text-[10px] text-slate-500">
-                  {log.createdAt?.toDate ? format(log.createdAt.toDate(), 'dd/MM/yyyy HH:mm', { locale: fr }) : 'Maintenant'}
+                  {safeFormatDate(log.createdAt, 'dd/MM/yyyy HH:mm', 'Maintenant')}
                 </span>
               </div>
               <p className="text-xs text-slate-500">

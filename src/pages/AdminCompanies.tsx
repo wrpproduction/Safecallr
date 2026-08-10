@@ -37,6 +37,7 @@ import { db } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../lib/dateUtils";
 import { handleFirestoreError, OperationType } from "../lib/firestore-errors";
 
 const PAGE_SIZE = 20;
@@ -164,22 +165,34 @@ export default function AdminCompanies() {
     setLoading(true);
     setFeedback(null);
     try {
-      let q = query(
-        collection(db, "companies"),
-        orderBy("createdAt", "desc"),
-        limit(PAGE_SIZE)
-      );
+      let snapshot;
+      try {
+        let q = query(
+          collection(db, "companies"),
+          orderBy("createdAt", "desc"),
+          limit(PAGE_SIZE)
+        );
 
-      if (statusFilter !== "all") {
-        q = query(q, where("status", "==", statusFilter));
+        if (statusFilter !== "all") {
+          q = query(q, where("status", "==", statusFilter));
+        }
+
+        if (pageNumber > 1 && lastDoc) {
+          q = query(q, startAfter(lastDoc));
+        }
+
+        snapshot = await getDocs(q);
+      } catch (indexError: any) {
+        console.warn("Composite query failed in AdminCompanies, falling back to simple query:", indexError);
+        // Fallback: simple query without composite index filter
+        let fallbackQuery = query(
+          collection(db, "companies"),
+          limit(50)
+        );
+        snapshot = await getDocs(fallbackQuery);
       }
 
-      if (pageNumber > 1 && lastDoc) {
-        q = query(q, startAfter(lastDoc));
-      }
-
-      const snapshot = await getDocs(q);
-      const fetchedCompanies = snapshot.docs.map(doc => {
+      let fetchedCompanies = snapshot.docs.map(doc => {
         const data = doc.data();
         let createdAt = data.createdAt;
         
@@ -199,6 +212,11 @@ export default function AdminCompanies() {
           createdAt
         };
       }) as Company[];
+
+      // Client-side filtering if status filter was not applied due to fallback
+      if (statusFilter !== "all") {
+        fetchedCompanies = fetchedCompanies.filter(c => c.status === statusFilter);
+      }
 
       setCompanies(fetchedCompanies);
       setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
@@ -453,9 +471,7 @@ export default function AdminCompanies() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-[#9a9a9f]">
-                        {company.createdAt instanceof Date && !isNaN(company.createdAt.getTime()) ? (
-                          format(company.createdAt, "dd MMM yyyy", { locale: fr })
-                        ) : "N/A"}
+                        {safeFormatDate(company.createdAt, "dd/MM/yyyy", "N/A")}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -652,9 +668,7 @@ export default function AdminCompanies() {
                 <div className="bg-[#111113] p-6 rounded-2xl border border-[#2e2e34]">
                   <p className="text-[10px] font-bold text-[#9a9a9f] uppercase tracking-widest mb-2">Date d'inscription</p>
                   <p className="text-lg font-bold text-white">
-                    {selectedCompany.createdAt instanceof Date && !isNaN(selectedCompany.createdAt.getTime()) 
-                      ? format(selectedCompany.createdAt, "dd MMMM yyyy", { locale: fr }) 
-                      : "N/A"}
+                    {safeFormatDate(selectedCompany.createdAt, "dd/MM/yyyy", "N/A")}
                   </p>
                 </div>
               </div>
@@ -765,9 +779,7 @@ export default function AdminCompanies() {
                           </div>
                           <div className="flex items-center gap-2 text-xs text-[#9a9a9f]">
                             <Calendar size={14} />
-                            Inscrit le {pro.createdAt instanceof Date && !isNaN(pro.createdAt.getTime()) 
-                              ? format(pro.createdAt, "dd/MM/yyyy") 
-                              : "N/A"}
+                            Inscrit le {safeFormatDate(pro.createdAt, "dd/MM/yyyy", "N/A")}
                           </div>
                         </div>
 

@@ -978,15 +978,15 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
       // 6. Envoi lien d'activation (En Resend direct avec fallback en collection mail pour Firestore extension)
-      logSteps.push(`Generating password reset link for ${repData?.email}...`);
+      logSteps.push(`Generating business activation link for ${repData?.email}...`);
       let activationLink = "";
       try {
-        activationLink = await admin.auth().generatePasswordResetLink(repData.email);
-        logSteps.push(`Password reset link generated successfully.`);
+        const baseUrl = process.env.APP_URL || "https://safecallr.com";
+        activationLink = `${baseUrl}/business/register?orgId=${orgId}&email=${encodeURIComponent(repData.email)}&firstName=${encodeURIComponent(repData.firstName || '')}&lastName=${encodeURIComponent(repData.lastName || '')}&companyName=${encodeURIComponent(orgData.name || '')}&siret=${encodeURIComponent(orgData.siret || '')}&address=${encodeURIComponent(orgData.address || '')}&zipCode=${encodeURIComponent(orgData.zipCode || '')}&city=${encodeURIComponent(orgData.city || '')}`;
+        logSteps.push(`Activation link generated: ${activationLink}`);
       } catch (linkErr: any) {
-        logSteps.push(`Warning: could not generate password reset link via SDK: ${linkErr.message}. Formatting a fallback.`);
-        // Fallback or handle it
-        activationLink = `https://safecallr.com/reset-password?email=${encodeURIComponent(repData.email)}`;
+        logSteps.push(`Warning: could not generate custom link: ${linkErr.message}. Formatting fallback.`);
+        activationLink = `https://safecallr.com/business/register?orgId=${orgId}&email=${encodeURIComponent(repData.email)}`;
       }
       console.log(`Lien d'activation pour ${repData.email}: ${activationLink}`);
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
@@ -1336,7 +1336,11 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       const memberUid = userRecord.uid;
 
       // Envoi lien d'activation
-      const activationLink = await admin.auth().generatePasswordResetLink(memberData.email);
+      const actionCodeSettings = {
+        url: process.env.APP_URL ? `${process.env.APP_URL}/auth?mode=login` : 'https://safecallr.com/auth?mode=login',
+        handleCodeInApp: true,
+      };
+      const activationLink = await admin.auth().generatePasswordResetLink(memberData.email, actionCodeSettings);
       console.log(`Lien d'activation pour collaborateur ${memberData.email}: ${activationLink}`);
 
       // Build and send the activation email
@@ -1416,6 +1420,135 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     } catch (error: any) {
       console.error("Create Member Error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // API: Activation d'un compte organisation / business via lien d'invitation
+  app.post("/api/business/activate-account", async (req, res) => {
+    try {
+      const {
+        orgId,
+        email,
+        password,
+        firstName,
+        lastName,
+        companyName,
+        siret,
+        address,
+        zipCode,
+        city,
+        phoneNumber,
+        jobTitle
+      } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "E-mail et mot de passe requis." });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ error: "Le mot de passe doit contenir au moins 6 caractères." });
+      }
+
+      const trimmedEmail = email.trim().toLowerCase();
+
+      // 1. Check or create Firebase Auth user
+      let userRecord;
+      try {
+        userRecord = await admin.auth().getUserByEmail(trimmedEmail);
+        // User exists (e.g. pre-created by admin SDK), update password and verify email
+        await admin.auth().updateUser(userRecord.uid, {
+          password: password,
+          emailVerified: true,
+          displayName: `${firstName || ''} ${lastName || ''}`.trim() || undefined
+        });
+      } catch (authErr: any) {
+        if (authErr.code === "auth/user-not-found") {
+          userRecord = await admin.auth().createUser({
+            email: trimmedEmail,
+            password: password,
+            emailVerified: true,
+            displayName: `${firstName || ''} ${lastName || ''}`.trim() || undefined
+          });
+        } else {
+          throw authErr;
+        }
+      }
+
+      const uid = userRecord.uid;
+
+      // 2. Resolve or create Organization document
+      let targetOrgId = orgId;
+      if (!targetOrgId) {
+        const orgsSnap = await db.collection("organizations").where("adminEmail", "==", trimmedEmail).limit(1).get();
+        if (!orgsSnap.empty) {
+          targetOrgId = orgsSnap.docs[0].id;
+        } else {
+          const newOrgRef = db.collection("organizations").doc();
+          targetOrgId = newOrgRef.id;
+        }
+      }
+
+      const fullAddress = address ? `${address}, ${zipCode || ''} ${city || ''}` : '';
+
+      // Update / set Organization doc
+      const orgRef = db.collection("organizations").doc(targetOrgId);
+      await orgRef.set({
+        id: targetOrgId,
+        name: companyName || "Organisation",
+        siret: siret || "",
+        address: fullAddress,
+        streetNumber: address ? (address.split(" ")[0] || "") : "",
+        zipCode: zipCode || "",
+        city: city || "",
+        adminEmail: trimmedEmail,
+        status: "active",
+        active: true,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        allowedEmailDomains: [trimmedEmail.split("@")[1] || "gmail.com"]
+      }, { merge: true });
+
+      // Update / set Member record
+      const memberRef = db.collection("organizations").doc(targetOrgId).collection("members").doc(uid);
+      await memberRef.set({
+        firstName: firstName || "",
+        lastName: lastName || "",
+        email: trimmedEmail,
+        role: "admin",
+        status: "active",
+        jobTitle: jobTitle || "Administrateur principal",
+        directPhone: phoneNumber || "",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // Update / set User record
+      const userRef = db.collection("users").doc(uid);
+      await userRef.set({
+        uid: uid,
+        userClass: "professional",
+        firstName: firstName || "",
+        lastName: lastName || "",
+        displayName: `${firstName || ''} ${lastName || ''}`.trim(),
+        email: trimmedEmail,
+        phoneNumber: phoneNumber || "",
+        orgId: targetOrgId,
+        role: "representative",
+        emailVerified: true,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // Create Custom Token for seamless auto-login on frontend
+      const customToken = await admin.auth().createCustomToken(uid);
+
+      return res.json({
+        success: true,
+        customToken,
+        orgId: targetOrgId,
+        message: "Compte organisation activé avec succès !"
+      });
+
+    } catch (err: any) {
+      console.error("Error in /api/business/activate-account:", err);
+      return res.status(500).json({ error: err.message || "Erreur lors de l'activation du compte." });
     }
   });
 

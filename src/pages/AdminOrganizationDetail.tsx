@@ -36,8 +36,7 @@ import {
   AreaChart,
   Area
 } from "recharts";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../lib/dateUtils";
 import { auth, db } from "../firebase";
 import { doc, getDoc, collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
@@ -257,7 +256,7 @@ export default function AdminOrganizationDetail() {
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-slate-500 text-sm">
                   <span className="flex items-center gap-2 italic">
-                    <Calendar size={14} /> Créée le {format(new Date(org.createdAt?.seconds * 1000), 'dd MMMM yyyy', { locale: fr })}
+                    <Calendar size={14} /> Créée le {safeFormatDate(org.createdAt, 'dd/MM/yyyy')}
                   </span>
                   <span className="px-2 py-0.5 bg-[#1e1e22] rounded text-xs font-mono">SIRET: {org.siret}</span>
                 </div>
@@ -547,7 +546,7 @@ export default function AdminOrganizationDetail() {
                                    </div>
                                    <div>
                                      <p className="text-white font-bold text-sm">{org.representative?.firstName} {org.representative?.lastName}</p>
-                                     <p className="text-[10px] text-slate-500">Depuis le {format(new Date(org.representative?.createdAt?.seconds * 1000), 'dd/MM/yyyy')}</p>
+                                     <p className="text-[10px] text-slate-500">Depuis le {safeFormatDate(org.representative?.createdAt, 'dd/MM/yyyy')}</p>
                                    </div>
                                  </div>
                                </td>

@@ -238,7 +238,11 @@ export default function Auth() {
                   }
                   try {
                     auth.languageCode = lang;
-                    await sendPasswordResetEmail(auth, email);
+                    const actionCodeSettings = {
+                      url: window.location.origin + "/auth?mode=login",
+                      handleCodeInApp: true,
+                    };
+                    await sendPasswordResetEmail(auth, email, actionCodeSettings);
                     setError("");
                     alert("Un email de réinitialisation a été envoyé.");
                   } catch (err: any) {

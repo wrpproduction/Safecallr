@@ -29,8 +29,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../lib/dateUtils";
 import { handleFirestoreError, OperationType } from "../lib/firestore-errors";
 
 const PAGE_SIZE = 20;
@@ -66,26 +65,29 @@ export default function AdminUsers() {
         }
       }
 
-      let q = query(
-        collection(db, "users"),
-        limit(PAGE_SIZE)
-      );
+      let snapshot;
+      try {
+        let q = query(
+          collection(db, "users"),
+          limit(PAGE_SIZE)
+        );
 
-      if (statusFilter !== "all") {
-        q = query(q, where("status", "==", statusFilter));
+        if (statusFilter !== "all") {
+          q = query(q, where("status", "==", statusFilter));
+        }
+
+        if (pageNumber > 1 && lastDoc) {
+          q = query(q, startAfter(lastDoc));
+        }
+
+        snapshot = await getDocs(q);
+      } catch (indexErr: any) {
+        console.warn("Query failed in AdminUsers, falling back to simple list:", indexErr);
+        snapshot = await getDocs(query(collection(db, "users"), limit(50)));
       }
 
-      // Pour une pagination réelle avec Firestore sans offset, on utilise les curseurs
-      // Si on n'est pas à la page 1, on aurait besoin du dernier doc de la page précédente
-      // Pour simplifier ici, on va garder une navigation séquentielle
-      if (pageNumber > 1 && lastDoc) {
-        q = query(q, startAfter(lastDoc));
-      }
-
-      const snapshot = await getDocs(q);
-      const fetchedUsers = snapshot.docs.map(doc => {
+      let fetchedUsers = snapshot.docs.map(doc => {
         const data = doc.data();
-        // Convertir le timestamp Firestore en Date si nécessaire
         let createdAt = data.createdAt;
         if (createdAt && typeof createdAt.toDate === 'function') {
           createdAt = createdAt.toDate();
@@ -99,6 +101,10 @@ export default function AdminUsers() {
           createdAt
         };
       });
+
+      if (statusFilter !== "all") {
+        fetchedUsers = fetchedUsers.filter((u: any) => u.status === statusFilter);
+      }
 
       setUsers(fetchedUsers);
       setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
@@ -347,9 +353,7 @@ export default function AdminUsers() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-[#9a9a9f]">
-                        {user.createdAt ? (
-                          format(new Date(user.createdAt), "dd MMM yyyy", { locale: fr })
-                        ) : "N/A"}
+                        {safeFormatDate(user.createdAt, "dd/MM/yyyy", "N/A")}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -500,7 +504,7 @@ export default function AdminUsers() {
                           )}
                         </div>
                         <p className="text-xs text-[#9a9a9f]">
-                          Inscrit le : {selectedUser.createdAt ? format(new Date(selectedUser.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr }) : "N/A"}
+                          Inscrit le : {safeFormatDate(selectedUser.createdAt, "dd/MM/yyyy", "N/A")}
                         </p>
                         {selectedUser.sensitiveUpdateCount > 0 && (
                           <div className={`p-3 rounded-xl border ${selectedUser.sensitiveUpdateCount >= 3 ? "bg-error/10 border-error/20 text-error" : "bg-warning/10 border-warning/20 text-warning"}`}>
@@ -511,7 +515,7 @@ export default function AdminUsers() {
                             <p className="text-xs font-bold">{selectedUser.sensitiveUpdateCount} changements de coordonnées</p>
                             {selectedUser.lastSensitiveUpdate && (
                               <p className="text-[10px] opacity-70">
-                                Dernier: {format(selectedUser.lastSensitiveUpdate.toDate ? selectedUser.lastSensitiveUpdate.toDate() : new Date(selectedUser.lastSensitiveUpdate), "dd/MM/yyyy HH:mm")}
+                                Dernier: {safeFormatDate(selectedUser.lastSensitiveUpdate, "dd/MM/yyyy HH:mm", "N/A")}
                               </p>
                             )}
                           </div>

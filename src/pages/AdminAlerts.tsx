@@ -22,8 +22,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../lib/dateUtils";
 
 export default function AdminAlerts() {
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -179,7 +178,7 @@ export default function AdminAlerts() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock size={14} />
-                          {format(alert.createdAt, "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
+                          {safeFormatDate(alert.createdAt, "dd/MM/yyyy HH:mm")}
                         </div>
                       </div>
                     </div>

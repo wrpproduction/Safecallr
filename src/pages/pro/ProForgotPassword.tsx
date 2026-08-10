@@ -20,7 +20,11 @@ export default function ProForgotPassword() {
 
     try {
       auth.languageCode = lang;
-      await sendPasswordResetEmail(auth, email);
+      const actionCodeSettings = {
+        url: window.location.origin + "/pro/login",
+        handleCodeInApp: true,
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       setIsSent(true);
     } catch (err: any) {
       console.error("Reset error:", err);

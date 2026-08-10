@@ -30,8 +30,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../lib/dateUtils";
 import { handleFirestoreError, OperationType } from "../lib/firestore-errors";
 
 const PAGE_SIZE = 20;
@@ -96,22 +95,29 @@ export default function AdminRequests() {
   const fetchRequests = async (pageNumber = 1) => {
     setLoading(true);
     try {
-      let q = query(
-        collection(db, "authRequests"),
-        orderBy("createdAt", "desc"),
-        limit(PAGE_SIZE)
-      );
+      let snapshot;
+      try {
+        let q = query(
+          collection(db, "authRequests"),
+          orderBy("createdAt", "desc"),
+          limit(PAGE_SIZE)
+        );
 
-      if (statusFilter !== "all") {
-        q = query(q, where("status", "==", statusFilter));
+        if (statusFilter !== "all") {
+          q = query(q, where("status", "==", statusFilter));
+        }
+
+        if (pageNumber > 1 && lastDoc) {
+          q = query(q, startAfter(lastDoc));
+        }
+
+        snapshot = await getDocs(q);
+      } catch (indexErr: any) {
+        console.warn("Query failed in AdminRequests, falling back to simple query:", indexErr);
+        snapshot = await getDocs(query(collection(db, "authRequests"), limit(50)));
       }
 
-      if (pageNumber > 1 && lastDoc) {
-        q = query(q, startAfter(lastDoc));
-      }
-
-      const snapshot = await getDocs(q);
-      const fetchedRequests = snapshot.docs.map(doc => {
+      let fetchedRequests = snapshot.docs.map(doc => {
         const data = doc.data();
         let createdAt = data.createdAt;
         if (createdAt && typeof createdAt.toDate === 'function') {
@@ -126,6 +132,10 @@ export default function AdminRequests() {
           createdAt
         };
       }) as VerificationRequest[];
+
+      if (statusFilter !== "all") {
+        fetchedRequests = fetchedRequests.filter((r: any) => r.status === statusFilter);
+      }
 
       setRequests(fetchedRequests);
       setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
@@ -285,9 +295,7 @@ export default function AdminRequests() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-[#9a9a9f]">
-                          {req.createdAt ? (
-                            format(new Date(req.createdAt), "dd/MM HH:mm", { locale: fr })
-                          ) : "N/A"}
+                          {safeFormatDate(req.createdAt, "dd/MM/yyyy HH:mm", "N/A")}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button 

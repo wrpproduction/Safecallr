@@ -28,6 +28,7 @@ import { fr } from "date-fns/locale";
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import AdminLayout from "../components/AdminLayout";
+import { safeFormatDate } from "../lib/dateUtils";
 import { Link } from "react-router-dom";
 
 // Mock data for the chart
@@ -60,20 +61,7 @@ export default function AdminDashboard() {
   });
 
   const formatSafeDate = (createdAt: any) => {
-    if (!createdAt) return "N/A";
-    try {
-      if (typeof createdAt.toDate === "function") {
-        return format(createdAt.toDate(), "dd MMM, HH:mm", { locale: fr });
-      }
-      if (createdAt.seconds) {
-        return format(new Date(createdAt.seconds * 1000), "dd MMM, HH:mm", { locale: fr });
-      }
-      const d = new Date(createdAt);
-      if (isNaN(d.getTime())) return "N/A";
-      return format(d, "dd MMM, HH:mm", { locale: fr });
-    } catch (err) {
-      return "N/A";
-    }
+    return safeFormatDate(createdAt, "dd/MM/yyyy HH:mm", "N/A");
   };
 
   useEffect(() => {
@@ -608,9 +596,7 @@ export default function AdminDashboard() {
                                 {req.status === "code_generated" ? "Code généré" : req.status === "pending" ? "En attente" : req.status === "validated" || req.status === "verified" ? "Validée" : req.status}
                               </div>
                               <p className="text-[10px] text-[#9a9a9f] uppercase font-black">
-                                {req.createdAt?.seconds 
-                                  ? format(new Date(req.createdAt.seconds * 1000), 'dd/MM, HH:mm', { locale: fr }) 
-                                  : "Maintenant"}
+                                {safeFormatDate(req.createdAt, 'dd/MM/yyyy HH:mm', "Maintenant")}
                               </p>
                             </div>
                           </div>
@@ -633,7 +619,7 @@ export default function AdminDashboard() {
                         <div className="w-8 h-8 rounded-lg bg-[#1e1e22] p-1 flex items-center justify-center">
                           <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
                         </div>
-                        <span className="text-[10px] text-slate-500">{format(new Date(org.createdAt?.seconds * 1000), 'dd/MM', { locale: fr })}</span>
+                        <span className="text-[10px] text-slate-500">{safeFormatDate(org.createdAt, 'dd/MM/yyyy')}</span>
                       </div>
                       <p className="text-sm font-bold text-white truncate">{org.name}</p>
                       <p className="text-[10px] text-slate-500 font-mono">{org.siret}</p>

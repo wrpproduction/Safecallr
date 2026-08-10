@@ -1,8 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { MoreHorizontal, Building2, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { safeFormatDate } from "../../lib/dateUtils";
 
 interface OrganizationsTableProps {
   organizations: any[];
@@ -64,7 +63,7 @@ export default function OrganizationsTable({ organizations, onAction }: Organiza
                 )}
               </td>
               <td className="px-6 py-4 text-sm text-slate-500">
-                {org.createdAt?.toDate ? format(org.createdAt.toDate(), 'dd/MM/yy', { locale: fr }) : 'N/A'}
+                {safeFormatDate(org.createdAt, 'dd/MM/yyyy', 'N/A')}
               </td>
               <td className="px-6 py-4 text-right">
                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
