@@ -54,6 +54,7 @@ export default function AdminDashboard() {
   const [recentPros, setRecentPros] = useState<any[]>([]);
   const [recentConns, setRecentConns] = useState<any[]>([]);
   const [orgsChartData, setOrgsChartData] = useState<any[]>([]);
+  const [selectedMetric, setSelectedMetric] = useState<"orgs" | "users" | "requests">("orgs");
   const [realStats, setRealStats] = useState({
     users: 0,
     pros: 0,
@@ -304,23 +305,61 @@ export default function AdminDashboard() {
         setOrganizations(orgs.slice(0, 5));
         setRecentOrgs(orgs.slice(0, 10));
 
-        // Compute real cumulative org growth over 6 months
+        // Compute real cumulative growth over 6 months for Orgs, Users, and Requests
         const monthNames = ["Janv", "Févr", "Mars", "Avril", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
         const now = new Date();
-        const orgChart: { name: string; orgs: number }[] = [];
+        const chartDataPoints: { name: string; orgs: number; users: number; requests: number }[] = [];
+
+        // Fetch all users for chart curve
+        let allUsersList: any[] = [];
+        try {
+          const uSnap = await getDocs(query(collection(db, "users"), limit(500)));
+          allUsersList = uSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+          console.error("Error fetching users for chart:", e);
+        }
+
+        // Fetch all requests for chart curve
+        let allRequestsList: any[] = [];
+        try {
+          const aSnap = await getDocs(query(collection(db, "authRequests"), limit(500)));
+          const vSnap = await getDocs(query(collection(db, "verification_requests"), limit(500)));
+          allRequestsList = [
+            ...aSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+            ...vSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          ];
+        } catch (e) {
+          console.error("Error fetching requests for chart:", e);
+        }
+
         for (let i = 5; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
           const label = monthNames[d.getMonth()];
           
-          const count = orgs.filter((o: any) => {
+          const orgCount = orgs.filter((o: any) => {
             const created = parseToDate(o.createdAt);
             return created && created <= endOfMonth;
           }).length;
 
-          orgChart.push({ name: label, orgs: count });
+          const userCount = allUsersList.filter((u: any) => {
+            const created = parseToDate(u.createdAt);
+            return created && created <= endOfMonth;
+          }).length;
+
+          const reqCount = allRequestsList.filter((r: any) => {
+            const created = parseToDate(r.createdAt);
+            return created && created <= endOfMonth;
+          }).length;
+
+          chartDataPoints.push({
+            name: label,
+            orgs: orgCount,
+            users: userCount,
+            requests: reqCount
+          });
         }
-        setOrgsChartData(orgChart);
+        setOrgsChartData(chartDataPoints);
 
         // Check Resend Status
         try {
@@ -348,6 +387,31 @@ export default function AdminDashboard() {
     { label: "Organisations", value: realStats.orgs.toString(), icon: Building2, color: "#a78bfa", sub: "Espaces créés", path: "/admin/organizations" },
     { label: "Demandes (Total)", value: realStats.requests.toLocaleString(), icon: History, color: "var(--color-primary)", sub: "Vérifications faites", path: "/admin/requests" },
   ];
+
+  const metricConfigs = {
+    orgs: {
+      title: "Croissance de la plateforme",
+      subtitle: "Nombre réel d'organisations sur les 6 derniers mois",
+      color: "#a78bfa",
+      label: "Organisations",
+      gradientId: "colorOrgs",
+    },
+    users: {
+      title: "Nombre d'utilisateurs",
+      subtitle: "Évolution de la base globale d'utilisateurs sur les 6 derniers mois",
+      color: "#60a5fa",
+      label: "Utilisateurs",
+      gradientId: "colorUsers",
+    },
+    requests: {
+      title: "Nombre de demandes",
+      subtitle: "Volume global de demandes de vérification sur les 6 derniers mois",
+      color: "#3DFFA0",
+      label: "Demandes",
+      gradientId: "colorRequests",
+    },
+  };
+  const currentConfig = metricConfigs[selectedMetric];
 
   if (loading) {
     return (
@@ -438,26 +502,67 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-[#1e1e22] border border-[#2e2e34] p-8 rounded-3xl">
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                  <h2 className="text-xl font-bold">Croissance de la plateforme</h2>
-                  <p className="text-xs text-[#9a9a9f] mt-1 font-bold uppercase tracking-widest">Nombre réel d'organisations sur les 6 derniers mois</p>
+                  <h2 className="text-xl font-bold">{currentConfig.title}</h2>
+                  <p className="text-xs text-[#9a9a9f] mt-1 font-bold uppercase tracking-widest">{currentConfig.subtitle}</p>
+                </div>
+
+                <div className="flex items-center bg-[#111113] p-1 rounded-xl border border-[#2e2e34] text-xs self-start sm:self-auto">
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedMetric("orgs")}
+                    className={`px-3 py-1.5 font-bold rounded-lg transition-all ${selectedMetric === "orgs" ? "bg-[#a78bfa] text-black shadow" : "text-[#9a9a9f] hover:text-white"}`}
+                  >
+                    Organisations
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedMetric("users")}
+                    className={`px-3 py-1.5 font-bold rounded-lg transition-all ${selectedMetric === "users" ? "bg-[#60a5fa] text-black shadow" : "text-[#9a9a9f] hover:text-white"}`}
+                  >
+                    Utilisateurs
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setSelectedMetric("requests")}
+                    className={`px-3 py-1.5 font-bold rounded-lg transition-all ${selectedMetric === "requests" ? "bg-primary text-black shadow" : "text-[#9a9a9f] hover:text-white"}`}
+                  >
+                    Demandes
+                  </button>
                 </div>
               </div>
+
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={orgsChartData}>
                     <defs>
                       <linearGradient id="colorOrgs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.3}/>
                         <stop offset="95%" stopColor="#60a5fa" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3DFFA0" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3DFFA0" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} />
                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#4b5563', fontSize: 12}} allowDecimals={false} />
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2e2e34" />
                     <Tooltip contentStyle={{ backgroundColor: '#111113', border: '1px solid #2e2e34', borderRadius: '12px' }} />
-                    <Area type="monotone" dataKey="orgs" stroke="#60a5fa" fillOpacity={1} fill="url(#colorOrgs)" strokeWidth={3} name="Organisations" />
+                    <Area 
+                      type="monotone" 
+                      dataKey={selectedMetric} 
+                      stroke={currentConfig.color} 
+                      fillOpacity={1} 
+                      fill={`url(#${currentConfig.gradientId})`} 
+                      strokeWidth={3} 
+                      name={currentConfig.label} 
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
