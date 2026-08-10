@@ -631,6 +631,18 @@ export const translations = {
       titlePrefix: "Le Blog de la",
       titleAccent: "Sécurité",
       subtitle: "Guides d'experts, alertes de sécurité et décryptages pour vous informer et vous prémunir contre les nouvelles formes d'escroqueries."
+    },
+    blogUI: {
+      home: "Accueil",
+      news: "Actualités",
+      allArticles: "Tous les articles",
+      generalPublic: "Grand Public",
+      professionals: "Professionnels",
+      loading: "Chargement des dossiers de sécurité...",
+      empty: "Aucun article n'a encore été publié dans cette catégorie.",
+      featured: "À la une",
+      readMore: "Lire l'article complet",
+      rights: "Tous droits réservés."
     }
   },
   en: {
@@ -1265,6 +1277,18 @@ export const translations = {
       titlePrefix: "The",
       titleAccent: "Security Blog",
       subtitle: "Expert guides, security alerts, and analysis to inform and protect you against new forms of scams."
+    },
+    blogUI: {
+      home: "Home",
+      news: "News",
+      allArticles: "All articles",
+      generalPublic: "General Public",
+      professionals: "Professionals",
+      loading: "Loading security files...",
+      empty: "No articles published in this category yet.",
+      featured: "Featured",
+      readMore: "Read the full article",
+      rights: "All rights reserved."
     }
   },
   es: {
@@ -1899,6 +1923,18 @@ export const translations = {
       titlePrefix: "El Blog de la",
       titleAccent: "Seguridad",
       subtitle: "Guías de expertos, alertas de seguridad y análisis para informarle y protegerle contra las nuevas formas de estafas."
+    },
+    blogUI: {
+      home: "Inicio",
+      news: "Noticias",
+      allArticles: "Todos los artículos",
+      generalPublic: "Público general",
+      professionals: "Profesionales",
+      loading: "Cargando archivos de seguridad...",
+      empty: "Aún no hay artículos publicados en esta categoría.",
+      featured: "Destacado",
+      readMore: "Leer el artículo completo",
+      rights: "Todos los derechos reservados."
     }
   }
 };

@@ -114,9 +114,9 @@ export default function Actualites() {
             />
           </Link>
           <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-400">
-            <Link to="/" className="hover:text-primary transition-colors">Accueil</Link>
+            <Link to="/" className="hover:text-primary transition-colors">{t('blogUI.home')}</Link>
             <span className="text-slate-700">/</span>
-            <span className="text-white">Actualités</span>
+            <span className="text-white">{t('blogUI.news')}</span>
           </div>
         </div>
       </nav>
@@ -151,7 +151,7 @@ export default function Actualites() {
                 : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
             }`}
           >
-            Tous les articles
+            {t('blogUI.allArticles')}
           </button>
           <button
             onClick={() => setSelectedCategory("grand_public")}
@@ -162,7 +162,7 @@ export default function Actualites() {
             }`}
           >
             <Users size={12} />
-            Grand Public
+            {t('blogUI.generalPublic')}
           </button>
           <button
             onClick={() => setSelectedCategory("professionnel")}
@@ -173,7 +173,7 @@ export default function Actualites() {
             }`}
           >
             <Building2 size={12} />
-            Professionnels
+            {t('blogUI.professionals')}
           </button>
         </div>
       </section>
@@ -183,12 +183,12 @@ export default function Actualites() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-            <p className="text-slate-400 font-medium text-sm">Chargement des dossiers de sécurité...</p>
+            <p className="text-slate-400 font-medium text-sm">{t('blogUI.loading')}</p>
           </div>
         ) : filteredArticles.length === 0 ? (
           <div className="text-center py-20 bg-surface-container-low/50 border border-white/5 rounded-3xl">
             <FileText className="mx-auto w-12 h-12 text-slate-600 mb-4" />
-            <p className="text-slate-400 font-medium">Aucun article n'a encore été publié dans cette catégorie.</p>
+            <p className="text-slate-400 font-medium">{t('blogUI.empty')}</p>
           </div>
         ) : (
           <div className="space-y-16">
@@ -212,7 +212,7 @@ export default function Actualites() {
                             ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" 
                             : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                         }`}>
-                          A la une - {featuredArticle.category === "grand_public" ? "Grand Public" : "Professionnel"}
+                          {t('blogUI.featured')} - {featuredArticle.category === "grand_public" ? t('blogUI.generalPublic') : t('blogUI.professionals')}
                         </span>
                         {featuredArticle.geoTargeting && (
                           <span className="flex items-center gap-1 text-[10px] text-primary font-bold uppercase tracking-widest">
@@ -232,7 +232,7 @@ export default function Actualites() {
                         {featuredArticle.createdAt ? new Date(featuredArticle.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}
                       </span>
                       <span className="text-primary font-bold uppercase tracking-wider flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                        Lire l'article complet <ArrowRight size={14} />
+                        {t('blogUI.readMore')} <ArrowRight size={14} />
                       </span>
                     </div>
                   </div>
@@ -260,7 +260,7 @@ export default function Actualites() {
                             ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" 
                             : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                         }`}>
-                          {art.category === "grand_public" ? "Grand Public" : "Professionnel"}
+                          {art.category === "grand_public" ? t('blogUI.generalPublic') : t('blogUI.professionals')}
                         </span>
                       </div>
                       <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
@@ -299,11 +299,11 @@ export default function Actualites() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
           <AppLogo className="gap-3" />
           <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-            © 2026 SafeCallr Technologies. Tous droits réservés.
+            © 2026 SafeCallr Technologies. {t('blogUI.rights')}
           </div>
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            <Link to="/" className="hover:text-primary transition-colors">Accueil</Link>
-            <Link to="/actualite" className="hover:text-primary transition-colors">Actualités</Link>
+            <Link to="/" className="hover:text-primary transition-colors">{t('blogUI.home')}</Link>
+            <Link to="/actualite" className="hover:text-primary transition-colors">{t('blogUI.news')}</Link>
           </div>
         </div>
       </footer>
