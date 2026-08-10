@@ -207,7 +207,7 @@ export default function Actualites() {
                   : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
               }`}
             >
-              Français
+              {t('blogUI.langFr')}
             </button>
             <button
               onClick={() => setSelectedLang("en")}
@@ -217,7 +217,7 @@ export default function Actualites() {
                   : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
               }`}
             >
-              English
+              {t('blogUI.langEn')}
             </button>
             <button
               onClick={() => setSelectedLang("es")}
@@ -227,7 +227,7 @@ export default function Actualites() {
                   : "bg-surface-container-low hover:bg-surface-container border border-white/5 text-slate-400 hover:text-white"
               }`}
             >
-              Español
+              {t('blogUI.langEs')}
             </button>
           </div>
         </div>

@@ -642,7 +642,10 @@ export const translations = {
       empty: "Aucun article n'a encore été publié dans cette catégorie.",
       featured: "À la une",
       readMore: "Lire l'article complet",
-      rights: "Tous droits réservés."
+      rights: "Tous droits réservés.",
+      langFr: "Français",
+      langEn: "Anglais",
+      langEs: "Espagnol"
     }
   },
   en: {
@@ -1288,7 +1291,10 @@ export const translations = {
       empty: "No articles published in this category yet.",
       featured: "Featured",
       readMore: "Read the full article",
-      rights: "All rights reserved."
+      rights: "All rights reserved.",
+      langFr: "French",
+      langEn: "English",
+      langEs: "Spanish"
     }
   },
   es: {
@@ -1934,7 +1940,10 @@ export const translations = {
       empty: "Aún no hay artículos publicados en esta categoría.",
       featured: "Destacado",
       readMore: "Leer el artículo completo",
-      rights: "Todos los derechos reservados."
+      rights: "Todos los derechos reservados.",
+      langFr: "Francés",
+      langEn: "Inglés",
+      langEs: "Español"
     }
   }
 };
