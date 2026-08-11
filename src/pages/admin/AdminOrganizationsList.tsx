@@ -81,7 +81,11 @@ export default function AdminOrganizationsList() {
 
   const filteredOrgs = organizations.filter(org => {
     const matchesSearch = org.name.toLowerCase().includes(search.toLowerCase()) || org.siret.includes(search);
-    const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? org.active : !org.active);
+    const orgStatus = org.status || (org.active !== false ? 'active' : 'suspended');
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'pending' ? orgStatus === 'pending' : 
+       statusFilter === 'active' ? (orgStatus === 'active' && org.active !== false) : 
+       (orgStatus === 'suspended' || org.active === false));
     return matchesSearch && matchesStatus;
   });
 
@@ -121,8 +125,9 @@ export default function AdminOrganizationsList() {
               className="bg-[#1e1e22] border border-[#2e2e34] text-white text-xs font-black uppercase tracking-widest rounded-xl px-4 py-3 outline-none"
             >
               <option value="all">Tous les Statuts</option>
-              <option value="active">Actives</option>
-              <option value="inactive">Désactivées</option>
+              <option value="pending">⏳ En attente</option>
+              <option value="active">✅ Actives</option>
+              <option value="suspended">🛑 Suspendues</option>
             </select>
             <button className="p-3 bg-[#1e1e22] border border-[#2e2e34] rounded-xl text-slate-500 hover:text-white transition-all">
               <Filter size={18} />

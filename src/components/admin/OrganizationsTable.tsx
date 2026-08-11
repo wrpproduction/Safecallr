@@ -30,20 +30,28 @@ export default function OrganizationsTable({ organizations, onAction }: Organiza
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-[#111113] border border-[#2e2e34] p-1.5 flex items-center justify-center shrink-0">
-                      <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                      <img 
+                        src={org.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`} 
+                        alt="" 
+                        className="max-w-full max-h-full object-contain" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`;
+                        }}
+                      />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
                         <Link to={`/admin/organizations/${org.id}`} className="text-white font-bold hover:text-primary transition-colors block">
                           {org.name}
                         </Link>
-                        {org.type === "business" ? (
+                        {org.capabilities?.external !== false && (
+                          <span className="inline-flex px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded border border-blue-500/25">
+                            Externe
+                          </span>
+                        )}
+                        {org.capabilities?.internal && (
                           <span className="inline-flex px-1.5 py-0.5 bg-[#3dffa0]/10 text-[#3dffa0] text-[8px] font-black uppercase tracking-widest rounded border border-[#3dffa0]/25">
                             Business
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded border border-blue-500/25">
-                            Institution
                           </span>
                         )}
                       </div>
@@ -64,13 +72,17 @@ export default function OrganizationsTable({ organizations, onAction }: Organiza
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  {org.active ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-black uppercase rounded">
+                  {org.status === "pending" ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-black uppercase rounded">
+                      ⏳ En attente
+                    </span>
+                  ) : org.active ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] font-black uppercase rounded">
                       <ShieldCheck size={12} /> Active
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-black uppercase rounded">
-                      <ShieldAlert size={12} /> Désactivée
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase rounded">
+                      <ShieldAlert size={12} /> Suspendue
                     </span>
                   )}
                 </td>

@@ -101,8 +101,15 @@ export default function OrgAuthRequestDetails() {
           <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-white/5 to-transparent" />
           
           <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-            <div className="w-20 h-20 bg-[#111113] border-4 border-[#2e2e34] rounded-[28px] p-4 shadow-xl">
-              <img src={organization.logoUrl} alt={organization.name} className="w-full h-full object-contain" />
+            <div className="w-20 h-20 bg-[#111113] border-4 border-[#2e2e34] rounded-[28px] p-2 shadow-xl flex items-center justify-center overflow-hidden">
+              <img 
+                src={organization.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(organization.name || 'SafeCallr')}`} 
+                alt={organization.name} 
+                className="w-full h-full object-contain" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(organization.name || 'SafeCallr')}`;
+                }}
+              />
             </div>
             
             <div className="space-y-2">

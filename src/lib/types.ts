@@ -1,5 +1,10 @@
 import { Timestamp } from "firebase/firestore";
 
+export interface OrganizationCapabilities {
+  external: boolean; // Verification EXTERNE (Authentification des clients finaux lors d'appels)
+  internal: boolean; // Verification INTERNE (SafeCallr Business - inter-collaborateurs en circuit ferme)
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -15,6 +20,9 @@ export interface Organization {
   allowedEmailDomains: string[];
   representativeUserId: string;
   active: boolean;
+  status?: "pending" | "active" | "suspended" | "deactivated";
+  capabilities?: OrganizationCapabilities;
+  type?: string;
   createdAt: Timestamp;
   createdBy: string;
 }
@@ -24,7 +32,7 @@ export interface Member {
   firstName: string;
   lastName: string;
   email: string;
-  role: "representative" | "collaborator";
+  role: "admin" | "admin_external" | "admin_internal" | "representative" | "collaborator";
   jobTitle: string;
   directPhone: string;
   photoUrl: string;

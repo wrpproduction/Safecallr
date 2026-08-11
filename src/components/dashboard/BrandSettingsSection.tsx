@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Palette, 
   ChevronDown, 
@@ -17,6 +17,7 @@ import { Organization } from "../../lib/types";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, ref, uploadBytes, getDownloadURL, storage } from "../../firebase";
 import DynamicList from "../DynamicList";
+import { toast } from "sonner";
 
 interface BrandSettingsSectionProps {
   organization: Organization;
@@ -27,15 +28,26 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   
-  const [primaryColor, setPrimaryColor] = useState(organization.primaryColor);
-  const [trustMessage, setTrustMessage] = useState(organization.trustMessage);
-  const [officialPhones, setOfficialPhones] = useState(organization.officialPhones);
-  const [logoPreview, setLogoPreview] = useState<string | null>(organization.logoUrl);
+  const [primaryColor, setPrimaryColor] = useState(organization.primaryColor || "#3dffa0");
+  const [trustMessage, setTrustMessage] = useState(organization.trustMessage || "SafeCallr ne vous demandera jamais vos codes secret bancaire par téléphone");
+  const [officialPhones, setOfficialPhones] = useState<string[]>(organization.officialPhones || []);
+  const [logoPreview, setLogoPreview] = useState<string | null>(organization.logoUrl || null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    setPrimaryColor(organization.primaryColor || "#3dffa0");
+    setTrustMessage(organization.trustMessage || "SafeCallr ne vous demandera jamais vos codes secret bancaire par téléphone");
+    setOfficialPhones(organization.officialPhones || []);
+    setLogoPreview(organization.logoUrl || null);
+  }, [organization]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Le fichier du logo ne doit pas dépasser 5 Mo");
+        return;
+      }
       setLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -49,25 +61,56 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
     setLoading(true);
     setSuccess(false);
     try {
-      let logoUrl = organization.logoUrl;
+      let finalLogoUrl = logoPreview || organization.logoUrl || "";
+
+      // Try uploading to Storage if file selected
       if (logoFile) {
-        const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name}`);
-        const uploadResult = await uploadBytes(logoRef, logoFile);
-        logoUrl = await getDownloadURL(uploadResult.ref);
+        try {
+          const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
+          const uploadResult = await uploadBytes(logoRef, logoFile);
+          finalLogoUrl = await getDownloadURL(uploadResult.ref);
+        } catch (storageErr) {
+          console.warn("Storage upload warning, using base64 data URL fallback:", storageErr);
+          // Keep logoPreview (data URL) as finalLogoUrl
+        }
       }
 
-      await updateDoc(doc(db, "organizations", organization.id), {
+      const updatePayload = {
         primaryColor,
         trustMessage,
         officialPhones,
-        logoUrl,
+        logoUrl: finalLogoUrl,
         updatedAt: new Date()
-      });
+      };
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      console.error(err);
+      let updated = false;
+
+      // Update in organizations
+      try {
+        await updateDoc(doc(db, "organizations", organization.id), updatePayload);
+        updated = true;
+      } catch (err1) {
+        console.warn("Could not update in 'organizations' collection:", err1);
+      }
+
+      // Update in companies (fallback)
+      try {
+        await updateDoc(doc(db, "companies", organization.id), updatePayload);
+        updated = true;
+      } catch (err2) {
+        console.warn("Could not update in 'companies' collection:", err2);
+      }
+
+      if (updated) {
+        setSuccess(true);
+        toast.success("Paramètres de la marque enregistrés !");
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        toast.error("Erreur lors de la mise à jour des données dans Firestore.");
+      }
+    } catch (err: any) {
+      console.error("Save brand settings error:", err);
+      toast.error("Erreur lors de la sauvegarde : " + (err.message || "Erreur inconnue"));
     } finally {
       setLoading(false);
     }
@@ -134,7 +177,14 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Logo de la marque</label>
               <div className="flex items-center gap-6">
                 <div className="w-24 h-24 rounded-2xl bg-[#111113] border-2 border-dashed border-[#2e2e34] flex items-center justify-center overflow-hidden relative group">
-                  <img src={logoPreview || ""} alt="Logo" className="w-full h-full object-contain" />
+                  <img 
+                    src={logoPreview || organization.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(organization.name || 'SafeCallr')}`} 
+                    alt="Logo" 
+                    className="w-full h-full object-contain p-1" 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(organization.name || 'SafeCallr')}`;
+                    }}
+                  />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <Upload size={20} className="text-white" />
                   </div>

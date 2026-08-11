@@ -27,7 +27,6 @@ import { getApiUrl } from "../lib/api";
 
 // Validation Schema
 const schema = z.object({
-  type: z.enum(["institution", "business"]),
   name: z.string().min(1, "Nom requis"),
   siret: z.string().length(14, "Le SIRET doit faire 14 chiffres").regex(/^[0-9]+$/, "Chiffres uniquement"),
   streetNumber: z.string().optional(),
@@ -49,6 +48,11 @@ export default function AdminCreateOrganization() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
+  // Cumulative Capabilities and Status
+  const [enableExternal, setEnableExternal] = useState(true);
+  const [enableInternal, setEnableInternal] = useState(true);
+  const [initialStatus, setInitialStatus] = useState<"pending" | "active">("pending");
+
   // Custom states for lists and media
   const [allowedDomains, setAllowedDomains] = useState<string[]>([""]);
   const [officialPhones, setOfficialPhones] = useState<string[]>([""]);
@@ -61,9 +65,8 @@ export default function AdminCreateOrganization() {
     resolver: zodResolver(schema),
     mode: "onChange",
     defaultValues: {
-      type: "institution",
       primaryColor: "#22C55E",
-      trustMessage: "Le Crédit Mutuel ne vous demandera jamais vos codes par téléphone"
+      trustMessage: "Membre vérifié du réseau de confiance SafeCallr"
     }
   });
 
@@ -107,12 +110,16 @@ export default function AdminCreateOrganization() {
       let logoUrl = "";
       if (logoFile) {
         try {
-          const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name}`);
+          const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
           const uploadResult = await uploadBytes(logoRef, logoFile);
           logoUrl = await getDownloadURL(uploadResult.ref);
         } catch (storageErr: any) {
-          console.error("Storage Error:", storageErr);
-          throw new Error("Erreur lors de l'envoi du logo. Vérifiez les permissions de stockage.");
+          console.warn("Storage Error, falling back to data URL:", storageErr);
+          logoUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(logoFile);
+          });
         }
       }
 
@@ -135,8 +142,13 @@ export default function AdminCreateOrganization() {
             trustMessage: data.trustMessage,
             officialPhones: officialPhones.filter(p => p.trim() !== ""),
             allowedEmailDomains: allowedDomains.filter(d => d.trim() !== ""),
-            active: true,
-            type: data.type
+            active: initialStatus === "active",
+            status: initialStatus,
+            capabilities: {
+              external: enableExternal,
+              internal: enableInternal
+            },
+            type: enableExternal && enableInternal ? "hybrid" : enableInternal ? "business" : "institution"
           },
           repData: {
             firstName: data.repFirstName,
@@ -249,43 +261,76 @@ export default function AdminCreateOrganization() {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* SELECTION DU TYPE */}
+          {/* SELECTION DES CAPACITES ET DU STATUT */}
           <section className="bg-[#1e1e22] border border-[#2e2e34] rounded-[32px] p-8 space-y-6 shadow-xl">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <ShieldCheck size={20} />
               </div>
-              <h2 className="text-xl font-bold text-white">Usage & modèle de protection</h2>
+              <div>
+                <h2 className="text-xl font-bold text-white">Capacités & Statut d'activation</h2>
+                <p className="text-xs text-slate-400">Chaque entité juridique (un SIRET) peut cumuler les deux capacités d'authentification.</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className={`flex flex-col p-6 rounded-2xl border-2 cursor-pointer transition-all ${watch("type") === "institution" ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-400 hover:border-slate-700"}`}>
+              {/* Capability External */}
+              <label 
+                onClick={() => setEnableExternal(!enableExternal)}
+                className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${enableExternal ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-500"}`}
+              >
                 <input 
-                  type="radio" 
-                  value="institution" 
-                  {...register("type")} 
-                  className="sr-only" 
+                  type="checkbox" 
+                  checked={enableExternal} 
+                  onChange={() => {}} 
+                  className="mt-1 rounded border-slate-700 bg-black text-primary focus:ring-0 cursor-pointer" 
                 />
-                <span className="font-extrabold text-sm block mb-1">Institution Publique (Vérification Externe)</span>
-                <span className="text-[11px] leading-relaxed text-slate-400">
-                  Idéal pour les banques, assurances ou marques (ex: Crédit Mutuel). Les clients finaux utilisent l'application grand public pour authentifier vos conseillers lors d'un appel téléphonique.
-                </span>
+                <div>
+                  <span className="font-bold text-sm block mb-1 text-white">Vérification EXTERNE (Clients Finaux)</span>
+                  <span className="text-[11px] leading-relaxed text-slate-400">
+                    Les collaborateurs authentifient les clients finaux de l'organisation lors des appels téléphoniques sortants.
+                  </span>
+                </div>
               </label>
 
-              <label className={`flex flex-col p-6 rounded-2xl border-2 cursor-pointer transition-all ${watch("type") === "business" ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-400 hover:border-slate-700"}`}>
+              {/* Capability Internal Business */}
+              <label 
+                onClick={() => setEnableInternal(!enableInternal)}
+                className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${enableInternal ? "border-[#3dffa0] bg-[#3dffa0]/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-500"}`}
+              >
                 <input 
-                  type="radio" 
-                  value="business" 
-                  {...register("type")} 
-                  className="sr-only" 
+                  type="checkbox" 
+                  checked={enableInternal} 
+                  onChange={() => {}} 
+                  className="mt-1 rounded border-slate-700 bg-black text-[#3dffa0] focus:ring-0 cursor-pointer" 
                 />
-                <span className="font-extrabold text-sm block mb-1 text-[#3dffa0] flex items-center gap-2">
-                  Espace Business (Sécurité Interne)
-                </span>
-                <span className="text-[11px] leading-relaxed text-slate-400">
-                  Idéal pour les entreprises voulant protéger leurs collaborateurs en interne. Solution confidentielle opérée en circuit fermé : les salariés s'identifient mutuellement pour faire échec au spoofing et fraude au président.
-                </span>
+                <div>
+                  <span className="font-bold text-sm block mb-1 text-[#3dffa0]">Vérification INTERNE (SafeCallr Business)</span>
+                  <span className="text-[11px] leading-relaxed text-slate-400">
+                    Les collaborateurs s'authentifient entre eux en circuit fermé (lutte contre la fraude au président & usurpation).
+                  </span>
+                </div>
               </label>
+            </div>
+
+            {/* Statut Initial Selection */}
+            <div className="pt-4 border-t border-[#2e2e34]/60 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">
+                  Statut initial de l'organisation
+                </label>
+                <p className="text-xs text-slate-500">
+                  Par sécurité, les nouvelles organisations sont 'En attente' par défaut et ne peuvent émettre aucune vérification tant qu'elles ne sont pas validées.
+                </p>
+              </div>
+              <select
+                value={initialStatus}
+                onChange={(e) => setInitialStatus(e.target.value as "pending" | "active")}
+                className="bg-[#111113] border border-[#2e2e34] text-white text-xs font-bold rounded-2xl p-4 outline-none focus:border-primary transition-all w-full"
+              >
+                <option value="pending">⏳ En attente de validation (Pending) — Par défaut</option>
+                <option value="active">✅ Actif (Active) — Émission immédiate</option>
+              </select>
             </div>
           </section>
 

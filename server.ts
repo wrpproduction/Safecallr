@@ -1224,9 +1224,18 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       logSteps.push("Setting up batch write...");
       const batch = db.batch();
       
+      const initialStatus = orgData.status || "pending";
+      const initialCapabilities = orgData.capabilities || {
+        external: orgData.capabilities?.external ?? (orgData.type === "business" ? false : true),
+        internal: orgData.capabilities?.internal ?? (orgData.type === "business" ? true : false)
+      };
+
       batch.set(orgRef, {
         ...orgData,
         id: orgId,
+        status: initialStatus,
+        active: initialStatus === "active",
+        capabilities: initialCapabilities,
         representativeUserId: repUid,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         createdBy: callerUid
@@ -1369,13 +1378,56 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
   app.post("/api/admin/organizations/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
-      const { idToken, active } = req.body;
+      const { idToken, active, status } = req.body;
       const actor = await verifyAdmin(idToken);
 
-      await db.collection("organizations").doc(id).update({ active });
-      await createAuditLog(id, actor, active ? 'reactivate' : 'deactivate', { active });
+      const targetStatus = status || (active ? "active" : "deactivated");
+      const isActive = targetStatus === "active";
 
-      res.json({ success: true });
+      await db.collection("organizations").doc(id).update({
+        status: targetStatus,
+        active: isActive,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      try {
+        await db.collection("companies").doc(id).update({
+          status: targetStatus,
+          active: isActive,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e2) {}
+
+      await createAuditLog(id, actor, isActive ? 'reactivate' : 'deactivate', { status: targetStatus, active: isActive });
+
+      res.json({ success: true, status: targetStatus, active: isActive });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // API: Mettre a jour les capacites (External / Internal Business) (Admin)
+  app.post("/api/admin/organizations/:id/capabilities", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { idToken, capabilities } = req.body; // { external: boolean, internal: boolean }
+      const actor = await verifyAdmin(idToken);
+
+      await db.collection("organizations").doc(id).update({
+        capabilities,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      try {
+        await db.collection("companies").doc(id).update({
+          capabilities,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e2) {}
+
+      await createAuditLog(id, actor, 'update_legal', { capabilities });
+
+      res.json({ success: true, capabilities });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1922,10 +1974,24 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
       const memberData = memberDoc.data()!;
 
-      // 2. Vérifier l'organisation
+      // 2. Vérifier l'organisation (statut active & capacité external)
       const orgDoc = await db.collection("organizations").doc(orgId).get();
-      if (!orgDoc.exists || !orgDoc.data()?.active) {
-        return res.status(403).json({ error: "Votre institution est inactive." });
+      const orgData = orgDoc.data();
+      
+      if (!orgDoc.exists) {
+        return res.status(404).json({ error: "Organisation introuvable." });
+      }
+
+      if (orgData?.status === "pending") {
+        return res.status(403).json({ error: "Votre organisation est en attente de validation par l'administration SafeCallr. Aucune vérification ne peut être émise tant que votre compte n'a pas été validé." });
+      }
+
+      if (!orgData?.active || orgData?.status === "suspended" || orgData?.status === "deactivated") {
+        return res.status(403).json({ error: "Votre organisation est inactives ou suspendue." });
+      }
+
+      if (orgData?.capabilities?.external === false) {
+        return res.status(403).json({ error: "La capacité de vérification externe (clients finaux) n'est pas activée pour votre organisation." });
       }
 
       // 3. Vérifier si le client est inscrit

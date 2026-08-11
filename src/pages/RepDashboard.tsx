@@ -111,8 +111,15 @@ export default function RepDashboard() {
       <header className="sticky top-0 z-40 bg-[#0d0d0f]/80 backdrop-blur-xl border-b border-[#1e1e22] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="w-10 h-10 bg-[#1e1e22] rounded-xl border border-[#2e2e34] p-2">
-              <img src={organization.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+            <div className="w-10 h-10 bg-[#1e1e22] rounded-xl border border-[#2e2e34] p-1.5 flex items-center justify-center overflow-hidden">
+              <img 
+                src={organization.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(organization.name || 'SafeCallr')}`} 
+                alt="Logo" 
+                className="w-full h-full object-contain" 
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(organization.name || 'SafeCallr')}`;
+                }}
+              />
             </div>
             <div>
               <h1 className="text-lg font-black tracking-tight leading-none">{organization.name}</h1>

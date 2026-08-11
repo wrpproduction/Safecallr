@@ -165,6 +165,31 @@ export default function TriggerAuthBlock({ organization, member }: TriggerAuthBl
                 <p className="text-slate-500 font-medium max-w-md">
                   Confirmez votre identité auprès de votre client avant de poursuivre la conversation sensible.
                 </p>
+
+                {/* Status Notice Banner if Pending or Inactive */}
+                {organization.status === "pending" && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-amber-400 text-xs font-bold flex items-start gap-3 max-w-md">
+                    <XCircle size={18} className="shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black uppercase tracking-wider text-[11px] mb-0.5">Organisation en attente de validation</p>
+                      <p className="font-normal text-amber-200/80 leading-relaxed">
+                        L'administration SafeCallr valide actuellement votre dossier. L'émission de vérifications sera débloquée dès l'activation par un super-administrateur.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {organization.capabilities?.external === false && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-2xl text-blue-400 text-xs font-bold flex items-start gap-3 max-w-md">
+                    <Lock size={18} className="shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black uppercase tracking-wider text-[11px] mb-0.5">Vérification externe non activée</p>
+                      <p className="font-normal text-blue-200/80 leading-relaxed">
+                        Votre organisation utilise principalement le protocole SafeCallr Business. La vérification des clients finaux externes n'est pas activée sur ce compte.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">

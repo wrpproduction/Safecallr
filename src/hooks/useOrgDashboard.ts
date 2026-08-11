@@ -36,6 +36,11 @@ export function useOrgDashboard(orgId: string | undefined) {
     unsubOrg = onSnapshot(orgRef, async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
+        const capabilities = data.capabilities || {
+          external: data.capabilities?.external ?? (data.type === "business" ? false : true),
+          internal: data.capabilities?.internal ?? (data.type === "business" || data.serviceBusinessActive ? true : false)
+        };
+        const status = data.status || (data.active === false ? "suspended" : "active");
         setOrganization({
           id: snapshot.id,
           name: data.name || "Organisation",
@@ -44,7 +49,9 @@ export function useOrgDashboard(orgId: string | undefined) {
           logoUrl: data.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${data.name || 'SafeCallr'}`,
           representativeEmail: data.representativeEmail || data.adminEmail || data.email,
           representativeUserId: data.representativeUserId || data.adminUid || "",
-          active: data.active !== false,
+          active: status === "active",
+          status,
+          capabilities,
           primaryColor: data.primaryColor || "#3dffa0",
           trustMessage: data.trustMessage || "Membre du réseau de confiance SafeCallr Business",
           officialPhones: data.officialPhones || [],

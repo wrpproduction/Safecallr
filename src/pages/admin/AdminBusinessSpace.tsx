@@ -43,6 +43,10 @@ export default function AdminBusinessSpace() {
 
       const orgsList = orgsSnap.docs.map(d => {
         const data = d.data();
+        const caps = data.capabilities || {
+          external: data.type !== 'business',
+          internal: data.type === 'business' || data.serviceBusinessActive !== false
+        };
         return {
           id: d.id,
           source: "organizations",
@@ -51,8 +55,9 @@ export default function AdminBusinessSpace() {
           domain: data.domain || (data.allowedEmailDomains ? data.allowedEmailDomains[0] : "domaine.com"),
           adminEmail: data.representativeEmail || data.adminEmail || data.email || "referent@entreprise.com",
           collaboratorsCount: data.stats?.totalMembers || (data.members ? data.members.length : 1),
-          status: data.active !== false ? "active" : "inactive",
-          serviceBusinessActive: true, // All organizations feature inter-collaborator validation
+          status: data.status || (data.active !== false ? "active" : "suspended"),
+          capabilities: caps,
+          serviceBusinessActive: caps.internal,
           logoUrl: data.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${data.name || 'SafeCallr'}`,
           createdAt: data.createdAt
         };
@@ -60,6 +65,10 @@ export default function AdminBusinessSpace() {
 
       const compsList = compSnap.docs.map(d => {
         const data = d.data();
+        const caps = data.capabilities || {
+          external: false,
+          internal: true
+        };
         return {
           id: d.id,
           source: "companies",
@@ -68,8 +77,9 @@ export default function AdminBusinessSpace() {
           domain: data.domain || "entreprise.com",
           adminEmail: data.adminEmail || data.email || "referent@entreprise.com",
           collaboratorsCount: data.collaboratorsCount || 1,
-          status: data.status === "verified" || data.status === "active" ? "active" : "inactive",
-          serviceBusinessActive: true,
+          status: data.status || "active",
+          capabilities: caps,
+          serviceBusinessActive: caps.internal,
           logoUrl: data.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${data.name || 'Company'}`,
           createdAt: data.createdAt
         };
@@ -98,13 +108,17 @@ export default function AdminBusinessSpace() {
 
   const handleToggleBusinessService = async (item: any) => {
     try {
+      const newInternalState = !item.capabilities?.internal;
       const collectionName = item.source === "companies" ? "companies" : "organizations";
-      const newStatus = item.status === "active" ? "inactive" : "active";
+      const updatedCaps = {
+        ...(item.capabilities || { external: true, internal: false }),
+        internal: newInternalState
+      };
       await updateDoc(doc(db, collectionName, item.id), {
-        active: newStatus === "active",
-        status: newStatus === "active" ? "verified" : "suspended"
+        capabilities: updatedCaps,
+        serviceBusinessActive: newInternalState
       });
-      toast.success(`Service Business ${newStatus === 'active' ? 'activé' : 'désactivé'}`);
+      toast.success(`Capacité Business ${newInternalState ? 'activée' : 'désactivée'}`);
       fetchBusinessEntities();
     } catch (e: any) {
       toast.error("Erreur lors de la modification : " + e.message);
@@ -258,7 +272,14 @@ export default function AdminBusinessSpace() {
                       <td className="p-4 pl-6">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-[#111113] border border-[#2e2e34] rounded-2xl p-2 flex items-center justify-center shrink-0">
-                            <img src={item.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                            <img 
+                              src={item.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.name || 'SafeCallr')}`} 
+                              alt="" 
+                              className="max-w-full max-h-full object-contain" 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.name || 'SafeCallr')}`;
+                              }}
+                            />
                           </div>
                           <div>
                             <p className="font-bold text-white group-hover:text-primary transition-colors flex items-center gap-2">

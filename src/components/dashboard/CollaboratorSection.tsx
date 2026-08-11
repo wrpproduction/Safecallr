@@ -53,6 +53,7 @@ export default function CollaboratorSection({ members, organization }: Collabora
     const lastName = formData.get("lastName") as string;
     const phone = formData.get("phone") as string;
     const jobTitle = formData.get("jobTitle") as string;
+    const role = formData.get("role") as string || "collaborator";
 
     const emailDomain = email.split("@")[1];
     if (organization.allowedEmailDomains?.length > 0 && !organization.allowedEmailDomains.includes(emailDomain)) {
@@ -73,7 +74,7 @@ export default function CollaboratorSection({ members, organization }: Collabora
           idToken,
           orgId: organization.id,
           lang: localStorage.getItem("app_lang") || "fr",
-          memberData: { firstName, lastName, email, phone, jobTitle }
+          memberData: { firstName, lastName, email, phone, jobTitle, role }
         })
       });
 
@@ -283,6 +284,16 @@ export default function CollaboratorSection({ members, organization }: Collabora
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Fonction / Titre</label>
                 <input name="jobTitle" className="w-full bg-[#111113] border-none rounded-xl py-4 px-4 text-white font-bold" placeholder="Conseiller clientèle" />
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">Rôle et habilitation</label>
+                <select name="role" defaultValue="collaborator" className="w-full bg-[#111113] border-none rounded-xl py-4 px-4 text-white font-bold outline-none focus:ring-2 focus:ring-primary">
+                  <option value="collaborator">👤 Collaborateur (Authentification standard)</option>
+                  <option value="admin_external">🛡️ Responsable Relation Client (Capacité Externe)</option>
+                  <option value="admin_internal">⚡ RSSI / Sécurité (Capacité Business Interne)</option>
+                  <option value="admin">👑 Administrateur Organisation (Droits complets)</option>
+                </select>
               </div>
 
               <div className="col-span-2 pt-4">

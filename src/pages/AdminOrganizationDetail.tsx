@@ -287,14 +287,52 @@ export default function AdminOrganizationDetail() {
 
   const handleToggleStatus = async () => {
     try {
+      const newStatus = org.active ? "suspended" : "active";
       const idToken = await auth.currentUser?.getIdToken();
       const response = await fetch(`/api/admin/organizations/${id}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, active: !org.active })
+        body: JSON.stringify({ idToken, status: newStatus, active: !org.active })
       });
       if (!response.ok) throw new Error("Erreur lors du changement de statut");
-      toast.success(org.active ? "Organisation désactivée" : "Organisation réactivée");
+      toast.success(org.active ? "Organisation suspendue" : "Organisation réactivée");
+      fetchDetail();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleSetStatus = async (newStatus: "pending" | "active" | "suspended" | "deactivated") => {
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const response = await fetch(`/api/admin/organizations/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, status: newStatus, active: newStatus === 'active' })
+      });
+      if (!response.ok) throw new Error("Erreur lors de la mise à jour du statut");
+      toast.success(`Statut de l'organisation mis à jour vers '${newStatus}'`);
+      fetchDetail();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleToggleCapability = async (capabilityKey: 'external' | 'internal', value: boolean) => {
+    try {
+      const currentCaps = org.capabilities || {
+        external: org.type !== 'business',
+        internal: org.type === 'business' || !!org.serviceBusinessActive
+      };
+      const newCapabilities = { ...currentCaps, [capabilityKey]: value };
+      const idToken = await auth.currentUser?.getIdToken();
+      const response = await fetch(`/api/admin/organizations/${id}/capabilities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, capabilities: newCapabilities })
+      });
+      if (!response.ok) throw new Error("Erreur mise à jour capacités");
+      toast.success("Capacités modifiées avec succès");
       fetchDetail();
     } catch (err: any) {
       toast.error(err.message);
@@ -351,15 +389,30 @@ export default function AdminOrganizationDetail() {
             </Link>
             <div className="flex items-center gap-6">
               <div className="w-16 h-16 bg-[#1e1e22] border border-[#2e2e34] rounded-2xl p-2 flex items-center justify-center shrink-0">
-                <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                <img 
+                  src={org.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`} 
+                  alt="" 
+                  className="max-w-full max-h-full object-contain" 
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`;
+                  }}
+                />
               </div>
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-3xl font-black text-white">{org.name}</h1>
-                  {org.active ? (
-                    <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-green-500/20">Active</span>
+                  {org.status === 'pending' ? (
+                    <span className="bg-amber-500/10 text-amber-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-500/20">⏳ En attente</span>
+                  ) : org.active ? (
+                    <span className="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-green-500/20">✅ Active</span>
                   ) : (
-                    <span className="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-500/20">Désactivée</span>
+                    <span className="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-500/20">🛑 Suspendue</span>
+                  )}
+                  {org.capabilities?.external !== false && (
+                    <span className="bg-blue-500/10 text-blue-400 px-2.5 py-0.5 rounded-md text-[10px] font-bold border border-blue-500/20">🛡️ Vérification Externe</span>
+                  )}
+                  {org.capabilities?.internal && (
+                    <span className="bg-[#3dffa0]/10 text-[#3dffa0] px-2.5 py-0.5 rounded-md text-[10px] font-bold border border-[#3dffa0]/20">⚡ SafeCallr Business</span>
                   )}
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-slate-500 text-sm">
@@ -488,6 +541,90 @@ export default function AdminOrganizationDetail() {
           {activeTab === 'legal' && legalData && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-8">
+                {/* CAPACITES ET STATUT CARD */}
+                <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl p-8 space-y-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck className="text-primary" size={22} />
+                      <div>
+                        <h3 className="text-lg font-black text-white">Capacités de l'Organisation (1 SIRET)</h3>
+                        <p className="text-xs text-slate-500">Les capacités sont cumulables et activables à la demande du client</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Capability External */}
+                    <div className="flex items-center justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl">
+                      <div>
+                        <p className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>🛡️ Vérification EXTERNE</span>
+                          {org.capabilities?.external !== false ? (
+                            <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded uppercase font-black">Active</span>
+                          ) : (
+                            <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase font-black">Inactive</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">Authentification des clients finaux lors des appels sortants</p>
+                      </div>
+                      <button
+                        onClick={() => handleToggleCapability('external', org.capabilities?.external === false ? true : false)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                          org.capabilities?.external !== false
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white'
+                            : 'bg-primary text-black hover:bg-primary/90'
+                        }`}
+                      >
+                        {org.capabilities?.external !== false ? 'Désactiver' : 'Activer'}
+                      </button>
+                    </div>
+
+                    {/* Capability Internal / Business */}
+                    <div className="flex items-center justify-between p-4 bg-[#111113] border border-[#2e2e34] rounded-2xl">
+                      <div>
+                        <p className="text-sm font-bold text-[#3dffa0] flex items-center gap-2">
+                          <span>⚡ Vérification INTERNE (SafeCallr Business)</span>
+                          {org.capabilities?.internal ? (
+                            <span className="text-[10px] bg-[#3dffa0]/10 text-[#3dffa0] px-2 py-0.5 rounded uppercase font-black">Active</span>
+                          ) : (
+                            <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase font-black">Inactive</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">Authentification mutuelle entre collaborateurs en circuit fermé</p>
+                      </div>
+                      <button
+                        onClick={() => handleToggleCapability('internal', !org.capabilities?.internal)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                          org.capabilities?.internal
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white'
+                            : 'bg-[#3dffa0] text-black hover:bg-[#3dffa0]/90'
+                        }`}
+                      >
+                        {org.capabilities?.internal ? 'Désactiver' : 'Activer'}
+                      </button>
+                    </div>
+
+                    {/* Statut Global Selection */}
+                    <div className="pt-4 border-t border-[#2e2e34] space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+                        Statut d'activation de l'Organisation
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={org.status || (org.active ? 'active' : 'suspended')}
+                          onChange={(e) => handleSetStatus(e.target.value as any)}
+                          className="bg-[#111113] border border-[#2e2e34] text-white text-xs font-bold rounded-xl p-3 outline-none focus:border-primary transition-all flex-1"
+                        >
+                          <option value="pending">⏳ En attente (Pending - Aucune émission autorisée)</option>
+                          <option value="active">✅ Actif (Active - Émission autorisée)</option>
+                          <option value="suspended">🛑 Suspendu (Suspended - Accès bloqué)</option>
+                          <option value="deactivated">⚪ Désactivé (Deactivated)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl p-8 space-y-6">
                   <div className="flex items-center gap-3 mb-2">
                     <Building2 className="text-primary" size={20} />
@@ -591,7 +728,14 @@ export default function AdminOrganizationDetail() {
                     <div className="space-y-6">
                       <div className="flex items-center gap-8">
                         <div className="w-24 h-24 bg-[#111113] border border-[#2e2e34] rounded-3xl p-4 flex items-center justify-center relative group shrink-0">
-                          <img src={org.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                          <img 
+                            src={org.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`} 
+                            alt="" 
+                            className="max-w-full max-h-full object-contain" 
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`;
+                            }}
+                          />
                           <button className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-3xl transition-opacity">
                             <PlusCircle className="text-white" size={24} />
                           </button>
