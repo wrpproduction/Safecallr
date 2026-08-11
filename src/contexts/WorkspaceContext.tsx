@@ -78,19 +78,94 @@ export const WorkspaceProvider: React.FC<{ user: any; children: React.ReactNode 
         return { success: false, error: "Veuillez remplir votre email et mot de passe." };
       }
 
-      // Check account in corresponding collection
+      // Check account in corresponding collection or DEMO accounts lookup
       let accountData: any = null;
       let accountId = "";
 
-      if (type === "pro") {
-        const qPro = query(collection(db, "pros"), where("email", "==", email.trim().toLowerCase()));
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // DEMO accounts dictionary for easy testing
+      const DEMO_ACCOUNTS: Record<string, any> = {
+        // SafeCallr Pro (Organisation)
+        "referent.org@safecallr.pro": {
+          type: "pro",
+          email: "referent.org@safecallr.pro",
+          name: "Claire Valette",
+          organizationName: "Cabinet Valette & Associés",
+          role: "Référente Organisation / Directrice",
+          isReferent: true,
+        },
+        "collab1.org@safecallr.pro": {
+          type: "pro",
+          email: "collab1.org@safecallr.pro",
+          name: "Thomas Martin",
+          organizationName: "Cabinet Valette & Associés",
+          role: "Avocat Senior",
+          isReferent: false,
+        },
+        "collab2.org@safecallr.pro": {
+          type: "pro",
+          email: "collab2.org@safecallr.pro",
+          name: "Sophie Bernard",
+          organizationName: "Cabinet Valette & Associés",
+          role: "Consultante Juridique",
+          isReferent: false,
+        },
+        "collab3.org@safecallr.pro": {
+          type: "pro",
+          email: "collab3.org@safecallr.pro",
+          name: "Alexandre Dubois",
+          organizationName: "Cabinet Valette & Associés",
+          role: "Juriste RGPD",
+          isReferent: false,
+        },
+
+        // SafeCallr Business
+        "referent.biz@safecallr.biz": {
+          type: "business",
+          email: "referent.biz@safecallr.biz",
+          name: "Guillaume Lefebvre",
+          companyName: "Nexis Tech International",
+          role: "Référent Sécurité & SI",
+          isReferent: true,
+        },
+        "collab1.biz@safecallr.biz": {
+          type: "business",
+          email: "collab1.biz@safecallr.biz",
+          name: "Marc Moreau",
+          companyName: "Nexis Tech International",
+          role: "Responsable Achats",
+          isReferent: false,
+        },
+        "collab2.biz@safecallr.biz": {
+          type: "business",
+          email: "collab2.biz@safecallr.biz",
+          name: "Élodie Leroy",
+          companyName: "Nexis Tech International",
+          role: "Directrice Ressources Humaines",
+          isReferent: false,
+        },
+        "collab3.biz@safecallr.biz": {
+          type: "business",
+          email: "collab3.biz@safecallr.biz",
+          name: "Antoine Fournier",
+          companyName: "Nexis Tech International",
+          role: "Directeur Financier",
+          isReferent: false,
+        },
+      };
+
+      if (DEMO_ACCOUNTS[normalizedEmail]) {
+        accountData = DEMO_ACCOUNTS[normalizedEmail];
+      } else if (type === "pro") {
+        const qPro = query(collection(db, "pros"), where("email", "==", normalizedEmail));
         const snap = await getDocs(qPro);
         if (!snap.empty) {
           accountData = snap.docs[0].data();
           accountId = snap.docs[0].id;
         } else {
           // Check if registered under users or organizations
-          const qUsers = query(collection(db, "users"), where("email", "==", email.trim().toLowerCase()));
+          const qUsers = query(collection(db, "users"), where("email", "==", normalizedEmail));
           const userSnap = await getDocs(qUsers);
           if (!userSnap.empty) {
             accountData = userSnap.docs[0].data();
@@ -99,13 +174,13 @@ export const WorkspaceProvider: React.FC<{ user: any; children: React.ReactNode 
         }
       } else {
         // Business
-        const qMembers = query(collection(db, "businessMembers"), where("email", "==", email.trim().toLowerCase()));
+        const qMembers = query(collection(db, "businessMembers"), where("email", "==", normalizedEmail));
         const snap = await getDocs(qMembers);
         if (!snap.empty) {
           accountData = snap.docs[0].data();
           accountId = snap.docs[0].id;
         } else {
-          const qComp = query(collection(db, "companies"), where("email", "==", email.trim().toLowerCase()));
+          const qComp = query(collection(db, "companies"), where("email", "==", normalizedEmail));
           const compSnap = await getDocs(qComp);
           if (!compSnap.empty) {
             accountData = compSnap.docs[0].data();

@@ -26,6 +26,7 @@ import AdminRequests from "./pages/AdminRequests";
 import AdminPros from "./pages/AdminPros";
 import AdminAlerts from "./pages/AdminAlerts";
 import AdminOrganizationsList from "./pages/admin/AdminOrganizationsList";
+import AdminBusinessSpace from "./pages/admin/AdminBusinessSpace";
 import AdminCreateOrganization from "./pages/AdminCreateOrganization";
 import AdminOrganizationDetail from "./pages/AdminOrganizationDetail";
 import AdminBlog from "./pages/admin/AdminBlog";
@@ -382,6 +383,7 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/admin/alerts" element={<AdminProtectedRoute><AdminAlerts /></AdminProtectedRoute>} />
           <Route path="/admin/blog" element={<AdminProtectedRoute><AdminBlog /></AdminProtectedRoute>} />
           <Route path="/admin/organizations" element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
+          <Route path="/admin/business" element={<AdminProtectedRoute><AdminBusinessSpace /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/new" element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
           <Route path="/admin/organizations/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
           <Route path="/admin/companies/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />

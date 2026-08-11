@@ -25,6 +25,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { label: "Actualités / Blog", icon: FileText, path: "/admin/blog" },
   { label: "Organisations", icon: Building2, path: "/admin/organizations" },
+  { label: "Espace Business", icon: Building2, path: "/admin/business" },
   { label: "Utilisateurs", icon: Users, path: "/admin/users" },
   { label: "Pros", icon: ShieldCheck, path: "/admin/pros" },
   { label: "Entreprises", icon: Building2, path: "/admin/companies" },

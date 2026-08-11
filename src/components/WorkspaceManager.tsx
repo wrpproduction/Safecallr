@@ -148,15 +148,15 @@ export default function WorkspaceManager() {
               </div>
               <div>
                 <p className="font-bold text-sm text-white flex items-center gap-2">
-                  SafeCallr Pro
+                  SafeCallr Pro / Organisation
                   {linkedPro && (
                     <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase">
-                      Vérifié
+                      {linkedPro.isReferent ? "Référent Validé" : "Collaborateur Validé"}
                     </span>
                   )}
                 </p>
                 <p className="text-slate-400 text-xs">
-                  {linkedPro ? `${linkedPro.email} ${linkedPro.organizationName ? `(${linkedPro.organizationName})` : ''}` : "Non connecté"}
+                  {linkedPro ? `${linkedPro.name || linkedPro.email} ${linkedPro.organizationName ? `(${linkedPro.organizationName})` : ''}` : "Non connecté"}
                 </p>
               </div>
             </div>
@@ -207,12 +207,12 @@ export default function WorkspaceManager() {
                   SafeCallr Business
                   {linkedBusiness && (
                     <span className="px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-300 text-[10px] font-black uppercase">
-                      Vérifié
+                      {linkedBusiness.isReferent ? "Référent SI Validé" : "Collaborateur Validé"}
                     </span>
                   )}
                 </p>
                 <p className="text-slate-400 text-xs">
-                  {linkedBusiness ? `${linkedBusiness.email} ${linkedBusiness.companyName ? `(${linkedBusiness.companyName} - ${linkedBusiness.role || 'Collaborateur'})` : ''}` : "Non connecté"}
+                  {linkedBusiness ? `${linkedBusiness.name || linkedBusiness.email} ${linkedBusiness.companyName ? `(${linkedBusiness.companyName} - ${linkedBusiness.role || 'Collaborateur'})` : ''}` : "Non connecté"}
                 </p>
               </div>
             </div>
@@ -244,6 +244,215 @@ export default function WorkspaceManager() {
                 <ChevronRight size={14} />
               </button>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Testing Demo Accounts Preset Box */}
+      <div className="p-5 bg-black/40 border border-blue-500/20 rounded-2xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-blue-400 animate-pulse" />
+            <h4 className="font-bold text-xs uppercase tracking-wider text-blue-300">
+              Comptes Démo Prêts pour Recette & Tests
+            </h4>
+          </div>
+          <span className="text-[10px] px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full font-mono">
+            1-Click Connect
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {/* Pro Demo Accounts */}
+          <div>
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+              💼 Organisation / Pro (Cabinet Valette & Associés)
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "pro",
+                    email: "referent.org@safecallr.pro",
+                    name: "Claire Valette",
+                    organizationName: "Cabinet Valette & Associés",
+                    role: "Référente Organisation / Directrice",
+                    isReferent: true,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("pro", "123456", temp);
+                }}
+                className="p-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl text-left transition-all group"
+              >
+                <p className="text-xs font-bold text-white group-hover:text-blue-300 flex items-center justify-between">
+                  <span>👑 Claire Valette (Référent)</span>
+                  <span className="text-[9px] bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200">Référent Org</span>
+                </p>
+                <p className="text-[10px] text-slate-400">referent.org@safecallr.pro</p>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "pro",
+                    email: "collab1.org@safecallr.pro",
+                    name: "Thomas Martin",
+                    organizationName: "Cabinet Valette & Associés",
+                    role: "Avocat Senior",
+                    isReferent: false,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("pro", "123456", temp);
+                }}
+                className="p-2.5 bg-surface-container-highest/60 hover:bg-white/10 border border-white/5 rounded-xl text-left transition-all"
+              >
+                <p className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>👤 Thomas Martin (Collab 1)</span>
+                  <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Collaborateur</span>
+                </p>
+                <p className="text-[10px] text-slate-400">collab1.org@safecallr.pro</p>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "pro",
+                    email: "collab2.org@safecallr.pro",
+                    name: "Sophie Bernard",
+                    organizationName: "Cabinet Valette & Associés",
+                    role: "Consultante Juridique",
+                    isReferent: false,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("pro", "123456", temp);
+                }}
+                className="p-2.5 bg-surface-container-highest/60 hover:bg-white/10 border border-white/5 rounded-xl text-left transition-all"
+              >
+                <p className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>👤 Sophie Bernard (Collab 2)</span>
+                  <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Collaborateur</span>
+                </p>
+                <p className="text-[10px] text-slate-400">collab2.org@safecallr.pro</p>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "pro",
+                    email: "collab3.org@safecallr.pro",
+                    name: "Alexandre Dubois",
+                    organizationName: "Cabinet Valette & Associés",
+                    role: "Juriste RGPD",
+                    isReferent: false,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("pro", "123456", temp);
+                }}
+                className="p-2.5 bg-surface-container-highest/60 hover:bg-white/10 border border-white/5 rounded-xl text-left transition-all"
+              >
+                <p className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>👤 Alexandre Dubois (Collab 3)</span>
+                  <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Collaborateur</span>
+                </p>
+                <p className="text-[10px] text-slate-400">collab3.org@safecallr.pro</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Business Demo Accounts */}
+          <div>
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+              🏢 Business / Entreprise (Nexis Tech International)
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "business",
+                    email: "referent.biz@safecallr.biz",
+                    name: "Guillaume Lefebvre",
+                    companyName: "Nexis Tech International",
+                    role: "Référent Sécurité & SI",
+                    isReferent: true,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("business", "123456", temp);
+                }}
+                className="p-2.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 rounded-xl text-left transition-all group"
+              >
+                <p className="text-xs font-bold text-white group-hover:text-blue-300 flex items-center justify-between">
+                  <span>🏢 Guillaume Lefebvre (Référent SI)</span>
+                  <span className="text-[9px] bg-blue-600/30 px-1.5 py-0.5 rounded text-blue-200">Référent Business</span>
+                </p>
+                <p className="text-[10px] text-slate-400">referent.biz@safecallr.biz</p>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "business",
+                    email: "collab1.biz@safecallr.biz",
+                    name: "Marc Moreau",
+                    companyName: "Nexis Tech International",
+                    role: "Responsable Achats",
+                    isReferent: false,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("business", "123456", temp);
+                }}
+                className="p-2.5 bg-surface-container-highest/60 hover:bg-white/10 border border-white/5 rounded-xl text-left transition-all"
+              >
+                <p className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>💼 Marc Moreau (Achats)</span>
+                  <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Collab Business</span>
+                </p>
+                <p className="text-[10px] text-slate-400">collab1.biz@safecallr.biz</p>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "business",
+                    email: "collab2.biz@safecallr.biz",
+                    name: "Élodie Leroy",
+                    companyName: "Nexis Tech International",
+                    role: "Directrice RH",
+                    isReferent: false,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("business", "123456", temp);
+                }}
+                className="p-2.5 bg-surface-container-highest/60 hover:bg-white/10 border border-white/5 rounded-xl text-left transition-all"
+              >
+                <p className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>💼 Élodie Leroy (RH)</span>
+                  <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Collab Business</span>
+                </p>
+                <p className="text-[10px] text-slate-400">collab2.biz@safecallr.biz</p>
+              </button>
+
+              <button
+                onClick={async () => {
+                  const temp = {
+                    type: "business",
+                    email: "collab3.biz@safecallr.biz",
+                    name: "Antoine Fournier",
+                    companyName: "Nexis Tech International",
+                    role: "Directeur Financier (CFO)",
+                    isReferent: false,
+                    code: "123456"
+                  };
+                  await verifyAndLinkAccount("business", "123456", temp);
+                }}
+                className="p-2.5 bg-surface-container-highest/60 hover:bg-white/10 border border-white/5 rounded-xl text-left transition-all"
+              >
+                <p className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>💼 Antoine Fournier (CFO)</span>
+                  <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Collab Business</span>
+                </p>
+                <p className="text-[10px] text-slate-400">collab3.biz@safecallr.biz</p>
+              </button>
+            </div>
           </div>
         </div>
       </div>
