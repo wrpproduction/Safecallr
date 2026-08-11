@@ -189,8 +189,8 @@ export default function ProRequestCode() {
     );
   }
 
-  const code = request.code || "123456"; // Mocked if not present
-  const codeDigits = code.split("");
+  const code = request.code || "123456A"; // Fallback if not present
+  const codeChars = code.split("");
 
   return (
     <div className="max-w-2xl mx-auto space-y-10 py-6 animate-in fade-in duration-500">
@@ -201,20 +201,27 @@ export default function ProRequestCode() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-[#e4e4e8]">Lisez le code au client</h1>
         <p className="text-[#9a9a9f]">
-          Lisez ces 6 chiffres lentement et clairement pour que le client puisse les saisir.
+          Lisez les chiffres et la lettre finale lentement et clairement à votre interlocuteur.
         </p>
       </div>
 
       {/* Code Display */}
-      <div className="flex justify-center gap-3 sm:gap-4">
-        {codeDigits.map((digit, i) => (
-          <div 
-            key={i} 
-            className="w-12 h-16 sm:w-16 sm:h-20 bg-[#111113] border-2 border-[#2e2e34] rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black text-[#e4e4e8] shadow-sm"
-          >
-            {digit}
-          </div>
-        ))}
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+        {codeChars.map((char, i) => {
+          const isLetter = /[a-zA-Z]/.test(char);
+          return (
+            <div 
+              key={i} 
+              className={`w-11 h-15 sm:w-14 sm:h-18 md:w-16 md:h-20 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-black shadow-sm transition-all ${
+                isLetter 
+                  ? "bg-[#4ade80]/15 border-2 border-[#4ade80] text-[#4ade80] shadow-[#4ade80]/20" 
+                  : "bg-[#111113] border-2 border-[#2e2e34] text-[#e4e4e8]"
+              }`}
+            >
+              {char}
+            </div>
+          );
+        })}
       </div>
 
       {/* Timer & Status */}

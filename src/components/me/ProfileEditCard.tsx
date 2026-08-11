@@ -14,7 +14,10 @@ import {
 } from "lucide-react";
 import { Member, Organization } from "../../lib/types";
 import { doc, updateDoc } from "firebase/firestore";
-import { db, storage, ref, uploadBytes, getDownloadURL } from "../../firebase";
+import { db, storage, ref } from "../../firebase";
+import { compressImage, uploadStorageWithTimeout, CompressionResult } from "../../lib/imageUtils";
+import { toast } from "sonner";
+import ImageCropperModal from "../ImageCropperModal";
 
 interface ProfileEditCardProps {
   member: Member;
@@ -28,23 +31,47 @@ export default function ProfileEditCard({ member, organization }: ProfileEditCar
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
 
   const hasChanges = jobTitle !== (member.jobTitle || "") || 
                      directPhone !== (member.directPhone || "") || 
                      photoUrl !== (member.photoUrl || "");
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Le fichier ne doit pas dépasser 10 Mo");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModalSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCroppedPhotoSave = async (croppedResult: CompressionResult) => {
+    setCropModalSrc(null);
     setIsUploading(true);
     try {
-      const storageRef = ref(storage, `members/photos/${member.id}_${Date.now()}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(uploadResult.ref);
-      setPhotoUrl(url);
-    } catch (err) {
+      let finalUrl = croppedResult.dataUrl;
+
+      try {
+        const storageRef = ref(storage, `members/photos/${member.id}_${Date.now()}`);
+        finalUrl = await uploadStorageWithTimeout(storageRef, croppedResult.blob, 3000);
+      } catch (storageErr) {
+        console.warn("Storage upload warning, using compressed base64 data URL:", storageErr);
+      }
+
+      setPhotoUrl(finalUrl);
+      toast.success("Photo de profil ou logo recadré et appliqué avec succès !");
+    } catch (err: any) {
       console.error(err);
+      toast.error("Erreur lors du traitement de l'image.");
     } finally {
       setIsUploading(false);
     }
@@ -176,6 +203,13 @@ export default function ProfileEditCard({ member, organization }: ProfileEditCar
       <div className="pt-8 border-t border-[#2e2e34]">
         <p className="text-[10px] text-slate-600 italic">Note : Ces informations sont vérifiées. Pour toute modification majeure (Nom, Email), contactez votre représentant {organization.name}.</p>
       </div>
+
+      <ImageCropperModal
+        imageSrc={cropModalSrc}
+        title="Ajuster et recadrer la photo ou le logo"
+        onCancel={() => setCropModalSrc(null)}
+        onCropComplete={handleCroppedPhotoSave}
+      />
     </div>
   );
 }

@@ -217,7 +217,7 @@ export const ACTIVATION_TRANSLATIONS: Record<string, ActivationEmailTranslations
     title: "Activez votre compte",
     greeting: "Bonjour {firstName},",
     thankYou: "Merci pour votre inscription sur SafeCallr !",
-    instruction: "Pour finaliser votre inscription et activer votre compte, veuillez saisir le code de sécurité à 6 chiffres ci-dessous dans l'application :",
+    instruction: "Pour finaliser votre inscription et activer votre compte, veuillez saisir le code de sécurité (chiffres + lettre) ci-dessous dans l'application :",
     confidentiality: "Ce code de sécurité est strictement confidentiel et expire dans 30 minutes. L'équipe SafeCallr ne vous demandera jamais ce code par téléphone ou par e-mail.",
     automated: "Cet e-mail est automatique. Merci de ne pas y répondre directement.",
     footer: "L'équipe SafeCallr — MOTIOON"
@@ -228,7 +228,7 @@ export const ACTIVATION_TRANSLATIONS: Record<string, ActivationEmailTranslations
     title: "Activate your account",
     greeting: "Hello {firstName},",
     thankYou: "Thank you for signing up for SafeCallr!",
-    instruction: "To complete your registration and activate your account, please enter the 6-digit security code below in the app:",
+    instruction: "To complete your registration and activate your account, please enter the security code (digits + letter) below in the app:",
     confidentiality: "This security code is strictly confidential and expires in 30 minutes. The SafeCallr team will never ask you for this code by phone or email.",
     automated: "This is an automated email. Please do not reply directly.",
     footer: "The SafeCallr team — MOTIOON"

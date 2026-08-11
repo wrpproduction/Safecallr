@@ -18,8 +18,8 @@ export default function VerifyEmail({ user }: { user: any }) {
     setError("");
     setMessage("");
 
-    if (enteredCode.trim().length !== 6) {
-      setError("Le code de validation doit comporter 6 chiffres.");
+    if (enteredCode.trim().length < 5) {
+      setError("Le code de validation saisi est invalide.");
       setLoading(false);
       return;
     }
@@ -82,8 +82,8 @@ export default function VerifyEmail({ user }: { user: any }) {
         return;
       }
 
-      if (data.code !== enteredCode.trim()) {
-        setError("Code incorrect. Veuillez vérifier les 6 chiffres saisis.");
+      if (data.code?.toString().trim().toUpperCase() !== enteredCode.trim().toUpperCase()) {
+        setError("Code incorrect. Veuillez vérifier le code de sécurité saisi.");
         setLoading(false);
         return;
       }
@@ -136,7 +136,7 @@ export default function VerifyEmail({ user }: { user: any }) {
         }
       }
       await emailService.sendCustomVerificationEmail(user.email, firstName);
-      setMessage("Un nouveau code de validation à 6 chiffres a été envoyé par e-mail.");
+      setMessage("Un nouveau code de validation a été envoyé par e-mail.");
     } catch (err: any) {
       setError("Impossible d'envoyer le code : " + err.message);
     } finally {
@@ -178,7 +178,7 @@ export default function VerifyEmail({ user }: { user: any }) {
           </div>
           <h1 className="font-headline font-black text-3xl tracking-tight text-primary">Activez votre compte</h1>
           <p className="text-slate-400 text-sm leading-relaxed">
-            Pour sécuriser votre compte, saisissez le <strong>code de validation à 6 chiffres</strong> envoyé à : <br />
+            Pour sécuriser votre compte, saisissez le <strong>code de sécurité</strong> envoyé à : <br />
             <span className="text-on-surface font-extrabold block mt-1 text-base text-primary">{user.email}</span>
           </p>
         </div>
@@ -187,16 +187,16 @@ export default function VerifyEmail({ user }: { user: any }) {
         <form onSubmit={handleVerifyCode} className="space-y-4 bg-surface-container-low p-6 rounded-2xl border border-white/5 shadow-xl">
           <div className="space-y-2 text-left">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
-              Code de sécurité (6 chiffres)
+              Code de sécurité (chiffres + lettre)
             </label>
             <input 
               type="text" 
-              maxLength={6}
-              placeholder="000000"
+              maxLength={8}
+              placeholder="123456A"
               required
               value={enteredCode}
-              onChange={(e) => setEnteredCode(e.target.value.replace(/[^0-9]/g, ''))}
-              className="w-full bg-[#18181b] border border-white/15 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-4 text-center text-3xl font-mono tracking-[0.4em] text-primary"
+              onChange={(e) => setEnteredCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              className="w-full bg-[#18181b] border border-white/15 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-4 text-center text-3xl font-mono tracking-[0.3em] text-primary uppercase"
             />
           </div>
 

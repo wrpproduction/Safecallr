@@ -44,7 +44,8 @@ import {
   Area
 } from "recharts";
 import { safeFormatDate, parseToDate } from "../lib/dateUtils";
-import { compressImage, uploadStorageWithTimeout } from "../lib/imageUtils";
+import { compressImage, uploadStorageWithTimeout, CompressionResult } from "../lib/imageUtils";
+import ImageCropperModal from "../components/ImageCropperModal";
 import { auth, db, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
 import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, updateDoc } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
@@ -76,6 +77,7 @@ export default function AdminOrganizationDetail() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSavingBrand, setIsSavingBrand] = useState(false);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
 
   const handleResendAccess = async (targetEmail?: string, targetName?: string) => {
     const emailToSend = targetEmail || org?.representative?.email || org?.repEmail;
@@ -304,31 +306,28 @@ export default function AdminOrganizationDetail() {
     }
   };
 
-  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error("Le fichier du logo ne doit pas dépasser 10 Mo");
         return;
       }
-      try {
-        const compressed = await compressImage(file, 512, 512, 0.85);
-        setLogoPreview(compressed.dataUrl);
-        const compressedFile = new File([compressed.blob], file.name, { type: compressed.blob.type });
-        setLogoFile(compressedFile);
-        if (compressed.originalSizeKB > 150) {
-          toast.info(`Logo optimisé : ${compressed.originalSizeKB} Ko ➔ ${compressed.compressedSizeKB} Ko`);
-        }
-      } catch (err: any) {
-        console.warn("Erreur d'optimisation du logo, utilisation directe :", err);
-        setLogoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLogoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropModalSrc(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
     }
+  };
+
+  const handleCroppedLogoSave = (croppedResult: CompressionResult) => {
+    setCropModalSrc(null);
+    setLogoPreview(croppedResult.dataUrl);
+    const croppedFile = new File([croppedResult.blob], "logo_cropped.jpg", { type: croppedResult.blob.type });
+    setLogoFile(croppedFile);
+    toast.success("Logo recadré et prêt à être enregistré !");
   };
 
   const handleRemoveLogo = () => {
@@ -1281,6 +1280,13 @@ export default function AdminOrganizationDetail() {
           onConfirm={handleChangeRep}
         />
       )}
+
+      <ImageCropperModal
+        imageSrc={cropModalSrc}
+        title="Ajuster et recadrer le logo de l'organisation"
+        onCancel={() => setCropModalSrc(null)}
+        onCropComplete={handleCroppedLogoSave}
+      />
     </AdminLayout>
   );
 }

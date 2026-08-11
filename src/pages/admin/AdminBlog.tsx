@@ -19,6 +19,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import AdminLayout from "../../components/AdminLayout";
+import { compressImage } from "../../lib/imageUtils";
 import { 
   auth, 
   db, 
@@ -119,22 +120,29 @@ export default function AdminBlog() {
     }
   };
 
-  // Convert uploaded image to base64
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Convert uploaded image to base64 with auto-compression
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 800000) { // ~800KB limit for base64 storage
-      toast.error("L'image est trop lourde. Veuillez choisir une image de moins de 800 Ko.");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("L'image est trop lourde. Limite max : 10 Mo.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormImageUrl(reader.result as string);
-      toast.success("Image importée avec succès !");
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 1200, 800, 0.82);
+      setFormImageUrl(compressed.dataUrl);
+      toast.success(`Image optimisée avec succès (${compressed.compressedSizeKB} Ko) !`);
+    } catch (err) {
+      console.warn("Compression error, fallback to raw reader:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormImageUrl(reader.result as string);
+        toast.success("Image importée avec succès !");
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Call server-side Gemini generation

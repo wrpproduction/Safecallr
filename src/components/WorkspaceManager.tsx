@@ -538,21 +538,21 @@ export default function WorkspaceManager() {
             ) : (
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <p className="text-slate-400 text-xs">
-                  Un code de sécurité à 6 chiffres a été généré pour valider le lien vers votre application SafeCallr.
+                  Un code de sécurité (chiffres + 1 lettre au hasard) a été généré pour valider le lien vers votre application SafeCallr.
                 </p>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400">Code de sécurité à 6 chiffres</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400">Code de sécurité (chiffres + lettre)</label>
                   <div className="relative">
                     <KeyRound size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="text"
-                      maxLength={6}
+                      maxLength={8}
                       required
                       value={securityCode}
-                      onChange={(e) => setSecurityCode(e.target.value)}
-                      placeholder="123456"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-center tracking-widest font-mono text-lg font-bold text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setSecurityCode(e.target.value.toUpperCase())}
+                      placeholder="123456A"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-center tracking-widest font-mono text-lg font-bold text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                     />
                   </div>
                 </div>

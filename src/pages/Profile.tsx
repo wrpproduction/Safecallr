@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { db, doc, updateDoc, serverTimestamp, auth, collection, query, where, getDocs, deleteDoc, writeBatch, addDoc } from "../firebase";
-import { Shield, User, Mail, Phone, ArrowLeft, Save, AlertTriangle, LogOut, Globe } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { db, doc, updateDoc, serverTimestamp, auth, collection, query, where, getDocs, deleteDoc, writeBatch, addDoc, storage } from "../firebase";
+import { updateProfile } from "firebase/auth";
+import { ref } from "firebase/storage";
+import { Shield, User, Mail, Phone, ArrowLeft, Save, AlertTriangle, LogOut, Globe, Camera, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelector from "../components/LanguageSelector";
 import WorkspaceManager from "../components/WorkspaceManager";
+import ImageCropperModal from "../components/ImageCropperModal";
+import { compressImage, uploadStorageWithTimeout, CompressionResult } from "../lib/imageUtils";
+import { toast } from "sonner";
 
 export default function Profile({ user }: { user: any }) {
   const { t, lang } = useLanguage();
@@ -20,10 +25,20 @@ export default function Profile({ user }: { user: any }) {
     email: user.email || "",
     phoneNumber: user.phoneNumber || "",
   });
+  const [currentPhotoURL, setCurrentPhotoURL] = useState(user.photoURL || "");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user.photoURL) {
+      setCurrentPhotoURL(user.photoURL);
+    }
+  }, [user.photoURL]);
 
   useEffect(() => {
     // If displayName is set but firstName/lastName aren't, split it
@@ -36,6 +51,64 @@ export default function Profile({ user }: { user: any }) {
       }));
     }
   }, [user]);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(lang === "en" ? "File must be under 10 MB" : "Le fichier ne doit pas dépasser 10 Mo");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModalSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCroppedPhotoSave = async (croppedResult: CompressionResult) => {
+    setCropModalSrc(null);
+    setIsUploadingPhoto(true);
+    try {
+      let finalUrl = croppedResult.dataUrl;
+
+      try {
+        const photoRef = ref(storage, `profiles/${user.uid}/avatar_${Date.now()}.jpg`);
+        finalUrl = await uploadStorageWithTimeout(photoRef, croppedResult.blob, 3000);
+      } catch (storageErr) {
+        console.warn("Storage upload warning, using cropped base64 data URL:", storageErr);
+      }
+
+      await updateDoc(doc(db, "users", user.uid), { photoURL: finalUrl });
+
+      if (auth.currentUser) {
+        try {
+          await updateProfile(auth.currentUser, { photoURL: finalUrl });
+        } catch (authErr) {
+          console.warn("Auth updateProfile notice:", authErr);
+        }
+      }
+
+      setCurrentPhotoURL(finalUrl);
+      toast.success(
+        lang === "en" 
+          ? "Profile picture / logo updated successfully!" 
+          : "Photo de profil ou logo mis à jour avec succès !"
+      );
+    } catch (err: any) {
+      console.error("Avatar upload error:", err);
+      toast.error(
+        lang === "en" 
+          ? "Failed to update profile picture" 
+          : "Erreur lors de la mise à jour de la photo de profil."
+      );
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSignOut = () => {
     auth.signOut();
@@ -152,10 +225,40 @@ export default function Profile({ user }: { user: any }) {
       </div>
 
       <div className="flex flex-col items-center gap-4 mb-8">
-        <div className="relative group">
-          <div className="w-24 h-24 rounded-full bg-surface-container-low overflow-hidden border-2 border-primary/20 shadow-xl">
-            <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" className="w-full h-full object-cover" />
+        <input 
+          type="file" 
+          ref={photoInputRef} 
+          onChange={handlePhotoUpload} 
+          className="hidden" 
+          accept="image/*" 
+          disabled={isUploadingPhoto}
+        />
+        <div 
+          className="relative group cursor-pointer" 
+          onClick={() => photoInputRef.current?.click()}
+          title={lang === "en" ? "Click to change photo or logo" : "Cliquer pour modifier la photo ou le logo"}
+        >
+          <div className="w-24 h-24 rounded-full bg-surface-container-low overflow-hidden border-2 border-primary/30 shadow-xl relative">
+            <img 
+              src={currentPhotoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
+              alt="Profile" 
+              className="w-full h-full object-cover group-hover:opacity-80 transition-all" 
+            />
+            {isUploadingPhoto && (
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              </div>
+            )}
           </div>
+          <button 
+            type="button"
+            onClick={(e) => { e.stopPropagation(); photoInputRef.current?.click(); }}
+            disabled={isUploadingPhoto}
+            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg border-2 border-[#0B1528] group-hover:scale-110 transition-transform cursor-pointer"
+            title={lang === "en" ? "Change photo or logo" : "Changer la photo ou le logo"}
+          >
+            <Camera size={14} />
+          </button>
         </div>
         <div className="text-center">
           <h2 className="font-headline font-bold text-xl text-on-surface">{user.firstName} {user.lastName}</h2>
@@ -336,6 +439,13 @@ export default function Profile({ user }: { user: any }) {
       <div className="pt-8 text-center text-[10px] text-slate-600 uppercase tracking-[0.2em] font-black">
         SafeCallr Protocol v2.4
       </div>
+
+      <ImageCropperModal
+        imageSrc={cropModalSrc}
+        title={lang === "en" ? "Adjust & Crop Photo or Logo" : "Ajuster et recadrer la photo ou le logo"}
+        onCancel={() => setCropModalSrc(null)}
+        onCropComplete={handleCroppedPhotoSave}
+      />
     </div>
   );
 }

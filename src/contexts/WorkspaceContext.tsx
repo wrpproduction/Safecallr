@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { db, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "../firebase";
+import { generateSecurityCode, isCodeMatch } from "../lib/codeUtils";
 
 export type WorkspaceMode = "particulier" | "pro" | "business";
 
@@ -189,8 +190,8 @@ export const WorkspaceProvider: React.FC<{ user: any; children: React.ReactNode 
         }
       }
 
-      // Generate 6-digit OTP security code
-      const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate OTP security code (6 digits + 1 trailing random letter)
+      const generatedCode = generateSecurityCode(6);
 
       // Store temporary verification code request in Firestore
       await addDoc(collection(db, "linkingVerificationCodes"), {
@@ -225,8 +226,8 @@ export const WorkspaceProvider: React.FC<{ user: any; children: React.ReactNode 
   // Step 2: Verify OTP security code & activate linked workspace
   const verifyAndLinkAccount = async (type: "pro" | "business", code: string, tempAccountData: any) => {
     try {
-      if (!code || code.trim().length !== 6) {
-        return { success: false, error: "Code de sécurité à 6 chiffres invalide." };
+      if (!code || code.trim().length < 5) {
+        return { success: false, error: "Code de sécurité invalide." };
       }
 
       // Query latest code
@@ -242,13 +243,14 @@ export const WorkspaceProvider: React.FC<{ user: any; children: React.ReactNode 
 
       snapCode.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.code === code.trim()) {
+        if (isCodeMatch(data.code, code)) {
           isValidCode = true;
         }
       });
 
-      // Fallback for mock/demo: accept code if matched or demo code "123456"
-      if (!isValidCode && code.trim() !== "123456" && code.trim() !== tempAccountData?.code) {
+      // Fallback for mock/demo: accept code if matched or demo codes "123456" / "123456A"
+      const cleanInput = code.trim().toUpperCase();
+      if (!isValidCode && cleanInput !== "123456" && cleanInput !== "123456A" && !isCodeMatch(tempAccountData?.code, code)) {
         return { success: false, error: "Code de sécurité incorrect. Veuillez vérifier vos emails." };
       }
 

@@ -15,6 +15,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { db, auth } from "../../firebase";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit, doc, getDoc } from "firebase/firestore";
+import { generateSecurityCode } from "../../lib/codeUtils";
 
 export default function ProSearch() {
   const [phone, setPhone] = useState("");
@@ -186,8 +187,8 @@ export default function ProSearch() {
         }
       }
 
-      // Générer un code de sécurité à 6 chiffres
-      const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+      // Générer un code de sécurité (6 chiffres + 1 lettre aléatoire)
+      const generatedCode = generateSecurityCode(6);
       const expiresAt = new Date();
       expiresAt.setSeconds(expiresAt.getSeconds() + 45); // Expire dans 45 secondes
 

@@ -214,7 +214,7 @@ export default function AuthRequestDetails({ user }: { user: any }) {
           <div className="space-y-2">
             <p className="text-on-primary/70 text-[10px] uppercase tracking-widest font-bold">Code de sécurité à vérifier</p>
             <h2 className="text-on-primary text-sm font-medium leading-relaxed">
-              Le professionnel doit vous communiquer ce code oralement.
+              Le professionnel doit vous communiquer ce code oralement (chiffres et lettre finale).
             </h2>
           </div>
 

@@ -14,11 +14,12 @@ import {
   Globe
 } from "lucide-react";
 import { Organization } from "../../lib/types";
-import { compressImage, uploadStorageWithTimeout } from "../../lib/imageUtils";
+import { compressImage, uploadStorageWithTimeout, CompressionResult } from "../../lib/imageUtils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, ref, uploadBytes, getDownloadURL, storage } from "../../firebase";
 import DynamicList from "../DynamicList";
 import { toast } from "sonner";
+import ImageCropperModal from "../ImageCropperModal";
 
 interface BrandSettingsSectionProps {
   organization: Organization;
@@ -28,6 +29,7 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
   
   const [primaryColor, setPrimaryColor] = useState(organization.primaryColor || "#3dffa0");
   const [trustMessage, setTrustMessage] = useState(organization.trustMessage || "SafeCallr ne vous demandera jamais vos codes secret bancaire par téléphone");
@@ -42,31 +44,28 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
     setLogoPreview(organization.logoUrl || null);
   }, [organization]);
 
-  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         toast.error("Le fichier du logo ne doit pas dépasser 10 Mo");
         return;
       }
-      try {
-        const compressed = await compressImage(file, 512, 512, 0.85);
-        setLogoPreview(compressed.dataUrl);
-        const compressedFile = new File([compressed.blob], file.name, { type: compressed.blob.type });
-        setLogoFile(compressedFile);
-        if (compressed.originalSizeKB > 150) {
-          toast.info(`Logo optimisé : ${compressed.originalSizeKB} Ko ➔ ${compressed.compressedSizeKB} Ko`);
-        }
-      } catch (err: any) {
-        console.warn("Erreur d'optimisation du logo, utilisation directe :", err);
-        setLogoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLogoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropModalSrc(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
     }
+  };
+
+  const handleCroppedLogoSave = (croppedResult: CompressionResult) => {
+    setCropModalSrc(null);
+    setLogoPreview(croppedResult.dataUrl);
+    const croppedFile = new File([croppedResult.blob], "logo_cropped.jpg", { type: croppedResult.blob.type });
+    setLogoFile(croppedFile);
+    toast.success("Logo ajusté et prêt à être enregistré !");
   };
 
   const handleSave = async () => {
@@ -268,6 +267,14 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
           </div>
         </div>
       )}
+
+      <ImageCropperModal
+        imageSrc={cropModalSrc}
+        cropShape="round"
+        title="Ajuster et recadrer le logo de l'entreprise"
+        onCancel={() => setCropModalSrc(null)}
+        onCropComplete={handleCroppedLogoSave}
+      />
     </div>
   );
 }

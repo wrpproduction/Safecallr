@@ -4,6 +4,7 @@ import { db, auth, collection, addDoc, serverTimestamp, query, where, onSnapshot
 import { Shield, Phone, User, ChevronRight, AlertCircle, Banknote, Home, MoreHorizontal, Users, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { generateSecurityCode } from "../lib/codeUtils";
 
 export default function NewRequest({ user }: { user: any }) {
   const { t } = useLanguage();
@@ -66,9 +67,9 @@ export default function NewRequest({ user }: { user: any }) {
       const targetName = isUserA ? selectedContact.userBName : selectedContact.userAName;
       const targetPhone = isUserA ? selectedContact.userBPhone : selectedContact.userAPhone;
 
-      // 1. On crée la requête dans Firestore
-      const codeA = Math.floor(1000 + Math.random() * 9000).toString();
-      const codeB = Math.floor(1000 + Math.random() * 9000).toString();
+      // 1. On crée la requête dans Firestore avec des codes de sécurité (chiffres + 1 lettre aléatoire)
+      const codeA = generateSecurityCode(4);
+      const codeB = generateSecurityCode(4);
       
       const docRef = await addDoc(collection(db, "verification_requests"), {
         requesterId: user.uid,

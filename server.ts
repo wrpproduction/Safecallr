@@ -536,8 +536,10 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(500).json({ error: "Le SDK Admin de Firebase n'est pas prêt." });
       }
 
-      // 1. Générer le code à 6 chiffres
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // 1. Générer le code de sécurité (6 chiffres + 1 lettre au hasard à la fin)
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+      const code = `${Math.floor(100000 + Math.random() * 900000)}${randomLetter}`;
 
       // 2. Stocker le code dans Firebase Firestore (expiration sous 30 mins)
       try {
@@ -626,7 +628,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(400).json({ error: "Ce code de validation a expiré." });
       }
 
-      if (data.code !== code) {
+      if (data.code?.toString().trim().toUpperCase() !== code?.toString().trim().toUpperCase()) {
         return res.status(400).json({ error: "Code de validation incorrect." });
       }
 
@@ -2053,8 +2055,10 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
       const userData = userSnapshot.docs[0].data();
 
-      // 4. Générer le code à 4 chiffres
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      // 4. Générer le code de sécurité (chiffres + 1 lettre au hasard à la fin)
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+      const code = `${Math.floor(1000 + Math.random() * 9000)}${randomLetter}`;
 
       // 5. Créer l'authRequest
       const requestRef = db.collection("organizations").doc(orgId).collection("authRequests").doc();

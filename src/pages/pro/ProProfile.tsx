@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 import { auth, db, storage } from "../../firebase";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref } from "firebase/storage";
+import { compressImage, uploadStorageWithTimeout, CompressionResult } from "../../lib/imageUtils";
+import ImageCropperModal from "../../components/ImageCropperModal";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { format } from "date-fns";
@@ -31,6 +33,7 @@ export default function ProProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -119,23 +122,46 @@ export default function ProProfile() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Le fichier ne doit pas dépasser 10 Mo");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModalSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCroppedPhotoSave = async (croppedResult: CompressionResult) => {
+    setCropModalSrc(null);
     setIsSaving(true);
+    setError(null);
     try {
       const uid = auth.currentUser?.uid;
-      const photoRef = ref(storage, `profiles/${uid}/avatar.jpg`);
-      await uploadBytes(photoRef, file);
-      const photoUrl = await getDownloadURL(photoRef);
+      if (!uid) throw new Error("Non connecté");
+
+      let photoUrl = croppedResult.dataUrl;
+
+      try {
+        const photoRef = ref(storage, `profiles/${uid}/avatar.jpg`);
+        photoUrl = await uploadStorageWithTimeout(photoRef, croppedResult.blob, 3000);
+      } catch (storageErr) {
+        console.warn("Storage upload warning, using compressed data URL fallback:", storageErr);
+      }
       
-      await updateDoc(doc(db, "pros", uid!), { photoUrl });
-      setPro(prev => ({ ...prev, photoUrl }));
-      setSuccess("Photo de profil mise à jour !");
-    } catch (err) {
+      await updateDoc(doc(db, "pros", uid), { photoUrl });
+      setPro((prev: any) => ({ ...prev, photoUrl }));
+      setSuccess("Photo de profil ou logo recadré et mis à jour avec succès !");
+    } catch (err: any) {
       console.error("Photo upload error:", err);
-      setError("Erreur lors de l'upload de la photo.");
+      setError("Erreur lors de la mise à jour de la photo/logo.");
     } finally {
       setIsSaving(false);
     }
@@ -547,6 +573,13 @@ export default function ProProfile() {
           </form>
         </div>
       </div>
+
+      <ImageCropperModal
+        imageSrc={cropModalSrc}
+        title="Ajuster et recadrer le logo ou la photo"
+        onCancel={() => setCropModalSrc(null)}
+        onCropComplete={handleCroppedPhotoSave}
+      />
     </div>
   );
 }

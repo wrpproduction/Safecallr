@@ -47,23 +47,30 @@ export default function AuthCodeDisplay({ code, onCancel, expiresInSeconds = 60 
           </motion.div>
           <h2 className="text-3xl font-black text-white tracking-tight">Code d'authentification</h2>
           <p className="text-slate-400 font-medium">
-            Communiquez ce code à voix haute à votre client.<br />
-            Il doit le voir apparaître dans son application SafeCallr.
+            Communiquez les chiffres et la lettre finale à voix haute à votre client.<br />
+            Il doit les voir apparaître dans son application SafeCallr.
           </p>
         </div>
 
-        <div className="flex justify-center gap-4 md:gap-6">
-          {digits.map((digit, i) => (
-            <motion.div
-              key={i}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 + i * 0.1, type: "spring" }}
-              className="w-16 h-24 md:w-24 md:h-36 bg-[#1e1e22] border-2 border-[#2e2e34] rounded-[24px] flex items-center justify-center text-5xl md:text-7xl font-black text-white shadow-2xl"
-            >
-              {digit}
-            </motion.div>
-          ))}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4">
+          {digits.map((char, i) => {
+            const isLetter = /[a-zA-Z]/.test(char);
+            return (
+              <motion.div
+                key={i}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 + i * 0.08, type: "spring" }}
+                className={`w-11 h-16 sm:w-16 sm:h-24 md:w-20 md:h-28 rounded-2xl md:rounded-[24px] flex items-center justify-center text-3xl sm:text-5xl md:text-6xl font-black shadow-2xl transition-all ${
+                  isLetter 
+                    ? "bg-primary/15 border-2 border-primary text-primary shadow-primary/20" 
+                    : "bg-[#1e1e22] border-2 border-[#2e2e34] text-white"
+                }`}
+              >
+                {char}
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="space-y-8">

@@ -118,6 +118,74 @@ export async function compressImage(
 }
 
 /**
+ * Creates a cropped image from source URL and Cropper pixel coordinates.
+ * Returns compressed Blob and Data URL fit for avatar/logo display.
+ */
+export async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: { x: number; y: number; width: number; height: number },
+  outputWidth = 512,
+  outputHeight = 512,
+  quality = 0.88
+): Promise<CompressionResult> {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = (e) => reject(new Error("Erreur de chargement de l'image pour le recadrage."));
+    image.src = imageSrc;
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Impossible d'initialiser le Canvas 2D pour le recadrage.");
+  }
+
+  // Clear background for crisp output
+  ctx.clearRect(0, 0, outputWidth, outputHeight);
+
+  // Draw cropped image region onto the canvas scaled to target size
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    outputWidth,
+    outputHeight
+  );
+
+  const outputType = "image/jpeg";
+  const dataUrl = canvas.toDataURL(outputType, quality);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        const finalBlob = blob || new Blob([dataUrl], { type: outputType });
+        const compressedSizeKB = Math.round(finalBlob.size / 1024);
+        resolve({
+          dataUrl,
+          blob: finalBlob,
+          width: outputWidth,
+          height: outputHeight,
+          originalSizeKB: Math.round(dataUrl.length / 1024),
+          compressedSizeKB,
+        });
+      },
+      outputType,
+      quality
+    );
+  });
+}
+
+/**
  * Robust wrapper around Firebase Storage uploadBytes with a non-blocking timeout race.
  * If Firebase Storage is slow, offline, or unconfigured, it rejects after timeoutMs (default 3000ms),
  * allowing the app to fall back instantly to compressed Base64 Data URL without spinning indefinitely.
