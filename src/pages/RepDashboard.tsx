@@ -195,7 +195,7 @@ export default function RepDashboard() {
         {/* Chart & History */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <ActivityChart />
+            <ActivityChart authRequests={authRequests} timeRange={timeRange} />
           </div>
           <div className="lg:col-span-1">
             <AuthHistorySection authRequests={authRequests} organization={organization} />

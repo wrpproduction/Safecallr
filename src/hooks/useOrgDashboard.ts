@@ -159,8 +159,8 @@ export function useOrgDashboard(orgId: string | undefined) {
       }
     });
 
-    // 3. Last 20 AuthRequests snapshot
-    unsubAuth = onSnapshot(query(collection(db, "organizations", orgId, "authRequests"), orderBy("createdAt", "desc"), limit(20)), (snapshot) => {
+    // 3. Last 100 AuthRequests snapshot for stats & activity chart
+    unsubAuth = onSnapshot(query(collection(db, "organizations", orgId, "authRequests"), orderBy("createdAt", "desc"), limit(100)), (snapshot) => {
       setAuthRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AuthRequest)));
     });
 

@@ -48,9 +48,9 @@ export default function AdminCreateOrganization() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
-  // Cumulative Capabilities and Status
-  const [enableExternal, setEnableExternal] = useState(true);
-  const [enableInternal, setEnableInternal] = useState(true);
+  // Cumulative Capabilities and Status (Default to unchecked - user must select)
+  const [enableExternal, setEnableExternal] = useState(false);
+  const [enableInternal, setEnableInternal] = useState(false);
   const [initialStatus, setInitialStatus] = useState<"pending" | "active">("pending");
 
   // Custom states for lists and media
@@ -90,6 +90,13 @@ export default function AdminCreateOrganization() {
     setLoading(true);
     setError(null);
     setActivationLink(null);
+
+    // Validation au moins une capacité cochée
+    if (!enableExternal && !enableInternal) {
+      setError("Veuillez cocher au moins une capacité d'authentification (Vérification EXTERNE ou INTERNE) à activer pour cette organisation.");
+      setLoading(false);
+      return;
+    }
 
     // Validation email domain
     const emailDomain = data.repEmail.split("@")[1].toLowerCase().trim();
@@ -276,13 +283,12 @@ export default function AdminCreateOrganization() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Capability External */}
               <label 
-                onClick={() => setEnableExternal(!enableExternal)}
-                className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${enableExternal ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-500"}`}
+                className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${enableExternal ? "border-primary bg-primary/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-500 hover:border-slate-700"}`}
               >
                 <input 
                   type="checkbox" 
                   checked={enableExternal} 
-                  onChange={() => {}} 
+                  onChange={(e) => setEnableExternal(e.target.checked)} 
                   className="mt-1 rounded border-slate-700 bg-black text-primary focus:ring-0 cursor-pointer" 
                 />
                 <div>
@@ -295,13 +301,12 @@ export default function AdminCreateOrganization() {
 
               {/* Capability Internal Business */}
               <label 
-                onClick={() => setEnableInternal(!enableInternal)}
-                className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${enableInternal ? "border-[#3dffa0] bg-[#3dffa0]/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-500"}`}
+                className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${enableInternal ? "border-[#3dffa0] bg-[#3dffa0]/5 text-white" : "border-[#2e2e34] bg-[#111113] text-slate-500 hover:border-slate-700"}`}
               >
                 <input 
                   type="checkbox" 
                   checked={enableInternal} 
-                  onChange={() => {}} 
+                  onChange={(e) => setEnableInternal(e.target.checked)} 
                   className="mt-1 rounded border-slate-700 bg-black text-[#3dffa0] focus:ring-0 cursor-pointer" 
                 />
                 <div>

@@ -1374,6 +1374,38 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     }
   });
 
+  // API: Modifier identité visuelle / branding (Admin)
+  app.post("/api/admin/organizations/:id/branding", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { idToken, logoUrl, primaryColor, trustMessage } = req.body;
+      const actor = await verifyAdmin(idToken);
+
+      const orgRef = db.collection("organizations").doc(id);
+      const oldDoc = await orgRef.get();
+      if (!oldDoc.exists) return res.status(404).json({ error: "Organisation non trouvée" });
+
+      const updateData: any = {
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      if (logoUrl !== undefined) updateData.logoUrl = logoUrl;
+      if (primaryColor !== undefined) updateData.primaryColor = primaryColor;
+      if (trustMessage !== undefined) updateData.trustMessage = trustMessage;
+
+      await orgRef.update(updateData);
+
+      try {
+        await db.collection("companies").doc(id).update(updateData);
+      } catch (e2) {}
+
+      await createAuditLog(id, actor, 'update_branding', { before: oldDoc.data(), after: updateData });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // API: Changer statut organisation (Admin)
   app.post("/api/admin/organizations/:id/status", async (req, res) => {
     try {

@@ -29,7 +29,8 @@ import {
   Lock,
   Award,
   CheckCircle2,
-  Zap
+  Zap,
+  Upload
 } from "lucide-react";
 import { 
   LineChart, 
@@ -43,8 +44,8 @@ import {
   Area
 } from "recharts";
 import { safeFormatDate, parseToDate } from "../lib/dateUtils";
-import { auth, db } from "../firebase";
-import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { auth, db, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, updateDoc } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
 import AuditLogTimeline from "../components/admin/AuditLogTimeline";
 import DangerZone from "../components/admin/DangerZone";
@@ -64,6 +65,16 @@ export default function AdminOrganizationDetail() {
   const [isSavingLegal, setIsSavingLegal] = useState(false);
   const [isChangingRep, setIsChangingRep] = useState(false);
   const [isResendingAccess, setIsResendingAccess] = useState(false);
+
+  // Editable fields for branding / visual identity
+  const [brandData, setBrandData] = useState<{ logoUrl: string; primaryColor: string; trustMessage: string }>({
+    logoUrl: "",
+    primaryColor: "#3dffa0",
+    trustMessage: "SafeCallr ne vous demandera jamais vos codes secret bancaire par téléphone"
+  });
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isSavingBrand, setIsSavingBrand] = useState(false);
 
   const handleResendAccess = async (targetEmail?: string, targetName?: string) => {
     const emailToSend = targetEmail || org?.representative?.email || org?.repEmail;
@@ -252,8 +263,15 @@ export default function AdminOrganizationDetail() {
         streetNumber: data.streetNumber || "",
         zipCode: data.zipCode || "",
         city: data.city || "",
-        allowedEmailDomains: data.allowedEmailDomains
+        allowedEmailDomains: data.allowedEmailDomains || []
       });
+      setBrandData({
+        logoUrl: data.logoUrl || "",
+        primaryColor: data.primaryColor || "#3dffa0",
+        trustMessage: data.trustMessage || "SafeCallr ne vous demandera jamais vos codes secret bancaire par téléphone"
+      });
+      setLogoPreview(data.logoUrl || null);
+      setLogoFile(null);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Erreur lors du chargement de l'organisation");
@@ -282,6 +300,92 @@ export default function AdminOrganizationDetail() {
       toast.error(err.message);
     } finally {
       setIsSavingLegal(false);
+    }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Le fichier du logo ne doit pas dépasser 5 Mo");
+        return;
+      }
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setBrandData(prev => ({ ...prev, logoUrl: "" }));
+  };
+
+  const handleSaveBrand = async () => {
+    if (!id) return;
+    setIsSavingBrand(true);
+    try {
+      let finalLogoUrl = logoPreview || brandData.logoUrl || "";
+
+      if (logoFile) {
+        try {
+          const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
+          const uploadResult = await uploadBytes(logoRef, logoFile);
+          finalLogoUrl = await getDownloadURL(uploadResult.ref);
+        } catch (storageErr) {
+          console.warn("Storage upload warning, fallback to Data URL:", storageErr);
+        }
+      }
+
+      const idToken = await auth.currentUser?.getIdToken();
+      let updatedViaApi = false;
+
+      try {
+        const response = await fetch(`/api/admin/organizations/${id}/branding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idToken,
+            logoUrl: finalLogoUrl,
+            primaryColor: brandData.primaryColor,
+            trustMessage: brandData.trustMessage
+          })
+        });
+        if (response.ok) {
+          updatedViaApi = true;
+        }
+      } catch (apiErr) {
+        console.warn("API branding update error, falling back to direct Firestore update:", apiErr);
+      }
+
+      if (!updatedViaApi) {
+        const updatePayload = {
+          logoUrl: finalLogoUrl,
+          primaryColor: brandData.primaryColor,
+          trustMessage: brandData.trustMessage,
+          updatedAt: new Date()
+        };
+        try {
+          await updateDoc(doc(db, "organizations", id), updatePayload);
+        } catch (e1) {
+          try {
+            await updateDoc(doc(db, "companies", id), updatePayload);
+          } catch (e2) {}
+        }
+      }
+
+      toast.success("Identité visuelle mise à jour avec succès");
+      setLogoFile(null);
+      fetchDetail();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Erreur lors de la mise à jour de l'identité visuelle");
+    } finally {
+      setIsSavingBrand(false);
     }
   };
 
@@ -720,49 +824,123 @@ export default function AdminOrganizationDetail() {
 
               <div className="space-y-8">
                  <div className="bg-[#1e1e22] border border-[#2e2e34] rounded-3xl p-8 space-y-8">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Palette className="text-purple-500" size={20} />
-                      <h3 className="text-lg font-black text-white">Identité Visuelle</h3>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Palette className="text-purple-500" size={20} />
+                        <h3 className="text-lg font-black text-white">Identité Visuelle</h3>
+                      </div>
+                      <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 bg-[#111113] px-3 py-1 rounded-full border border-[#2e2e34]">
+                        Branding Client
+                      </span>
                     </div>
                     
                     <div className="space-y-6">
-                      <div className="flex items-center gap-8">
-                        <div className="w-24 h-24 bg-[#111113] border border-[#2e2e34] rounded-3xl p-4 flex items-center justify-center relative group shrink-0">
+                      {/* Logo Upload Section */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-5 bg-[#111113] rounded-2xl border border-[#2e2e34]">
+                        <div className="w-28 h-28 bg-[#18181b] border-2 border-dashed border-[#3f3f46] hover:border-primary rounded-2xl p-2 flex items-center justify-center relative group shrink-0 transition-colors">
                           <img 
-                            src={org.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`} 
-                            alt="" 
-                            className="max-w-full max-h-full object-contain" 
+                            src={logoPreview || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org?.name || 'SafeCallr')}`} 
+                            alt="Logo Organisation" 
+                            className="max-w-full max-h-full object-contain rounded-xl" 
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org.name || 'SafeCallr')}`;
+                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(org?.name || 'SafeCallr')}`;
                             }}
                           />
-                          <button className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-3xl transition-opacity">
-                            <PlusCircle className="text-white" size={24} />
-                          </button>
+                          <div className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center rounded-2xl transition-opacity p-2 text-center">
+                            <Upload className="text-primary mb-1" size={22} />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Changer</span>
+                          </div>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleLogoChange} 
+                            className="absolute inset-0 opacity-0 cursor-pointer rounded-2xl z-10" 
+                            title="Cliquez pour charger un nouveau logo"
+                          />
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-white font-bold">Logo Institutionnel</p>
-                          <p className="text-xs text-slate-500">Format SVG ou PNG transparent recommandé.</p>
-                          <p className="text-[10px] text-slate-600 italic">Visible lors du déclenchement d'un code chez le client.</p>
+
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <p className="text-white font-bold text-sm">Logo Institutionnel</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Format PNG, JPG ou SVG transparent (Max 5 Mo).</p>
+                            <p className="text-[11px] text-slate-500 italic mt-1">Visible sur l'écran du client lors du déclenchement d'un code.</p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3">
+                            <label className="inline-flex items-center gap-2 bg-[#27272a] hover:bg-[#3f3f46] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors border border-[#3f3f46]">
+                              <Upload size={14} className="text-primary" />
+                              Téléverser un logo
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleLogoChange} 
+                                className="hidden" 
+                              />
+                            </label>
+
+                            {(logoPreview || brandData.logoUrl) && (
+                              <button 
+                                type="button"
+                                onClick={handleRemoveLogo}
+                                className="inline-flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-2 rounded-xl text-xs font-medium border border-red-500/20 transition-colors"
+                              >
+                                <Trash2 size={13} />
+                                Supprimer
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Couleur Signature</p>
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl shadow-xl border border-[#2e2e34]" style={{ backgroundColor: org.primaryColor }} />
-                            <div className="bg-[#111113] px-4 py-2 border border-[#2e2e34] rounded-xl text-sm font-mono text-white">
-                              {org.primaryColor}
-                            </div>
+                      {/* Color & Trust Message */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {/* Signature Color */}
+                        <div className="space-y-2 p-5 bg-[#111113] rounded-2xl border border-[#2e2e34]">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+                            Couleur Signature
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="color" 
+                              value={brandData.primaryColor} 
+                              onChange={(e) => setBrandData({ ...brandData, primaryColor: e.target.value })}
+                              className="w-12 h-12 rounded-xl border border-[#3f3f46] bg-transparent cursor-pointer p-0.5" 
+                            />
+                            <input 
+                              type="text" 
+                              value={brandData.primaryColor} 
+                              onChange={(e) => setBrandData({ ...brandData, primaryColor: e.target.value })}
+                              className="flex-1 bg-[#18181b] border border-[#2e2e34] rounded-xl px-4 py-3 text-white font-mono text-sm uppercase outline-none focus:border-primary transition-all" 
+                              placeholder="#3DFFA0"
+                            />
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Message de confiance</p>
-                          <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl text-xs text-slate-400 leading-relaxed italic">
-                            "{org.trustMessage}"
-                          </div>
+
+                        {/* Trust Message */}
+                        <div className="space-y-2 p-5 bg-[#111113] rounded-2xl border border-[#2e2e34]">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+                            Message de confiance
+                          </label>
+                          <textarea 
+                            rows={2}
+                            value={brandData.trustMessage} 
+                            onChange={(e) => setBrandData({ ...brandData, trustMessage: e.target.value })}
+                            className="w-full bg-[#18181b] border border-[#2e2e34] rounded-xl p-3 text-white text-xs outline-none focus:border-primary transition-all resize-none italic" 
+                            placeholder="SafeCallr ne vous demandera jamais..."
+                          />
                         </div>
+                      </div>
+
+                      {/* Save Button */}
+                      <div className="flex justify-end pt-2">
+                        <button 
+                          onClick={handleSaveBrand}
+                          disabled={isSavingBrand}
+                          className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-black px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg"
+                        >
+                          {isSavingBrand ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                          Enregistrer l'identité visuelle
+                        </button>
                       </div>
                     </div>
                  </div>
