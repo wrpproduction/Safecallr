@@ -1382,9 +1382,17 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       const { idToken, logoUrl, primaryColor, trustMessage } = req.body;
       const actor = await verifyAdmin(idToken);
 
-      const orgRef = db.collection("organizations").doc(id);
-      const oldDoc = await orgRef.get();
-      if (!oldDoc.exists) return res.status(404).json({ error: "Organisation non trouvée" });
+      let targetRef = db.collection("organizations").doc(id);
+      let docSnap = await targetRef.get();
+
+      if (!docSnap.exists) {
+        targetRef = db.collection("companies").doc(id);
+        docSnap = await targetRef.get();
+      }
+
+      if (!docSnap.exists) {
+        return res.status(404).json({ error: "Organisation ou Entreprise non trouvée" });
+      }
 
       const updateData: any = {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -1393,16 +1401,26 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       if (primaryColor !== undefined) updateData.primaryColor = primaryColor;
       if (trustMessage !== undefined) updateData.trustMessage = trustMessage;
 
-      await orgRef.update(updateData);
+      await targetRef.update(updateData);
 
+      // Also try mirror update on the other collection if it exists
       try {
-        await db.collection("companies").doc(id).update(updateData);
+        if (targetRef.path.startsWith("organizations/")) {
+          await db.collection("companies").doc(id).update(updateData);
+        } else {
+          await db.collection("organizations").doc(id).update(updateData);
+        }
       } catch (e2) {}
 
-      await createAuditLog(id, actor, 'update_branding', { before: oldDoc.data(), after: updateData });
+      try {
+        await createAuditLog(id, actor, 'update_branding', { before: docSnap.data(), after: updateData });
+      } catch (auditErr) {
+        console.warn("[branding] Audit log warning:", auditErr);
+      }
 
       res.json({ success: true });
     } catch (error: any) {
+      console.error("[branding API error]", error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -1,3 +1,5 @@
+import { uploadBytes, getDownloadURL } from "firebase/storage";
+
 /**
  * Client-side image optimization utilities.
  * Ensures cross-browser compatibility (Firefox, Chrome, Safari) and avoids
@@ -114,3 +116,26 @@ export async function compressImage(
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Robust wrapper around Firebase Storage uploadBytes with a non-blocking timeout race.
+ * If Firebase Storage is slow, offline, or unconfigured, it rejects after timeoutMs (default 3000ms),
+ * allowing the app to fall back instantly to compressed Base64 Data URL without spinning indefinitely.
+ */
+export async function uploadStorageWithTimeout(
+  storageRef: any,
+  fileOrBlob: Blob | File,
+  timeoutMs = 3000
+): Promise<string> {
+  const uploadPromise = (async () => {
+    const uploadResult = await uploadBytes(storageRef, fileOrBlob);
+    return await getDownloadURL(uploadResult.ref);
+  })();
+
+  const timeoutPromise = new Promise<string>((_, reject) =>
+    setTimeout(() => reject(new Error("Firebase Storage non disponible ou délai dépassé")), timeoutMs)
+  );
+
+  return Promise.race([uploadPromise, timeoutPromise]);
+}
+

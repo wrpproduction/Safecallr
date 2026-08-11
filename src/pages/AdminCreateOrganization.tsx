@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth, getIdToken, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
-import { compressImage } from "../lib/imageUtils";
+import { compressImage, uploadStorageWithTimeout } from "../lib/imageUtils";
 import AdminLayout from "../components/AdminLayout";
 import DynamicList from "../components/DynamicList";
 import { getApiUrl } from "../lib/api";
@@ -121,8 +121,7 @@ export default function AdminCreateOrganization() {
           const compressed = await compressImage(logoFile, 512, 512, 0.85);
           try {
             const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-            const uploadResult = await uploadBytes(logoRef, compressed.blob);
-            logoUrl = await getDownloadURL(uploadResult.ref);
+            logoUrl = await uploadStorageWithTimeout(logoRef, compressed.blob, 3000);
           } catch (storageErr: any) {
             console.warn("Storage Error, falling back to compressed data URL:", storageErr);
             logoUrl = compressed.dataUrl;
@@ -131,8 +130,7 @@ export default function AdminCreateOrganization() {
           console.warn("Compression Error, trying raw upload:", compressErr);
           try {
             const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-            const uploadResult = await uploadBytes(logoRef, logoFile);
-            logoUrl = await getDownloadURL(uploadResult.ref);
+            logoUrl = await uploadStorageWithTimeout(logoRef, logoFile, 3000);
           } catch (storageErr: any) {
             logoUrl = await new Promise<string>((resolve) => {
               const reader = new FileReader();

@@ -14,7 +14,7 @@ import {
   Globe
 } from "lucide-react";
 import { Organization } from "../../lib/types";
-import { compressImage } from "../../lib/imageUtils";
+import { compressImage, uploadStorageWithTimeout } from "../../lib/imageUtils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, ref, uploadBytes, getDownloadURL, storage } from "../../firebase";
 import DynamicList from "../DynamicList";
@@ -75,15 +75,14 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
     try {
       let finalLogoUrl = logoPreview || organization.logoUrl || "";
 
-      // Try uploading to Storage if file selected
+      // Try uploading to Storage if file selected with a 3s timeout
       if (logoFile) {
         try {
           const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-          const uploadResult = await uploadBytes(logoRef, logoFile);
-          finalLogoUrl = await getDownloadURL(uploadResult.ref);
+          finalLogoUrl = await uploadStorageWithTimeout(logoRef, logoFile, 3000);
         } catch (storageErr) {
           console.warn("Storage upload warning, using base64 data URL fallback:", storageErr);
-          // Keep logoPreview (data URL) as finalLogoUrl
+          // Keep logoPreview (compressed data URL) as finalLogoUrl
         }
       }
 

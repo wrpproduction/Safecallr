@@ -44,7 +44,7 @@ import {
   Area
 } from "recharts";
 import { safeFormatDate, parseToDate } from "../lib/dateUtils";
-import { compressImage } from "../lib/imageUtils";
+import { compressImage, uploadStorageWithTimeout } from "../lib/imageUtils";
 import { auth, db, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
 import { doc, getDoc, collection, getDocs, query, where, orderBy, limit, updateDoc } from "firebase/firestore";
 import AdminLayout from "../components/AdminLayout";
@@ -346,10 +346,10 @@ export default function AdminOrganizationDetail() {
       if (logoFile) {
         try {
           const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-          const uploadResult = await uploadBytes(logoRef, logoFile);
-          finalLogoUrl = await getDownloadURL(uploadResult.ref);
+          finalLogoUrl = await uploadStorageWithTimeout(logoRef, logoFile, 3000);
         } catch (storageErr) {
-          console.warn("Storage upload warning, fallback to Data URL:", storageErr);
+          console.warn("Storage upload warning, fallback to compressed Data URL:", storageErr);
+          // finalLogoUrl remains logoPreview (which is already compressed base64)
         }
       }
 
@@ -392,7 +392,7 @@ export default function AdminOrganizationDetail() {
 
       toast.success("Identité visuelle mise à jour avec succès");
       setLogoFile(null);
-      fetchDetail();
+      await fetchDetail();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Erreur lors de la mise à jour de l'identité visuelle");
