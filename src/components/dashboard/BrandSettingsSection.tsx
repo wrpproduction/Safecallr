@@ -14,6 +14,7 @@ import {
   Globe
 } from "lucide-react";
 import { Organization } from "../../lib/types";
+import { compressImage } from "../../lib/imageUtils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, ref, uploadBytes, getDownloadURL, storage } from "../../firebase";
 import DynamicList from "../DynamicList";
@@ -41,19 +42,30 @@ export default function BrandSettingsSection({ organization }: BrandSettingsSect
     setLogoPreview(organization.logoUrl || null);
   }, [organization]);
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Le fichier du logo ne doit pas dépasser 5 Mo");
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Le fichier du logo ne doit pas dépasser 10 Mo");
         return;
       }
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 512, 512, 0.85);
+        setLogoPreview(compressed.dataUrl);
+        const compressedFile = new File([compressed.blob], file.name, { type: compressed.blob.type });
+        setLogoFile(compressedFile);
+        if (compressed.originalSizeKB > 150) {
+          toast.info(`Logo optimisé : ${compressed.originalSizeKB} Ko ➔ ${compressed.compressedSizeKB} Ko`);
+        }
+      } catch (err: any) {
+        console.warn("Erreur d'optimisation du logo, utilisation directe :", err);
+        setLogoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth, getIdToken, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
+import { compressImage } from "../lib/imageUtils";
 import AdminLayout from "../components/AdminLayout";
 import DynamicList from "../components/DynamicList";
 import { getApiUrl } from "../lib/api";
@@ -113,20 +114,32 @@ export default function AdminCreateOrganization() {
       if (!user) throw new Error("Non authentifié");
       const idToken = await getIdToken(user);
 
-      // 1. Upload Logo
+      // 1. Upload Logo (with client-side optimization)
       let logoUrl = "";
       if (logoFile) {
         try {
-          const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-          const uploadResult = await uploadBytes(logoRef, logoFile);
-          logoUrl = await getDownloadURL(uploadResult.ref);
-        } catch (storageErr: any) {
-          console.warn("Storage Error, falling back to data URL:", storageErr);
-          logoUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(logoFile);
-          });
+          const compressed = await compressImage(logoFile, 512, 512, 0.85);
+          try {
+            const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
+            const uploadResult = await uploadBytes(logoRef, compressed.blob);
+            logoUrl = await getDownloadURL(uploadResult.ref);
+          } catch (storageErr: any) {
+            console.warn("Storage Error, falling back to compressed data URL:", storageErr);
+            logoUrl = compressed.dataUrl;
+          }
+        } catch (compressErr) {
+          console.warn("Compression Error, trying raw upload:", compressErr);
+          try {
+            const logoRef = ref(storage, `organizations/logos/${Date.now()}_${logoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
+            const uploadResult = await uploadBytes(logoRef, logoFile);
+            logoUrl = await getDownloadURL(uploadResult.ref);
+          } catch (storageErr: any) {
+            logoUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(logoFile);
+            });
+          }
         }
       }
 
