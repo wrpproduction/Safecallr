@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { auth, db } from "../../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { safeJsonStringify } from "../../utils/safeJson";
 import { 
   collection, 
   doc, 
@@ -53,6 +54,7 @@ export interface BusinessMember {
   role: "admin" | "co-admin" | "member";
   status: "active" | "pending" | "suspended";
   photoUrl?: string;
+  photoURL?: string;
   jobTitle?: string;
   bio?: string;
   createdAt: any;
@@ -112,8 +114,21 @@ export default function BusinessAdminDashboard() {
   // FIRESTORE ERROR HANDLER (Required by Skill)
   // ==========================================
   const handleFirestoreErrorLocal = (err: unknown, operationType: "create" | "update" | "delete" | "list" | "get" | "write", path: string | null) => {
+    let errorMsg = "Unknown error";
+    if (err instanceof Error) {
+      errorMsg = err.message;
+    } else if (typeof err === "string") {
+      errorMsg = err;
+    } else {
+      try {
+        errorMsg = String(err);
+      } catch {
+        errorMsg = "Unserializable error";
+      }
+    }
+
     const errInfo = {
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMsg,
       authInfo: {
         userId: auth.currentUser?.uid,
         email: auth.currentUser?.email,
@@ -122,7 +137,7 @@ export default function BusinessAdminDashboard() {
       operationType,
       path
     };
-    console.error("Firestore Error Detailed: ", JSON.stringify(errInfo));
+    console.error("Firestore Error Detailed: ", safeJsonStringify(errInfo));
     toast.error("Erreur d'accès à la base de données. Veuillez recharger.");
   };
 
@@ -459,8 +474,8 @@ export default function BusinessAdminDashboard() {
             
             <div className="pt-2 border-t border-[#1a2d5e]/50 flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-slate-300 overflow-hidden shrink-0 flex items-center justify-center text-[#0F1B3D] text-xs font-bold">
-                {memberProfile.photoUrl ? (
-                  <img src={memberProfile.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                {(memberProfile.photoUrl || memberProfile.photoURL) ? (
+                  <img src={memberProfile.photoUrl || memberProfile.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   memberProfile.firstName.charAt(0)
                 )}

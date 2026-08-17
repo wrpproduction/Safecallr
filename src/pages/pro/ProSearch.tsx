@@ -335,8 +335,8 @@ export default function ProSearch() {
                   <div className="flex items-center justify-between p-6 bg-[#4ade80]/10 rounded-2xl border border-[#4ade80]/20">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-full bg-[#111113] border-2 border-[#4ade80]/30 flex items-center justify-center overflow-hidden">
-                        {client.photoUrl ? (
-                          <img src={client.photoUrl} alt="Client" className="w-full h-full object-cover" />
+                        {(client.photoUrl || client.photoURL) ? (
+                          <img src={client.photoUrl || client.photoURL} alt="Client" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-[#4ade80] font-bold text-xl">{client.firstName?.[0]}{client.lastName?.[0]}</span>
                         )}

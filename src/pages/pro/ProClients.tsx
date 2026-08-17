@@ -365,8 +365,8 @@ export default function ProClients() {
               )}
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 rounded-full bg-[#111113] flex items-center justify-center text-[#9a9a9f] font-bold text-xl overflow-hidden border-2 border-[#2e2e34] shadow-sm group-hover:border-[#4ade80]/30 transition-colors">
-                  {client.photoUrl ? (
-                    <img src={client.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  {(client.photoUrl || client.photoURL) ? (
+                    <img src={client.photoUrl || client.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <span>{client.firstName?.[0]}{client.lastName?.[0]}</span>
                   )}
@@ -527,8 +527,8 @@ export default function ProClients() {
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
                   <div className="flex flex-col items-center text-center space-y-4">
                 <div className="w-24 h-24 rounded-full bg-[#111113] flex items-center justify-center text-[#9a9a9f] font-bold text-3xl overflow-hidden border-4 border-[#2e2e34] shadow-md">
-                  {selectedClient.photoUrl ? (
-                    <img src={selectedClient.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  {(selectedClient.photoUrl || selectedClient.photoURL) ? (
+                    <img src={selectedClient.photoUrl || selectedClient.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <span>{selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}</span>
                   )}

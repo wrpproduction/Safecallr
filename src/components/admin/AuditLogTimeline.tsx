@@ -1,5 +1,6 @@
 import React from "react";
 import { safeFormatDate } from "../../lib/dateUtils";
+import { safeJsonStringify } from "../../utils/safeJson";
 import { 
   PlusCircle, 
   Settings, 
@@ -68,7 +69,7 @@ export default function AuditLogTimeline({ logs }: AuditLogTimelineProps) {
               {log.details && (
                 <div className="mt-3 p-3 bg-[#111113] rounded-xl border border-[#2e2e34] overflow-hidden">
                   <pre className="text-[10px] font-mono text-slate-400 overflow-x-auto">
-                    {JSON.stringify(log.details, null, 2)}
+                    {safeJsonStringify(log.details, 2)}
                   </pre>
                 </div>
               )}

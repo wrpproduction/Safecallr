@@ -1,5 +1,6 @@
 
 import { auth } from "../firebase";
+import { safeJsonStringify } from "../utils/safeJson";
 
 export enum OperationType {
   CREATE = 'create',
@@ -30,15 +31,28 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  let errorMsg = "Unknown error";
+  if (error instanceof Error) {
+    errorMsg = error.message;
+  } else if (typeof error === "string") {
+    errorMsg = error;
+  } else {
+    try {
+      errorMsg = String(error);
+    } catch {
+      errorMsg = "Unserializable error";
+    }
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
         displayName: provider.displayName,
         email: provider.email,
@@ -47,7 +61,9 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  const serialized = safeJsonStringify(errInfo);
+  console.error('Firestore Error: ', serialized);
+  throw new Error(serialized);
 }

@@ -25,7 +25,7 @@ export default function Profile({ user }: { user: any }) {
     email: user.email || "",
     phoneNumber: user.phoneNumber || "",
   });
-  const [currentPhotoURL, setCurrentPhotoURL] = useState(user.photoURL || "");
+  const [currentPhotoURL, setCurrentPhotoURL] = useState(user.photoURL || user.photoUrl || "");
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -35,10 +35,11 @@ export default function Profile({ user }: { user: any }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user.photoURL) {
-      setCurrentPhotoURL(user.photoURL);
+    const photo = user.photoURL || user.photoUrl || "";
+    if (photo) {
+      setCurrentPhotoURL(photo);
     }
-  }, [user.photoURL]);
+  }, [user.photoURL, user.photoUrl]);
 
   useEffect(() => {
     // If displayName is set but firstName/lastName aren't, split it
@@ -82,9 +83,14 @@ export default function Profile({ user }: { user: any }) {
         console.warn("Storage upload warning, using cropped base64 data URL:", storageErr);
       }
 
-      await updateDoc(doc(db, "users", user.uid), { photoURL: finalUrl });
+      // Save both photoURL and photoUrl to ensure full compatibility across all components
+      await updateDoc(doc(db, "users", user.uid), { 
+        photoURL: finalUrl,
+        photoUrl: finalUrl,
+        updatedAt: serverTimestamp() 
+      });
 
-      if (auth.currentUser) {
+      if (auth.currentUser && finalUrl.startsWith("http")) {
         try {
           await updateProfile(auth.currentUser, { photoURL: finalUrl });
         } catch (authErr) {
@@ -157,6 +163,9 @@ export default function Profile({ user }: { user: any }) {
       }
 
       const updateData: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        displayName: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         updatedAt: serverTimestamp(),

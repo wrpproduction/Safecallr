@@ -85,8 +85,8 @@ export default function MeDashboard() {
                 className="flex items-center gap-2 sm:gap-3 p-1 pr-3 bg-[#1e1e22] border border-[#2e2e34] rounded-full hover:border-slate-600 transition-all"
               >
                 <div className="w-8 h-8 rounded-full bg-[#111113] border border-[#2e2e34] flex items-center justify-center overflow-hidden">
-                  {member.photoUrl ? (
-                    <img src={member.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  {(member.photoUrl || member.photoURL) ? (
+                    <img src={member.photoUrl || member.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     <User size={16} className="text-slate-600" />
                   )}

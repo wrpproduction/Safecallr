@@ -35,7 +35,8 @@ export interface Member {
   role: "admin" | "admin_external" | "admin_internal" | "representative" | "collaborator";
   jobTitle: string;
   directPhone: string;
-  photoUrl: string;
+  photoUrl?: string;
+  photoURL?: string;
   status: "active" | "suspended" | "blocked";
   createdAt: Timestamp;
   createdBy: string;

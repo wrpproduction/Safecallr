@@ -40,7 +40,8 @@ interface Pro {
   lastName: string;
   email: string;
   phone: string;
-  photoUrl: string;
+  photoUrl?: string;
+  photoURL?: string;
   jobTitle: string;
   companyId: string;
   status: string;
@@ -496,8 +497,8 @@ export default function AdminPros() {
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-[#1e1e22] border border-[#2e2e34] overflow-hidden flex-shrink-0">
-                            {pro.photoUrl ? (
-                              <img src={pro.photoUrl} alt="" className="w-full h-full object-cover" />
+                            {(pro.photoUrl || pro.photoURL) ? (
+                              <img src={pro.photoUrl || pro.photoURL} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[#9a9a9f] font-bold">
                                 {pro.firstName[0]}{pro.lastName[0]}
@@ -631,8 +632,8 @@ export default function AdminPros() {
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-xl bg-[#1e1e22] border border-[#2e2e34] overflow-hidden flex-shrink-0">
-                            {pro.photoUrl ? (
-                              <img src={pro.photoUrl} alt="" className="w-full h-full object-cover" />
+                            {(pro.photoUrl || pro.photoURL) ? (
+                              <img src={pro.photoUrl || pro.photoURL} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[#9a9a9f] font-bold">
                                 {pro.firstName[0]}{pro.lastName[0]}

@@ -27,7 +27,7 @@ interface ProfileEditCardProps {
 export default function ProfileEditCard({ member, organization }: ProfileEditCardProps) {
   const [jobTitle, setJobTitle] = useState(member.jobTitle || "");
   const [directPhone, setDirectPhone] = useState(member.directPhone || "");
-  const [photoUrl, setPhotoUrl] = useState(member.photoUrl || "");
+  const [photoUrl, setPhotoUrl] = useState(member.photoUrl || (member as any).photoURL || "");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -35,7 +35,7 @@ export default function ProfileEditCard({ member, organization }: ProfileEditCar
 
   const hasChanges = jobTitle !== (member.jobTitle || "") || 
                      directPhone !== (member.directPhone || "") || 
-                     photoUrl !== (member.photoUrl || "");
+                     photoUrl !== (member.photoUrl || (member as any).photoURL || "");
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

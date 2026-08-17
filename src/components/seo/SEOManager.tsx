@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { safeJsonStringify } from '../../utils/safeJson';
 
 interface SEOProps {
   title: string;
@@ -59,7 +60,7 @@ export default function SEOManager({
       {/* JSON-LD */}
       {jsonLd && (
         <script type="application/ld+json">
-          {JSON.stringify(jsonLd)}
+          {safeJsonStringify(jsonLd)}
         </script>
       )}
     </Helmet>

@@ -79,8 +79,15 @@ export default function Layout({ user }: { user: any }) {
                   </>
                 )}
               </Link>
-              <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95">
-                <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Profile" />
+              <Link to="/profile" className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center">
+                <img 
+                  src={user.photoURL || user.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
+                  }}
+                />
               </Link>
             </>
           )}

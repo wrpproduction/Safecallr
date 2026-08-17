@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { auth, onAuthStateChanged, doc, getDoc, db } from "./firebase";
+import { auth, onAuthStateChanged, doc, getDoc, onSnapshot, db } from "./firebase";
 import Onboarding from "./pages/Onboarding";
 import AppOnboarding from "./components/AppOnboarding";
 import Landing from "./pages/Landing";
@@ -166,39 +166,67 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
       });
     }, 6000);
 
+    let userDocUnsub: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (userDocUnsub) {
+        userDocUnsub();
+        userDocUnsub = null;
+      }
+
       try {
         if (authUser) {
-          // Wrap the profile document fetch in a 15-second safety timeout
-          const getProfilePromise = getDoc(doc(db, "users", authUser.uid));
-          const timeoutPromise = new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout profile retrieval")), 15000)
-          );
-
-          try {
-            const userDoc = await Promise.race([getProfilePromise, timeoutPromise]);
-            if (userDoc && userDoc.exists()) {
-              setUser({ ...authUser, ...userDoc.data() });
-            } else {
-              setUser({ ...authUser });
+          // Listen to user document in real time so avatar/profile updates persist & reflect across sessions
+          const userDocRef = doc(db, "users", authUser.uid);
+          
+          userDocUnsub = onSnapshot(
+            userDocRef,
+            (docSnap) => {
+              if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const photo = userData.photoURL || userData.photoUrl || authUser.photoURL || null;
+                setUser({
+                  ...authUser,
+                  ...userData,
+                  photoURL: photo,
+                  photoUrl: photo,
+                });
+              } else {
+                setUser({
+                  ...authUser,
+                  photoURL: authUser.photoURL,
+                  photoUrl: authUser.photoURL,
+                });
+              }
+              setLoading(false);
+              clearTimeout(timeoutId);
+            },
+            (err) => {
+              console.warn("[SafeCallr] User doc onSnapshot error:", err);
+              setUser({
+                ...authUser,
+                photoURL: authUser.photoURL,
+                photoUrl: authUser.photoURL,
+              });
+              setLoading(false);
+              clearTimeout(timeoutId);
             }
-          } catch (profileErr) {
-            console.warn("[SafeCallr] User profile fetch timed out or failed, using auth fallback:", profileErr);
-            setUser({ ...authUser });
-          }
+          );
         } else {
           setUser(null);
+          setLoading(false);
+          clearTimeout(timeoutId);
         }
       } catch (error) {
         console.error("Auth state error:", error);
-        setUser(authUser ? { ...authUser } : null);
-      } finally {
+        setUser(authUser ? { ...authUser, photoURL: authUser.photoURL, photoUrl: authUser.photoURL } : null);
         setLoading(false);
         clearTimeout(timeoutId);
       }
     });
 
     return () => {
+      if (userDocUnsub) userDocUnsub();
       unsubscribe();
       clearTimeout(timeoutId);
     };
@@ -255,6 +283,58 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
               {user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : (Capacitor.isNativePlatform() ? <AppOnboarding /> : <Landing />)}
             </>
           } />
+
+          <Route path="/en" element={
+            <>
+              <SEOManager 
+                title="Authentification Appel & Lutte Fraude Bancaire"
+                description="SafeCallr sécurise vos appels bancaires et professionnels. Luttez contre le spoofing et la fraude au faux conseiller grâce à notre 2FA pour téléphone."
+                jsonLd={[
+                  ORGANIZATION_JSON_LD,
+                  WEBSITE_JSON_LD,
+                  {
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "SafeCallr",
+                    "operatingSystem": "iOS, Android, Web",
+                    "applicationCategory": "SecurityApplication",
+                    "offers": {
+                      "@type": "Offer",
+                      "price": "0",
+                      "priceCurrency": "EUR"
+                    }
+                  }
+                ]}
+              />
+              {user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : (Capacitor.isNativePlatform() ? <AppOnboarding /> : <Landing />)}
+            </>
+          } />
+
+          <Route path="/es" element={
+            <>
+              <SEOManager 
+                title="Authentification Appel & Lutte Fraude Bancaire"
+                description="SafeCallr sécurise vos appels bancaires et professionnels. Luttez contre le spoofing et la fraude au faux conseiller grâce à notre 2FA pour téléphone."
+                jsonLd={[
+                  ORGANIZATION_JSON_LD,
+                  WEBSITE_JSON_LD,
+                  {
+                    "@context": "https://schema.org",
+                    "@type": "SoftwareApplication",
+                    "name": "SafeCallr",
+                    "operatingSystem": "iOS, Android, Web",
+                    "applicationCategory": "SecurityApplication",
+                    "offers": {
+                      "@type": "Offer",
+                      "price": "0",
+                      "priceCurrency": "EUR"
+                    }
+                  }
+                ]}
+              />
+              {user ? (isEmailVerified ? (isProfileComplete ? <Navigate to="/dashboard" /> : <CompleteProfile user={user} />) : <VerifyEmail user={user} />) : (Capacitor.isNativePlatform() ? <AppOnboarding /> : <Landing />)}
+            </>
+          } />
           
           <Route path="/particuliers" element={<Particuliers />} />
           <Route path="/en/particuliers" element={<Particuliers />} />
@@ -268,6 +348,8 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/en/entreprises" element={<Entreprises />} />
           <Route path="/es/entreprises" element={<Entreprises />} />
           <Route path="/institutions" element={<Entreprises />} />
+          <Route path="/en/institutions" element={<Entreprises />} />
+          <Route path="/es/institutions" element={<Entreprises />} />
 
           <Route path="/company-contact" element={<CompanyContactPage />} />
           <Route path="/en/company-contact" element={<CompanyContactPage />} />
@@ -345,6 +427,8 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/en/actualite" element={<Actualites />} />
           <Route path="/es/actualite" element={<Actualites />} />
           <Route path="/actualite/:slug" element={<ArticleDetail />} />
+          <Route path="/en/actualite/:slug" element={<ArticleDetail />} />
+          <Route path="/es/actualite/:slug" element={<ArticleDetail />} />
 
           <Route path="/sitemap" element={<SitemapPage />} />
           <Route path="/plan-du-site" element={<SitemapPage />} />

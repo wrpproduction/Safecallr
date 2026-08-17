@@ -318,8 +318,8 @@ export default function AdminUsers() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-[#111113] border border-[#2e2e34] flex items-center justify-center text-[#4ade80] font-bold overflow-hidden">
-                            {user.photoUrl ? (
-                              <img src={user.photoUrl} alt="" className="w-full h-full object-cover" />
+                            {(user.photoUrl || user.photoURL) ? (
+                              <img src={user.photoUrl || user.photoURL} alt="" className="w-full h-full object-cover" />
                             ) : (
                               (user.firstName?.[0] || user.displayName?.[0] || "?").toUpperCase()
                             )}
@@ -438,8 +438,8 @@ export default function AdminUsers() {
                 <div className="p-6 border-b border-[#2e2e34] flex items-center justify-between bg-[#111113]">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-[#1e1e22] border border-[#2e2e34] flex items-center justify-center text-[#4ade80] font-bold text-xl overflow-hidden">
-                      {selectedUser.photoUrl ? (
-                        <img src={selectedUser.photoUrl} alt="" className="w-full h-full object-cover" />
+                      {(selectedUser.photoUrl || selectedUser.photoURL) ? (
+                        <img src={selectedUser.photoUrl || selectedUser.photoURL} alt="" className="w-full h-full object-cover" />
                       ) : (
                         (selectedUser.firstName?.[0] || selectedUser.displayName?.[0] || "?").toUpperCase()
                       )}

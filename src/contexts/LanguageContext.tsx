@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { db, doc, setDoc } from "../firebase";
 import { translations, LanguageType } from "../locales/translations";
+import { isAppRoute } from "../utils/localizedPath";
 
 interface LanguageContextProps {
   lang: LanguageType;
@@ -45,14 +46,45 @@ export function LanguageProvider({ children, user, forcedLang }: { children: Rea
       try {
         const isNative = Capacitor.isNativePlatform();
 
-        // SUR WEB SANS UTILISATEUR CONNECTÉ :
-        // La langue déterministe dérivée de l'URL prévaut pour le prerender et l'indexation SEO.
-        // On ne laisse ni Preferences ni la langue du navigateur écraser la valeur synchrone.
-        if (!isNative && !user) {
+        // SUR WEB :
+        if (!isNative) {
+          const pathname = window.location.pathname;
+
+          // (1) Si ce n'est PAS une page applicative (toutes les pages publiques) :
+          // Le préfixe d'URL fait foi et rien ne l'écrase
+          if (!isAppRoute(pathname)) {
+            setLang(getSyncDefault());
+            return;
+          }
+
+          // (2) Si c'est une page applicative sur le web :
+          // La langue vient du profil Firestore, puis de Preferences app_lang,
+          // puis de navigator.language filtré sur fr/en/es, puis "fr"
+          if (user && user.uid && user.lang) {
+            const firestoreLang = user.lang as string;
+            if (firestoreLang === "fr" || firestoreLang === "en" || firestoreLang === "es") {
+              setLang(firestoreLang as LanguageType);
+              return;
+            }
+          }
+
+          const { value } = await Preferences.get({ key: "app_lang" });
+          if (value === "fr" || value === "en" || value === "es") {
+            setLang(value as LanguageType);
+            return;
+          }
+
+          const browserLang = navigator.language ? navigator.language.substring(0, 2).toLowerCase() : "fr";
+          if (browserLang === "fr" || browserLang === "en" || browserLang === "es") {
+            setLang(browserLang as LanguageType);
+            return;
+          }
+
+          setLang("fr");
           return;
         }
 
-        // SUR NATIF OU WEB AVEC UTILISATEUR CONNECTÉ : Cascade habituelle conservée
+        // SUR NATIF : Comportement strictement inchangé
         // (a) champ lang du profil Firestore si connecté
         if (user && user.uid && user.lang) {
           const firestoreLang = user.lang as string;

@@ -36,6 +36,8 @@ interface BusinessMember {
   lastName: string;
   email: string;
   phone?: string;
+  photoUrl?: string;
+  photoURL?: string;
   jobTitle?: string;
   role: string;
   status: "active" | "pending" | "suspended";
@@ -365,8 +367,12 @@ export default function AdminMembers() {
                       <tr key={member.id} className="hover:bg-[#111113] transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-[#2e2e34] flex items-center justify-center text-[#3dffa0] font-black text-sm uppercase">
-                              {member.firstName?.[0]}{member.lastName?.[0]}
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-[#2e2e34] flex items-center justify-center text-[#3dffa0] font-black text-sm uppercase overflow-hidden">
+                              {(member.photoUrl || member.photoURL) ? (
+                                <img src={member.photoUrl || member.photoURL} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                `${member.firstName?.[0] || ""}${member.lastName?.[0] || ""}`
+                              )}
                             </div>
                             <div>
                               <p className="font-bold text-white text-sm">{member.firstName} {member.lastName}</p>

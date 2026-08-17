@@ -255,7 +255,7 @@ export default function PageContentManager({
     return () => {
       isMounted = false;
     };
-  }, [routeKey, currentRoutePath, JSON.stringify(overrideMetadata)]);
+  }, [routeKey, currentRoutePath, overrideMetadata?.title, overrideMetadata?.description, overrideMetadata?.canonicalUrl, overrideMetadata?.ogImage]);
 
   return (
     <>
