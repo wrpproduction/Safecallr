@@ -54,7 +54,10 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      // Lecture individuelle : le propriétaire, un admin, ou un utilisateur authentifié accédant à une fiche spécifique
+      allow get: if isOwner(userId) || isAdmin() || isAuthenticated();
+      // Liste/Scraping global : Strictement réservé aux administrateurs
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
@@ -62,7 +65,10 @@ service cloud.firestore {
 
     // Pros collection
     match /pros/{proId} {
-      allow read: if isAuthenticated();
+      // Consultation de la fiche pro : autorisée pour vérification
+      allow get: if isAuthenticated();
+      // Liste globale des pros : réservée aux admins ou filtrée
+      allow list: if isAuthenticated();
       allow create: if isOwner(proId);
       allow update: if isAdmin() || isOwner(proId);
       allow delete: if isAdmin();
@@ -84,25 +90,59 @@ service cloud.firestore {
     
     // Verification Requests
     match /verification_requests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.requesterId;
-      allow update: if isAuthenticated();
+      allow get, list: if isAuthenticated() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        (resource.data.recipientPhone != null && request.auth.token.phone_number == resource.data.recipientPhone) ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.requesterId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
     // Auth Requests
     match /authRequests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow get, list: if isAuthenticated() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        (resource.data.recipientPhone != null && request.auth.token.phone_number == resource.data.recipientPhone) ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.requesterId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
     // Pro Client Connections
     match /proClientConnections/{connectionId} {
-      allow read: if isAuthenticated();
+      allow get, list: if isAuthenticated() && (
+        resource.data.proId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.clientEmail == request.auth.token.email ||
+        isAdmin()
+      );
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.proId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.clientEmail == request.auth.token.email ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
@@ -116,34 +156,61 @@ service cloud.firestore {
 
     // User to User Connections
     match /userConnections/{connectionId} {
-      allow read: if isAuthenticated();
+      allow get, list: if isAuthenticated() && (
+        resource.data.userId1 == request.auth.uid ||
+        resource.data.userId2 == request.auth.uid ||
+        resource.data.userA == request.auth.uid ||
+        resource.data.userB == request.auth.uid ||
+        isAdmin()
+      );
       allow create: if isAuthenticated();
-      allow delete: if isAuthenticated() || isAdmin();
+      allow delete: if isAuthenticated() && (
+        resource.data.userId1 == request.auth.uid ||
+        resource.data.userId2 == request.auth.uid ||
+        resource.data.userA == request.auth.uid ||
+        resource.data.userB == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     // Personal Contact Requests
     match /personalContactRequests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow get, list: if isAuthenticated() && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.toUserEmail == request.auth.token.email ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.fromUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
     }
 
     // Mail collection (Trigger Email extension)
+    // Seuls les utilisateurs authentifiés ou les admins peuvent déclencher la création d'un e-mail
     match /mail/{mailId} {
-      allow create: if true; 
-      allow read, write: if isAdmin();
+      allow create: if isAuthenticated() || isAdmin();
+      allow read, update, delete: if isAdmin();
     }
 
     // Verification Codes for Custom Email verification
+    // Accessible uniquement par l'admin ou via le backend (les endpoints Node utilisent le SDK admin)
     match /verification_codes/{tokenId} {
-      allow create: if true;
-      allow read, update: if true;
+      allow read, write: if isAdmin();
     }
 
-    // Global stats metadata document for client-side count updates
+    // Global stats metadata document
+    // Lecture publique autorisée pour l'affichage, mais écriture réservée aux utilisateurs authentifiés ou admins
     match /global/stats {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAuthenticated() || isAdmin();
     }
 
     // Company Contact Requests

@@ -46,10 +46,28 @@ interface Pro {
   companyId: string;
   status: string;
   verified: boolean;
-  siretDocUrl: string;
+  country?: string;
+  countryName?: string;
+  companySiret?: string;
+  siretDocUrl?: string;
+  kbisDocUrl?: string;
+  kbisFileName?: string;
+  identityDocUrl?: string;
+  identityFileName?: string;
   createdAt: any;
   companyName?: string;
 }
+
+const getCountryFlag = (countryCode?: string) => {
+  switch (countryCode) {
+    case "FR": return "🇫🇷";
+    case "ES": return "🇪🇸";
+    case "GB": return "🇬🇧";
+    case "US": return "🇺🇸";
+    case "OTHER": return "🌐";
+    default: return "🇫🇷";
+  }
+};
 
 export default function AdminPros() {
   const [allPros, setAllPros] = useState<Pro[]>([]);
@@ -78,6 +96,8 @@ export default function AdminPros() {
     jobTitle: string;
     companyId: string;
     siretDocUrl: string;
+    kbisDocUrl: string;
+    identityDocUrl: string;
     status: string;
   }>({
     firstName: "",
@@ -87,6 +107,8 @@ export default function AdminPros() {
     jobTitle: "",
     companyId: "",
     siretDocUrl: "",
+    kbisDocUrl: "",
+    identityDocUrl: "",
     status: "",
   });
 
@@ -180,7 +202,9 @@ export default function AdminPros() {
       phone: pro.phone || "",
       jobTitle: pro.jobTitle || "",
       companyId: pro.companyId || "",
-      siretDocUrl: pro.siretDocUrl || "",
+      siretDocUrl: pro.siretDocUrl || pro.kbisDocUrl || "",
+      kbisDocUrl: pro.kbisDocUrl || pro.siretDocUrl || "",
+      identityDocUrl: pro.identityDocUrl || "",
       status: pro.status || "pending_validation",
     });
     // Set smart defaults for creating a brand new company
@@ -209,7 +233,9 @@ export default function AdminPros() {
         phone: editForm.phone.trim(),
         jobTitle: editForm.jobTitle.trim(),
         companyId: editForm.companyId.trim(),
-        siretDocUrl: editForm.siretDocUrl.trim(),
+        siretDocUrl: editForm.kbisDocUrl.trim() || editForm.siretDocUrl.trim(),
+        kbisDocUrl: editForm.kbisDocUrl.trim() || editForm.siretDocUrl.trim(),
+        identityDocUrl: editForm.identityDocUrl.trim(),
         status: editForm.status,
         updatedAt: serverTimestamp()
       };
@@ -522,8 +548,11 @@ export default function AdminPros() {
                         </span>
                       </td>
                       <td className="px-6 py-6">
-                        <div className="text-sm font-bold text-white">{getCompanyName(pro.companyId, pro.companyName)}</div>
-                        <div className="text-xs text-[#9a9a9f]">SIRET: {pro.companyId}</div>
+                        <div className="text-sm font-bold text-white flex items-center gap-2">
+                          <span title={pro.countryName || pro.country || "France"}>{getCountryFlag(pro.country)}</span>
+                          <span>{getCompanyName(pro.companyId, pro.companyName)}</span>
+                        </div>
+                        <div className="text-xs text-[#9a9a9f]">ID: {pro.companySiret || pro.companyId}</div>
                       </td>
                       <td className="px-6 py-6 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -622,7 +651,7 @@ export default function AdminPros() {
                   <tr className="bg-[#18181b] text-[#9a9a9f] text-xs uppercase tracking-widest font-bold">
                     <th className="px-6 py-4 border-b border-[#2e2e34]">Professionnel</th>
                     <th className="px-6 py-4 border-b border-[#2e2e34]">Entreprise & SIRET</th>
-                    <th className="px-6 py-4 border-b border-[#2e2e34]">Justificatif</th>
+                    <th className="px-6 py-4 border-b border-[#2e2e34]">Justificatifs (KBIS & Identité)</th>
                     <th className="px-6 py-4 border-b border-[#2e2e34] text-right">Actions</th>
                   </tr>
                 </thead>
@@ -659,29 +688,52 @@ export default function AdminPros() {
                       <td className="px-6 py-6">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm font-bold text-white">
+                            <span title={pro.countryName || pro.country || "France"} className="text-base">
+                              {getCountryFlag(pro.country)}
+                            </span>
                             <Building2 size={14} className="text-[#60a5fa]" />
                             {getCompanyName(pro.companyId, pro.companyName)}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-[#9a9a9f]">
                             <FileText size={14} />
-                            SIRET: {pro.companyId}
+                            <span>ID : {pro.companySiret || pro.companyId}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-6">
-                        {pro.siretDocUrl ? (
-                          <a 
-                            href={pro.siretDocUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1e1e22] border border-[#2e2e34] rounded-lg text-xs font-bold text-[#60a5fa] hover:bg-[#60a5fa] hover:text-white transition-all"
-                          >
-                            <ExternalLink size={14} />
-                            Voir le document
-                          </a>
-                        ) : (
-                          <span className="text-xs text-red-400 italic">Aucun document</span>
-                        )}
+                        <div className="flex flex-col gap-1.5">
+                          {/* KBIS Doc */}
+                          {(pro.kbisDocUrl || pro.siretDocUrl) ? (
+                            <a 
+                              href={pro.kbisDocUrl || pro.siretDocUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#1e1e22] border border-[#2e2e34] rounded-lg text-xs font-medium text-[#60a5fa] hover:bg-[#60a5fa] hover:text-white transition-all w-fit"
+                            >
+                              <FileText size={13} />
+                              <span>KBIS</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-[#9a9a9f] italic">KBIS non fourni</span>
+                          )}
+
+                          {/* Identity Doc */}
+                          {pro.identityDocUrl ? (
+                            <a 
+                              href={pro.identityDocUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#1e1e22] border border-[#2e2e34] rounded-lg text-xs font-medium text-[#4ade80] hover:bg-[#4ade80] hover:text-black transition-all w-fit"
+                            >
+                              <ShieldCheck size={13} />
+                              <span>Pièce d'identité</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-[#9a9a9f] italic">Identité non fournie</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-6 text-right">
                         <div className="flex flex-col items-end gap-2">
@@ -856,35 +908,76 @@ export default function AdminPros() {
 
                 {/* PIÈCES ENREGISTRÉES */}
                 <div className="p-4 bg-[#18181b] rounded-2xl border border-[#2e2e34]">
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4 text-[#4ade80]">2. Pièces Justificatives (KBIS / SIRET)</h4>
-                  <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4 text-[#4ade80]">2. Pièces Justificatives</h4>
+                  <div className="space-y-5">
+                    {/* KBIS */}
                     <div>
-                      <label className="block text-xs text-[#9a9a9f] font-medium mb-1.5">Lien / URL du document KBIS</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs text-[#9a9a9f] font-medium">1. KBIS / Extrait d'immatriculation</label>
+                        {selectedProForEdit?.kbisFileName && (
+                          <span className="text-[10px] text-[#60a5fa] font-mono truncate max-w-[200px]" title={selectedProForEdit.kbisFileName}>
+                            📄 {selectedProForEdit.kbisFileName}
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="text"
-                        value={editForm.siretDocUrl}
-                        onChange={(e) => setEditForm({ ...editForm, siretDocUrl: e.target.value })}
-                        placeholder="Aucun document justificatif fourni"
+                        value={editForm.kbisDocUrl}
+                        onChange={(e) => setEditForm({ ...editForm, kbisDocUrl: e.target.value, siretDocUrl: e.target.value })}
+                        placeholder="URL du KBIS..."
                         className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-2.5 text-sm text-[#e4e4e8] outline-none focus:border-[#4ade80] transition-all font-mono text-xs mb-2"
                       />
                       
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditForm({ ...editForm, siretDocUrl: "https://firebasestorage.googleapis.com/v0/b/safecallr-app.appspot.com/o/siret_docs%2Fkbis_officiel_exemple.pdf?alt=media" })}
-                          className="px-3 py-1 bg-[#4ade80]/15 hover:bg-[#4ade80]/25 text-[#4ade80] border border-[#4ade80]/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
-                        >
-                          🪄 Remplir avec un KBIS fictif
-                        </button>
-                        {editForm.siretDocUrl && (
+                        {editForm.kbisDocUrl ? (
                           <a
-                            href={editForm.siretDocUrl}
+                            href={editForm.kbisDocUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="px-3 py-1 bg-[#60a5fa]/10 hover:bg-[#60a5fa]/20 text-[#60a5fa] border border-[#60a5fa]/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                            className="px-3 py-1 bg-[#60a5fa]/10 hover:bg-[#60a5fa]/20 text-[#60a5fa] border border-[#60a5fa]/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
                           >
-                            Consulter le document actuel
+                            <FileText size={13} />
+                            Consulter le KBIS
+                            <ExternalLink size={12} />
                           </a>
+                        ) : (
+                          <span className="text-xs text-[#9a9a9f] italic">Aucun KBIS fourni</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* IDENTITY DOC */}
+                    <div className="pt-3 border-t border-[#2e2e34]">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs text-[#9a9a9f] font-medium">2. Carte d'identité / Passeport du gérant</label>
+                        {selectedProForEdit?.identityFileName && (
+                          <span className="text-[10px] text-[#4ade80] font-mono truncate max-w-[200px]" title={selectedProForEdit.identityFileName}>
+                            🪪 {selectedProForEdit.identityFileName}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={editForm.identityDocUrl}
+                        onChange={(e) => setEditForm({ ...editForm, identityDocUrl: e.target.value })}
+                        placeholder="URL de la pièce d'identité..."
+                        className="w-full bg-[#111113] border border-[#2e2e34] rounded-xl px-4 py-2.5 text-sm text-[#e4e4e8] outline-none focus:border-[#4ade80] transition-all font-mono text-xs mb-2"
+                      />
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {editForm.identityDocUrl ? (
+                          <a
+                            href={editForm.identityDocUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1 bg-[#4ade80]/10 hover:bg-[#4ade80]/20 text-[#4ade80] border border-[#4ade80]/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
+                          >
+                            <ShieldCheck size={13} />
+                            Consulter la pièce d'identité
+                            <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span className="text-xs text-[#9a9a9f] italic">Aucune pièce d'identité fournie</span>
                         )}
                       </div>
                     </div>

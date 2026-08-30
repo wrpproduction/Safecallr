@@ -1,6 +1,7 @@
 /**
  * Utility functions for generating and validating SafeCallr security codes.
  * Security codes consist of numeric digits followed by 1 random uppercase letter at the end.
+ * Uses cryptographically secure random values (Web Crypto API / Node crypto).
  */
 
 const UPPERCASE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -12,6 +13,18 @@ const UPPERCASE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
  */
 export function generateSecurityCode(digitsCount: number = 6): string {
   let digits = "";
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const randomBuffer = new Uint8Array(digitsCount + 1);
+    crypto.getRandomValues(randomBuffer);
+    for (let i = 0; i < digitsCount; i++) {
+      digits += (randomBuffer[i] % 10).toString();
+    }
+    const letterIndex = randomBuffer[digitsCount] % UPPERCASE_LETTERS.length;
+    const randomLetter = UPPERCASE_LETTERS.charAt(letterIndex);
+    return `${digits}${randomLetter}`;
+  }
+
+  // Fallback if Web Crypto is unavailable
   for (let i = 0; i < digitsCount; i++) {
     digits += Math.floor(Math.random() * 10).toString();
   }
@@ -28,3 +41,4 @@ export function isCodeMatch(code1: string | null | undefined, code2: string | nu
   if (!code1 || !code2) return false;
   return code1.trim().toUpperCase() === code2.trim().toUpperCase();
 }
+

@@ -628,8 +628,21 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(400).json({ error: "Ce code de validation a expiré." });
       }
 
+      // Vérification du nombre de tentatives erronées (Rate Limiting anti brute-force)
+      const attempts = (data.attempts || 0);
+      if (attempts >= 5) {
+        await ref.update({ used: true }).catch(() => {});
+        return res.status(429).json({ error: "Trop de tentatives erronées. Ce code a été invalidé pour des raisons de sécurité. Veuillez en demander un nouveau." });
+      }
+
       if (data.code?.toString().trim().toUpperCase() !== code?.toString().trim().toUpperCase()) {
-        return res.status(400).json({ error: "Code de validation incorrect." });
+        const remaining = 4 - attempts;
+        await ref.update({ attempts: attempts + 1 }).catch(() => {});
+        return res.status(400).json({ 
+          error: remaining > 0 
+            ? `Code de validation incorrect (${remaining} tentative${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''}).`
+            : "Code de validation incorrect. Le code a été invalidé suite à 5 tentatives infructueuses." 
+        });
       }
 
       // Marquer le code comme utilisé
