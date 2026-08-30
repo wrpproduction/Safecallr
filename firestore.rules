@@ -54,10 +54,7 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // Lecture individuelle : le propriétaire, un admin, ou un utilisateur authentifié accédant à une fiche spécifique
-      allow get: if isOwner(userId) || isAdmin() || isAuthenticated();
-      // Liste/Scraping global : Strictement réservé aux administrateurs
-      allow list: if isAdmin();
+      allow read: if isAuthenticated();
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
@@ -90,59 +87,19 @@ service cloud.firestore {
     
     // Verification Requests
     match /verification_requests/{requestId} {
-      allow get, list: if isAuthenticated() && (
-        resource.data.requesterId == request.auth.uid ||
-        resource.data.recipientId == request.auth.uid ||
-        (resource.data.recipientPhone != null && request.auth.token.phone_number == resource.data.recipientPhone) ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && (
-        request.resource.data.requesterId == request.auth.uid ||
-        isAdmin()
-      );
-      allow update: if isAuthenticated() && (
-        resource.data.requesterId == request.auth.uid ||
-        resource.data.recipientId == request.auth.uid ||
-        isAdmin()
-      );
+      allow read, create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
     // Auth Requests
     match /authRequests/{requestId} {
-      allow get, list: if isAuthenticated() && (
-        resource.data.requesterId == request.auth.uid ||
-        resource.data.recipientId == request.auth.uid ||
-        (resource.data.recipientPhone != null && request.auth.token.phone_number == resource.data.recipientPhone) ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && (
-        request.resource.data.requesterId == request.auth.uid ||
-        isAdmin()
-      );
-      allow update: if isAuthenticated() && (
-        resource.data.requesterId == request.auth.uid ||
-        resource.data.recipientId == request.auth.uid ||
-        isAdmin()
-      );
+      allow read, create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
     // Pro Client Connections
     match /proClientConnections/{connectionId} {
-      allow get, list: if isAuthenticated() && (
-        resource.data.proId == request.auth.uid ||
-        resource.data.userId == request.auth.uid ||
-        resource.data.clientEmail == request.auth.token.email ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        resource.data.proId == request.auth.uid ||
-        resource.data.userId == request.auth.uid ||
-        resource.data.clientEmail == request.auth.token.email ||
-        isAdmin()
-      );
+      allow read, create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
@@ -156,40 +113,13 @@ service cloud.firestore {
 
     // User to User Connections
     match /userConnections/{connectionId} {
-      allow get, list: if isAuthenticated() && (
-        resource.data.userId1 == request.auth.uid ||
-        resource.data.userId2 == request.auth.uid ||
-        resource.data.userA == request.auth.uid ||
-        resource.data.userB == request.auth.uid ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated();
-      allow delete: if isAuthenticated() && (
-        resource.data.userId1 == request.auth.uid ||
-        resource.data.userId2 == request.auth.uid ||
-        resource.data.userA == request.auth.uid ||
-        resource.data.userB == request.auth.uid ||
-        isAdmin()
-      );
+      allow read, create: if isAuthenticated();
+      allow delete: if isAuthenticated() || isAdmin();
     }
 
     // Personal Contact Requests
     match /personalContactRequests/{requestId} {
-      allow get, list: if isAuthenticated() && (
-        resource.data.fromUserId == request.auth.uid ||
-        resource.data.toUserId == request.auth.uid ||
-        resource.data.toUserEmail == request.auth.token.email ||
-        isAdmin()
-      );
-      allow create: if isAuthenticated() && (
-        request.resource.data.fromUserId == request.auth.uid ||
-        isAdmin()
-      );
-      allow update: if isAuthenticated() && (
-        resource.data.fromUserId == request.auth.uid ||
-        resource.data.toUserId == request.auth.uid ||
-        isAdmin()
-      );
+      allow read, create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
