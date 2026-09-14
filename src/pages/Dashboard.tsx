@@ -96,19 +96,22 @@ export default function Dashboard({ user }: { user: any }) {
       setLoadingConnections(false);
     });
 
-    // On écoute les demandes d'authentification pro (authRequests)
+    // On écoute les demandes d'authentification pro (authRequests) ciblées sur l'utilisateur
     const qAuth = query(
       collection(db, "authRequests"),
+      where("toUserId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
     const unsubAuth = onSnapshot(qAuth, (snapshot) => {
-      const allAuths = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const userAuths = allAuths.filter((r: any) => 
-        r.toUserId === user.uid || 
-        (cleanUserPhone && r.toUserPhone?.replace(/\s/g, "").replace(/-/g, "") === cleanUserPhone)
-      );
+      const userAuths = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAuthRequests(userAuths);
+    }, (err) => {
+      console.warn("Scoped authRequests query failed or missing index:", err);
+      // Fallback query without orderBy to ensure data loads if index is still building
+      getDocs(query(collection(db, "authRequests"), where("toUserId", "==", user.uid))).then(snap => {
+        setAuthRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }).catch(() => {});
     });
 
     // On écoute les demandes de contacts personnels

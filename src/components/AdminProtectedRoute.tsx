@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { ADMIN_BASE_PATH } from "../config/adminPath";
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -15,24 +16,17 @@ export default function AdminProtectedRoute({ children }: AdminProtectedRoutePro
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Vérification du rôle admin
-        const adminEmails = [
-          "xdcam10@gmail.com", 
-          "ulrich.vidal@gmail.com",
-          "contact@wrpproduction.com",
-          "contact@remiprevel.com"
-        ];
-
-        if (adminEmails.includes(user.email || "")) {
-          setIsAdmin(true);
-        } else {
-          try {
-            const adminDoc = await getDoc(doc(db, "admins", user.uid));
-            setIsAdmin(adminDoc.exists() && adminDoc.data().role === "admin");
-          } catch (err) {
-            console.error("Admin verification error:", err);
-            setIsAdmin(false);
-          }
+        try {
+          const adminDoc = await getDoc(doc(db, "admins", user.uid));
+          const hasRole = adminDoc.exists() && (
+            adminDoc.data().role === "admin" || 
+            adminDoc.data().role === "superadmin" || 
+            adminDoc.data().isAdmin === true
+          );
+          setIsAdmin(hasRole);
+        } catch (err) {
+          console.error("Admin verification error:", err);
+          setIsAdmin(false);
         }
       } else {
         setIsAdmin(false);
@@ -52,7 +46,7 @@ export default function AdminProtectedRoute({ children }: AdminProtectedRoutePro
   }
 
   if (!isAdmin) {
-    return <Navigate to="/admin/login" />;
+    return <Navigate to={`${ADMIN_BASE_PATH}/login`} />;
   }
 
   return <>{children}</>;

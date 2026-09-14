@@ -41,6 +41,7 @@ import MeHistory from "./pages/me/MeHistory";
 import Unauthorized from "./pages/Unauthorized";
 import OrgAuthRequestDetails from "./pages/OrgAuthRequestDetails";
 import InstitutionErrorPage from "./pages/InstitutionErrorPage";
+import NotFound from "./pages/NotFound";
 import LegalNotice from "./pages/LegalNotice";
 import AvisoLegal from "./pages/AvisoLegal";
 import MentionsLegales from "./pages/MentionsLegales";
@@ -56,8 +57,11 @@ import BusinessAdminSettings from "./pages/business/AdminSettings";
 import BusinessRegister from "./pages/business/BusinessRegister";
 import AdminBusinessBilling from "./pages/admin/AdminBusinessBilling";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import { ADMIN_BASE_PATH } from "./config/adminPath";
 import Layout from "./components/Layout";
 import SEOManager from "./components/seo/SEOManager";
+import { PrivacyScreen } from "@capacitor-community/privacy-screen";
+import { Capacitor } from "@capacitor/core";
 import ScrollToTop from "./components/ScrollToTop";
 import NotificationController from "./components/NotificationController";
 import { registerSW } from 'virtual:pwa-register';
@@ -68,7 +72,6 @@ import Entreprises from "./pages/Entreprises";
 import SitemapPage from "./pages/SitemapPage";
 import SitemapXmlPage from "./pages/SitemapXmlPage";
 
-import { Capacitor } from "@capacitor/core";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
 import { WorkspaceProvider } from "./contexts/WorkspaceContext";
 
@@ -153,6 +156,13 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
     if (typeof window === 'undefined') {
       setLoading(false);
       return;
+    }
+
+    // SÉCURITÉ ATTAQUE 11 : Protection de l'affichage sur Android (FLAG_SECURE) et iOS (Privacy Blur)
+    if (Capacitor.isNativePlatform()) {
+      PrivacyScreen.enable().catch((e) => {
+        console.warn("[SafeCallr] Could not enable PrivacyScreen:", e);
+      });
     }
 
     // Fail-safe timeout to dismiss the splash loading spinner after 6 seconds
@@ -458,21 +468,22 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
             <Route path="profile" element={<ProProfile />} />
           </Route>
   
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-          <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
-          <Route path="/admin/companies" element={<AdminProtectedRoute><AdminCompanies /></AdminProtectedRoute>} />
-          <Route path="/admin/requests" element={<AdminProtectedRoute><AdminRequests /></AdminProtectedRoute>} />
-          <Route path="/admin/pros" element={<AdminProtectedRoute><AdminPros /></AdminProtectedRoute>} />
-          <Route path="/admin/alerts" element={<AdminProtectedRoute><AdminAlerts /></AdminProtectedRoute>} />
-          <Route path="/admin/blog" element={<AdminProtectedRoute><AdminBlog /></AdminProtectedRoute>} />
-          <Route path="/admin/organizations" element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
-          <Route path="/admin/business" element={<AdminProtectedRoute><AdminBusinessSpace /></AdminProtectedRoute>} />
-          <Route path="/admin/organizations/new" element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
-          <Route path="/admin/organizations/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
-          <Route path="/admin/companies/:id" element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
-          <Route path="/admin/licences" element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
-          <Route path="/admin/business/billing" element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
+          {/* Secure Admin Routes */}
+          <Route path={`${ADMIN_BASE_PATH}/login`} element={<AdminLogin />} />
+          <Route path={ADMIN_BASE_PATH} element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/users`} element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/companies`} element={<AdminProtectedRoute><AdminCompanies /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/requests`} element={<AdminProtectedRoute><AdminRequests /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/pros`} element={<AdminProtectedRoute><AdminPros /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/alerts`} element={<AdminProtectedRoute><AdminAlerts /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/blog`} element={<AdminProtectedRoute><AdminBlog /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/organizations`} element={<AdminProtectedRoute><AdminOrganizationsList /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/business`} element={<AdminProtectedRoute><AdminBusinessSpace /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/organizations/new`} element={<AdminProtectedRoute><AdminCreateOrganization /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/organizations/:id`} element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/companies/:id`} element={<AdminProtectedRoute><AdminOrganizationDetail /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/licences`} element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
+          <Route path={`${ADMIN_BASE_PATH}/business/billing`} element={<AdminProtectedRoute><AdminBusinessBilling /></AdminProtectedRoute>} />
           
           {/* SafeCallr Business Administrator Routes */}
           <Route path="/business/register" element={<BusinessRegister />} />
@@ -502,6 +513,13 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/account-suspended" element={<InstitutionErrorPage type="suspended" />} />
           <Route path="/organization-inactive" element={<InstitutionErrorPage type="inactive" />} />
+
+          {/* Decoy 404 for obsolete /admin URLs to confuse bots and scanners */}
+          <Route path="/admin" element={<NotFound />} />
+          <Route path="/admin/*" element={<NotFound />} />
+
+          {/* Global 404 Catch-All */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </WorkspaceProvider>
       </LanguageProvider>

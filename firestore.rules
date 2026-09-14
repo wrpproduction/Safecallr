@@ -13,10 +13,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == "xdcam10@gmail.com" ||
-        request.auth.token.email == "ulrich.vidal@gmail.com" ||
-        request.auth.token.email == "contact@wrpproduction.com" ||
-        request.auth.token.email == "contact@remiprevel.com" ||
+        request.auth.token.admin == true ||
+        request.auth.token.isAdmin == true ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -31,6 +29,25 @@ service cloud.firestore {
              data.email is string;
     }
 
+    // Protection anti-élévation de privilèges : empêche un utilisateur d'écrire des rôles sensibles ou d'usurper un numéro de téléphone
+    function canUpdateUser(userId) {
+      return isAdmin() || (
+        isOwner(userId) &&
+        isValidUser(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasNone([
+          'role', 'isAdmin', 'isPro', 'isSuperAdmin', 'companyId', 'orgId', 'adminNotes', 'subscriptionPlan', 'plan', 'verified', 'isVerified', 'emailVerified', 'phone', 'phoneNumber'
+        ])
+      );
+    }
+
+    function isCompanyOwner(companyId) {
+      return isAuthenticated() && (
+        resource.data.adminUserId == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.representativeUserId == request.auth.uid
+      );
+    }
+
     function isValidPersonalRequest(data) {
       return data.keys().hasAll(['fromUserId', 'fromUserName', 'fromUserPhone', 'toUserId', 'toUserName', 'toUserPhone', 'toUserEmail', 'status', 'createdAt']) &&
              data.status in ['pending', 'accepted', 'rejected'];
@@ -40,9 +57,31 @@ service cloud.firestore {
       return data.keys().hasAll(['ownerId', 'name', 'phone', 'email', 'createdAt']);
     }
 
+    function isValidCompanyContactRequest(data) {
+      return data.keys().hasAll(['firstName', 'lastName', 'email', 'phone', 'companyName', 'message']) &&
+             data.firstName is string && data.firstName.size() > 0 && data.firstName.size() <= 100 &&
+             data.lastName is string && data.lastName.size() > 0 && data.lastName.size() <= 100 &&
+             data.email is string && data.email.size() > 3 && data.email.size() <= 150 &&
+             data.phone is string && data.phone.size() <= 30 &&
+             data.companyName is string && data.companyName.size() <= 150 &&
+             data.message is string && data.message.size() <= 2000;
+    }
+
     function isOrgMember(orgId) {
       return isAuthenticated() && (
         exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/organizations/$(orgId)).data.representativeUserId == request.auth.uid ||
+        get(/databases/$(database)/documents/organizations/$(orgId)).data.representativeEmail == request.auth.token.email ||
+        isAdmin()
+      );
+    }
+
+    function isOrgAdmin(orgId) {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/organizations/$(orgId)).data.representativeUserId == request.auth.uid ||
+        get(/databases/$(database)/documents/organizations/$(orgId)).data.representativeEmail == request.auth.token.email ||
+        (exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role in ['admin', 'co-admin']) ||
         isAdmin()
       );
     }
@@ -52,54 +91,161 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Users collection
+    // Users collection (RGPD & Anti-Scraping)
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      // Consultation d'un profil ciblé par son identifiant
+      allow get: if isAuthenticated();
+      // Protection anti-aspiration : interdiction d'exporter l'annuaire complet des particuliers (réservé admin)
+      allow list: if isAdmin();
+      // Création : interdiction formelle de s'auto-attribuer le statut admin
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) &&
+                    (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false) &&
+                    (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      // Mise à jour : verrouillage strict des champs d'élévation de privilèges
+      allow update: if canUpdateUser(userId);
       allow delete: if isAdmin();
     }
 
     // Pros collection
     match /pros/{proId} {
-      // Consultation de la fiche pro : autorisée pour vérification
+      // Consultation de la fiche pro : autorisée pour vérification caller ID
       allow get: if isAuthenticated();
-      // Liste globale des pros : réservée aux admins ou filtrée
       allow list: if isAuthenticated();
-      allow create: if isOwner(proId);
-      allow update: if isAdmin() || isOwner(proId);
+      // Création : ne peut pas s'auto-déclarer vérifié (isVerified)
+      allow create: if isOwner(proId) &&
+                    (!('isVerified' in request.resource.data) || request.resource.data.isVerified == false);
+      // Mise à jour : statut vérifié et notes administratives réservés à l'admin
+      allow update: if isAdmin() || (
+        isOwner(proId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasNone(['isVerified', 'verified', 'adminNotes', 'rating'])
+      );
       allow delete: if isAdmin();
     }
 
-    // Companies collection
+    // Companies collection (Rupture chaîne d'élévation V6)
     match /companies/{companyId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAdmin() || isPro();
+      allow create: if isAuthenticated() && (
+        request.resource.data.adminUserId == request.auth.uid ||
+        request.resource.data.createdBy == request.auth.uid ||
+        isAdmin()
+      );
+      // Uniquement l'administrateur ou le propriétaire désigné de cette entreprise spécifique
+      allow update: if isAdmin() || isCompanyOwner(companyId);
       allow delete: if isAdmin();
+
+      match /members/{memberId} {
+        allow read: if isAuthenticated() && (
+          isCompanyOwner(companyId) || 
+          request.auth.uid == memberId || 
+          isAdmin()
+        );
+        allow create, delete: if isAdmin() || isCompanyOwner(companyId);
+        allow update: if isAdmin() || isCompanyOwner(companyId) || (
+          request.auth.uid == memberId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+            'role', 'status', 'email', 'createdAt'
+          ])
+        );
+      }
     }
 
-    // Admins collection
+    // Admins collection (Protection anti-énumération)
     match /admins/{adminId} {
-      allow read: if isAuthenticated();
+      allow get: if isOwner(adminId) || isAdmin();
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
     
-    // Verification Requests
+    // Verification Requests (Codes 2FA sécurisés particulier à particulier)
     match /verification_requests/{requestId} {
-      allow read, create, update: if isAuthenticated();
+      // Lecture d'une demande spécifique : uniquement l'émetteur, le destinataire (par UID ou téléphone vérifié), ou l'admin
+      allow get: if isAuthenticated() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.targetId == request.auth.uid ||
+        (request.auth.token.phone_number != null && resource.data.targetPhone == request.auth.token.phone_number) ||
+        isAdmin()
+      );
+      // Écoute de requêtes de liste : STRICTEMENT bornée par une clause where sur son propre UID
+      allow list: if isAuthenticated() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.targetId == request.auth.uid ||
+        isAdmin()
+      );
+      // Création : l'émetteur doit impérativement être l'utilisateur connecté
+      allow create: if isAuthenticated() && (
+        request.resource.data.requesterId == request.auth.uid ||
+        isAdmin()
+      );
+      // Mise à jour : IMPOSSIBLE de modifier les codes de sécurité ou les identifiants
+      allow update: if isAuthenticated() && (
+        (
+          (resource.data.requesterId == request.auth.uid || resource.data.targetId == request.auth.uid) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+            'codeA', 'codeB', 'code', 'requesterId', 'targetId', 'targetPhone', 'requesterPhone', 'createdAt'
+          ])
+        ) ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
-    // Auth Requests
+    // Auth Requests (Codes de sécurité professionnels - anti-écoute et anti-réécriture)
     match /authRequests/{requestId} {
-      allow read, create, update: if isAuthenticated();
+      // Lecture d'un document précis : uniquement les participants concernés ou l'administrateur
+      allow get: if isAuthenticated() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.fromProId == request.auth.uid ||
+        resource.data.proId == request.auth.uid ||
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      // Écoute de liste : INTERDICTION absolue d'aspirer la collection sans cibler son propre UID
+      allow list: if isAuthenticated() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.fromProId == request.auth.uid ||
+        resource.data.proId == request.auth.uid ||
+        resource.data.fromUserId == request.auth.uid ||
+        isAdmin()
+      );
+      // Création : l'identifiant pro doit correspondre à l'utilisateur connecté
+      allow create: if isAuthenticated() && (
+        request.resource.data.fromProId == request.auth.uid ||
+        request.resource.data.proId == request.auth.uid ||
+        request.resource.data.fromUserId == request.auth.uid ||
+        isAdmin()
+      );
+      // Mise à jour : INTERDICTION absolue de modifier le code ou les participants
+      allow update: if isAuthenticated() && (
+        (
+          (
+            resource.data.toUserId == request.auth.uid ||
+            resource.data.fromProId == request.auth.uid ||
+            resource.data.proId == request.auth.uid ||
+            resource.data.fromUserId == request.auth.uid
+          ) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+            'code', 'codeA', 'codeB', 'fromProId', 'proId', 'fromUserId', 'toUserId', 'createdAt', 'companyId'
+          ])
+        ) ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
     // Pro Client Connections
     match /proClientConnections/{connectionId} {
-      allow read, create, update: if isAuthenticated();
+      allow read, update: if isAuthenticated() && (
+        resource.data.proId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.proId == request.auth.uid ||
+        request.resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
@@ -111,22 +257,44 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
     }
 
-    // User to User Connections
+    // User to User Connections (Correction de la faille de suppression globale)
     match /userConnections/{connectionId} {
-      allow read, create: if isAuthenticated();
-      allow delete: if isAuthenticated() || isAdmin();
+      allow read, update, delete: if isAuthenticated() && (
+        resource.data.userAId == request.auth.uid ||
+        resource.data.userBId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userAId == request.auth.uid ||
+        request.resource.data.userBId == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     // Personal Contact Requests
     match /personalContactRequests/{requestId} {
-      allow read, create, update: if isAuthenticated();
-      allow delete: if isAdmin();
+      allow read, update, delete: if isAuthenticated() && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.toUserEmail == request.auth.token.email ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.fromUserId == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     // Mail collection (Trigger Email extension)
-    // Seuls les utilisateurs authentifiés ou les admins peuvent déclencher la création d'un e-mail
+    // Protection anti Open-Relay : seuls les administrateurs peuvent envoyer à des destinataires arbitraires.
+    // Les utilisateurs authentifiés ne peuvent émettre des e-mails que vers le support officiel ou vers leur propre adresse vérifiée.
     match /mail/{mailId} {
-      allow create: if isAuthenticated() || isAdmin();
+      allow create: if isAuthenticated() && (
+        isAdmin() || (
+          request.resource.data.keys().hasAll(['to', 'message']) &&
+          (request.resource.data.to == 'contact@safecallr.com' || (request.auth.token.email != null && request.resource.data.to == request.auth.token.email))
+        )
+      );
       allow read, update, delete: if isAdmin();
     }
 
@@ -137,17 +305,15 @@ service cloud.firestore {
     }
 
     // Global stats metadata document
-    // Lecture publique autorisée pour l'affichage, mais écriture réservée aux utilisateurs authentifiés ou admins
     match /global/stats {
       allow read: if true;
-      allow write: if isAuthenticated() || isAdmin();
+      allow write: if isAdmin();
     }
 
-    // Company Contact Requests
+    // Company Contact Requests (Validation stricte anti-inondation/spam)
     match /companyContactRequests/{requestId} {
-      allow create: if true; 
-      allow read: if isAdmin();
-      allow update, delete: if isAdmin();
+      allow create: if isValidCompanyContactRequest(request.resource.data); 
+      allow read, update, delete: if isAdmin();
     }
 
     // Articles (Blog/Actualités) for SEO/GEO
@@ -156,20 +322,54 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Organizations
+    // Organizations (Protection anti-usurpation et contrôle d'accès strict)
     match /organizations/{orgId} {
       allow get: if isOrgMember(orgId);
       allow list: if isAdmin();
-      allow update: if isOrgMember(orgId);
+      // Seul l'administrateur de l'organisation ou l'admin plateforme peut modifier la fiche, et interdiction de modifier les champs critiques
+      allow update: if isAdmin() || (
+        isOrgAdmin(orgId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasNone([
+          'licensePlan', 'status', 'active', 'representativeUserId', 'representativeEmail', 'siret', 'createdAt'
+        ])
+      );
       allow create, delete: if isAdmin();
       
       match /members/{memberId} {
         allow read: if isOrgMember(orgId);
-        allow write: if isOrgMember(orgId);
+        // Seul l'admin de l'organisation ou du système peut ajouter ou révoquer des membres
+        allow create: if isOrgAdmin(orgId) || isAdmin();
+        allow delete: if isOrgAdmin(orgId) || isAdmin();
+        // Modification : admin d'org ou collaborateur individuel sur ses propres champs non sensibles
+        allow update: if isOrgAdmin(orgId) || isAdmin() || (
+          isOrgMember(orgId) && request.auth.uid == memberId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+            'role', 'status', 'email', 'createdAt'
+          ])
+        );
       }
 
       match /authRequests/{requestId} {
-        allow read, write: if isOrgMember(orgId);
+        // Lecture d'une demande spécifique : admin de l'org OU le collaborateur émetteur
+        allow get: if isOrgAdmin(orgId) || (isOrgMember(orgId) && resource.data.memberId == request.auth.uid);
+        // Liste : L'admin de l'org peut lister globalement. Un collaborateur standard ne peut lister que ses propres demandes
+        allow list: if isOrgAdmin(orgId) || (isOrgMember(orgId) && resource.data.memberId == request.auth.uid);
+        allow create: if isOrgMember(orgId) && (request.resource.data.memberId == request.auth.uid || isOrgAdmin(orgId));
+        allow update: if isOrgMember(orgId) && (
+          (
+            (resource.data.memberId == request.auth.uid || isOrgAdmin(orgId)) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasNone([
+              'code', 'codeA', 'codeB', 'orgId', 'memberId', 'createdBy', 'createdAt'
+            ])
+          ) || isAdmin()
+        );
+        allow delete: if isAdmin() || isOrgAdmin(orgId);
+      }
+
+      match /authentications/{authId} {
+        allow get, list: if isOrgAdmin(orgId) || (isOrgMember(orgId) && resource.data.memberId == request.auth.uid);
+        allow create, update: if isOrgAdmin(orgId) || (isOrgMember(orgId) && request.resource.data.memberId == request.auth.uid);
+        allow delete: if isAdmin() || isOrgAdmin(orgId);
       }
 
       match /auditLog/{logId} {

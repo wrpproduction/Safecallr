@@ -12,19 +12,30 @@ service firebase.storage {
       );
     }
 
+    // Images de profils : max 5 Mo, types JPEG/PNG/WEBP
     match /profiles/{userId}/{allPaths=**} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
+    // Documents justificatifs : max 10 Mo, PDF ou images
     match /documents/{userId}/{allPaths=**} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('application/pdf') || request.resource.contentType.matches('image/(jpeg|png|webp)'));
     }
 
+    // Logos d'entreprises : max 5 Mo, types d'images autorisés
     match /organizations/logos/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin()
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(jpeg|png|webp|svg\\+xml)');
     }
   }
 }

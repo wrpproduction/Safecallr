@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { auth, getIdToken, ref, uploadBytes, getDownloadURL, storage } from "../firebase";
 import { compressImage, uploadStorageWithTimeout } from "../lib/imageUtils";
 import AdminLayout from "../components/AdminLayout";
+import { ADMIN_BASE_PATH } from "../config/adminPath";
 import DynamicList from "../components/DynamicList";
 import { getApiUrl } from "../lib/api";
 
@@ -270,7 +271,7 @@ export default function AdminCreateOrganization() {
             )}
 
             <button 
-              onClick={() => navigate("/admin/organizations")}
+              onClick={() => navigate(`${ADMIN_BASE_PATH}/organizations`)}
               className="w-full bg-primary text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs"
             >
               Retour à la liste des organisations

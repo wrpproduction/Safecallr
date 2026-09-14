@@ -10,7 +10,7 @@ import {
   getDocs,
   where 
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { Organization, Member, AuthRequest } from "../lib/types";
 
 export function useOrgDashboard(orgId: string | undefined) {
@@ -159,10 +159,35 @@ export function useOrgDashboard(orgId: string | undefined) {
       }
     });
 
-    // 3. Last 100 AuthRequests snapshot for stats & activity chart
-    unsubAuth = onSnapshot(query(collection(db, "organizations", orgId, "authRequests"), orderBy("createdAt", "desc"), limit(100)), (snapshot) => {
-      setAuthRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AuthRequest)));
-    });
+    // 3. AuthRequests snapshot for stats & activity chart (Admin: all, Membre: scoped to memberId)
+    const currentUser = auth.currentUser;
+    const isOrgAdmin = organization?.representativeUserId === currentUser?.uid || organization?.representativeEmail === currentUser?.email;
+    
+    let authQuery;
+    if (isOrgAdmin) {
+      authQuery = query(collection(db, "organizations", orgId, "authRequests"), orderBy("createdAt", "desc"), limit(100));
+    } else if (currentUser) {
+      authQuery = query(
+        collection(db, "organizations", orgId, "authRequests"), 
+        where("memberId", "==", currentUser.uid),
+        orderBy("createdAt", "desc"), 
+        limit(100)
+      );
+    }
+
+    if (authQuery) {
+      unsubAuth = onSnapshot(
+        authQuery, 
+        (snapshot) => {
+          setAuthRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AuthRequest)));
+        },
+        (err) => {
+          // Si permissions refusées (ex: membre simple non admin sur la vue globale), ne pas bloquer l'UI
+          console.warn("[useOrgDashboard] Snapshot authRequests restriction:", err.message);
+          setAuthRequests([]);
+        }
+      );
+    }
 
     return () => {
       unsubOrg();

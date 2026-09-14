@@ -77,17 +77,18 @@ export default function Contacts({ user }: { user: any }) {
       });
     });
 
-    // Fetch Validated Auth Requests (Retroactive support)
-    const qAuth = query(collection(db, "authRequests"));
+    // Fetch Validated Auth Requests (Retroactive support - scoped strictly to user)
+    const qAuth = query(
+      collection(db, "authRequests"),
+      where("toUserId", "==", user.uid),
+      where("status", "==", "validated")
+    );
 
     const unsubscribeAuth = onSnapshot(qAuth, (snapshot) => {
-      const allAuths = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const userAuths = allAuths.filter((r: any) => 
-        (r.toUserId === user.uid || 
-        (cleanUserPhone && r.toUserPhone?.replace(/\s/g, "").replace(/-/g, "") === cleanUserPhone)) &&
-        r.status === "validated"
-      );
+      const userAuths = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setValidatedAuthRequests(userAuths);
+    }, (err) => {
+      console.warn("Scoped validated authRequests query error:", err);
     });
 
     // Fetch Personal Contacts
@@ -157,19 +158,25 @@ export default function Contacts({ user }: { user: any }) {
       const cleanPhone = newContact.phone.replace(/\s/g, "").replace(/-/g, "");
       
       currentStep = "recherche_utilisateur";
-      // Check if user exists in SafeCallr base
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", newContact.email.toLowerCase().trim()));
-      const querySnapshot = await getDocs(q);
-      
+      // Check if user exists in SafeCallr base via secure API (RGPD anti-scraping)
       let targetUser = null;
-      querySnapshot.forEach((doc) => {
-        const userData = doc.data();
-        const userPhone = userData.phoneNumber?.replace(/\s/g, "").replace(/-/g, "");
-        if (userPhone === cleanPhone || userData.phoneNumber === newContact.phone) {
-          targetUser = { id: doc.id, ...userData };
+      try {
+        const idToken = await auth.currentUser?.getIdToken();
+        const searchRes = await fetch(
+          `/api/users/search?email=${encodeURIComponent(newContact.email.toLowerCase().trim())}&phone=${encodeURIComponent(cleanPhone)}`,
+          {
+            headers: idToken ? { Authorization: `Bearer ${idToken}` } : {}
+          }
+        );
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          if (searchData.found && searchData.user) {
+            targetUser = searchData.user;
+          }
         }
-      });
+      } catch (searchErr) {
+        console.warn("API search error, falling back:", searchErr);
+      }
 
       const contactFullName = `${newContact.firstName} ${newContact.name}`;
 

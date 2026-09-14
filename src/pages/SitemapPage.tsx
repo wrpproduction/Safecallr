@@ -111,7 +111,6 @@ export default function SitemapPage() {
     { title: "Connexion / Inscription Particulier", path: "/auth" },
     { title: "Espace Professionnel (Pro Login)", path: "/pro/login" },
     { title: "Inscription Professionnelle", path: "/pro/register" },
-    { title: "Portail Administration", path: "/admin/login" },
   ];
 
   return (

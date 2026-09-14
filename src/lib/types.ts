@@ -19,6 +19,7 @@ export interface Organization {
   officialPhones: string[];
   allowedEmailDomains: string[];
   representativeUserId: string;
+  representativeEmail?: string;
   active: boolean;
   status?: "pending" | "active" | "suspended" | "deactivated";
   capabilities?: OrganizationCapabilities;

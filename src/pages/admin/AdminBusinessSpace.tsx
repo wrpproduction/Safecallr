@@ -23,6 +23,7 @@ import {
 import AdminLayout from "../../components/AdminLayout";
 import { db, collection, getDocs, query, orderBy, doc, updateDoc } from "../../firebase";
 import { safeFormatDate } from "../../lib/dateUtils";
+import { ADMIN_BASE_PATH } from "../../config/adminPath";
 import { toast } from "sonner";
 
 export default function AdminBusinessSpace() {
@@ -158,7 +159,7 @@ export default function AdminBusinessSpace() {
 
           <div className="flex items-center gap-3 z-10 shrink-0">
             <Link
-              to="/admin/organizations/new"
+              to={`${ADMIN_BASE_PATH}/organizations/new`}
               className="inline-flex items-center gap-2 bg-[#3dffa0] hover:bg-[#3dffa0]/90 text-black px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#3dffa0]/20"
             >
               <Plus size={18} />

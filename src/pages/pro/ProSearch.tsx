@@ -197,6 +197,7 @@ export default function ProSearch() {
 
       // Créer la demande d'authentification
       const requestData = {
+        proId: proId,
         fromProId: proId,
         fromProName,
         fromCompanyName,

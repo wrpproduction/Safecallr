@@ -25,90 +25,25 @@ export default function VerifyEmail({ user }: { user: any }) {
     }
 
     try {
-      // 1. Essai de vérification serveur (via notre endpoint API)
+      // Vérification serveur stricte (via notre endpoint API avec rate-limiting et validation cryptographique)
       const response = await fetch("/api/verify-email-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email, code: enteredCode.trim() })
       });
 
-      if (response.ok) {
-        // Succès : marquer l'utilisateur comme vérifié dans Firestore localement pour accélerer la navigation
-        await updateDoc(doc(db, "users", user.uid), {
-          emailVerified: true
-        }).catch(() => {});
-        
-        await updateDoc(doc(db, "pros", user.uid), {
-          emailVerified: true
-        }).catch(() => {});
+      const resData = await response.json().catch(() => ({}));
 
+      if (response.ok) {
         setMessage("Votre adresse e-mail a été vérifiée avec succès !");
         setTimeout(() => {
           window.location.reload();
         }, 1200);
-        return;
       } else {
-        const errData = await response.json().catch(() => ({}));
-        if (errData.error) {
-          throw new Error(errData.error);
-        }
+        setError(resData.error || "Code de validation incorrect ou expiré.");
       }
     } catch (apiErr: any) {
-      console.warn("[VerifyEmail] L'API de validation a échoué (" + apiErr.message + "), tentative de repli direct Firestore...");
-    }
-
-    // 2. Repli direct via Firestore (client-side verification si l'Admin SDK ou le serveur de l'applet connaît des soucis)
-    try {
-      const codeRef = doc(db, "verification_codes", user.email);
-      const codeSnap = await getDoc(codeRef);
-
-      if (!codeSnap.exists()) {
-        setError("Code de validation incorrect ou expiré.");
-        setLoading(false);
-        return;
-      }
-
-      const data = codeSnap.data();
-      if (data.used) {
-        setError("Ce code de validation a déjà été utilisé.");
-        setLoading(false);
-        return;
-      }
-
-      const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-      if (expiresAt < new Date()) {
-        setError("Ce code de validation a expiré (validité de 30 minutes). Veuillez en demander un nouveau.");
-        setLoading(false);
-        return;
-      }
-
-      if (data.code?.toString().trim().toUpperCase() !== enteredCode.trim().toUpperCase()) {
-        setError("Code incorrect. Veuillez vérifier le code de sécurité saisi.");
-        setLoading(false);
-        return;
-      }
-
-      // Valider le code et l'utilisateur dans Firestore
-      await updateDoc(codeRef, { used: true });
-      
-      // Essayer de mettre à jour le document correspondant (particulier ou pro)
-      try {
-        await updateDoc(doc(db, "users", user.uid), {
-          emailVerified: true
-        });
-      } catch (e) {
-        await updateDoc(doc(db, "pros", user.uid), {
-          emailVerified: true
-        });
-      }
-
-      setMessage("Votre adresse e-mail a été vérifiée avec succès !");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1200);
-
-    } catch (fallbackErr: any) {
-      setError("Erreur de validation : " + fallbackErr.message);
+      setError(apiErr.message || "Erreur de connexion au serveur de validation.");
     } finally {
       setLoading(false);
     }
@@ -219,8 +154,8 @@ export default function VerifyEmail({ user }: { user: any }) {
             Renvoyer le code par e-mail
           </button>
 
-          {/* Debug Bypass representation */}
-          {(user.email === "xdcam10@gmail.com" || process.env.NODE_ENV === "development") && (
+          {/* Debug Bypass representation en développement uniquement */}
+          {process.env.NODE_ENV === "development" && (
             <button 
               onClick={bypassVerification}
               disabled={loading}

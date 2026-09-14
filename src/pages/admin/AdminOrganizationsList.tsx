@@ -12,6 +12,7 @@ import {
 import AdminLayout from "../../components/AdminLayout";
 import OrganizationsTable from "../../components/admin/OrganizationsTable";
 import { auth, db, collection, getDocs, query, orderBy } from "../../firebase";
+import { ADMIN_BASE_PATH } from "../../config/adminPath";
 
 export default function AdminOrganizationsList() {
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -98,7 +99,7 @@ export default function AdminOrganizationsList() {
             <p className="text-slate-500 mt-1">Gérez les institutions et marques utilisant SafeCallr.</p>
           </div>
           <Link 
-            to="/admin/organizations/new"
+            to={`${ADMIN_BASE_PATH}/organizations/new`}
             className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-black px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
           >
             <Plus size={18} />

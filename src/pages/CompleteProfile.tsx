@@ -7,7 +7,7 @@ import { linkPendingConnections } from "../lib/connections";
 export default function CompleteProfile({ user }: { user: any }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState(user.email === "ulrich.vidal@gmail.com" ? "0663558820" : "");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();

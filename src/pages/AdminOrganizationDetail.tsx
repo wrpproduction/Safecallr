@@ -53,6 +53,7 @@ import AuditLogTimeline from "../components/admin/AuditLogTimeline";
 import DangerZone from "../components/admin/DangerZone";
 import ChangeRepresentativeModal from "../components/admin/ChangeRepresentativeModal";
 import { toast } from "sonner";
+import { ADMIN_BASE_PATH } from "../config/adminPath";
 
 export default function AdminOrganizationDetail() {
   const { id } = useParams();
@@ -463,7 +464,7 @@ export default function AdminOrganizationDetail() {
       });
       if (!response.ok) throw new Error("Erreur lors de la suppression");
       toast.success("Organisation supprimée définitivement");
-      navigate("/admin/organizations");
+      navigate(`${ADMIN_BASE_PATH}/organizations`);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -499,7 +500,7 @@ export default function AdminOrganizationDetail() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <Link to="/admin/organizations" className="p-3 bg-[#1e1e22] border border-[#2e2e34] rounded-2xl text-slate-500 hover:text-white transition-all">
+            <Link to={`${ADMIN_BASE_PATH}/organizations`} className="p-3 bg-[#1e1e22] border border-[#2e2e34] rounded-2xl text-slate-500 hover:text-white transition-all">
               <ChevronLeft size={24} />
             </Link>
             <div className="flex items-center gap-6">

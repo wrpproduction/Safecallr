@@ -16,22 +16,23 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
+import { ADMIN_BASE_PATH } from "../config/adminPath";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
-  { label: "Actualités / Blog", icon: FileText, path: "/admin/blog" },
-  { label: "Organisations", icon: Building2, path: "/admin/organizations" },
-  { label: "Espace Business", icon: Building2, path: "/admin/business" },
-  { label: "Utilisateurs", icon: Users, path: "/admin/users" },
-  { label: "Pros", icon: ShieldCheck, path: "/admin/pros" },
-  { label: "Entreprises", icon: Building2, path: "/admin/companies" },
-  { label: "Demandes", icon: History, path: "/admin/requests" },
-  { label: "Alertes", icon: AlertCircle, path: "/admin/alerts" },
-  { label: "Gestion licence", icon: CreditCard, path: "/admin/licences" },
+  { label: "Dashboard", icon: LayoutDashboard, path: ADMIN_BASE_PATH },
+  { label: "Actualités / Blog", icon: FileText, path: `${ADMIN_BASE_PATH}/blog` },
+  { label: "Organisations", icon: Building2, path: `${ADMIN_BASE_PATH}/organizations` },
+  { label: "Espace Business", icon: Building2, path: `${ADMIN_BASE_PATH}/business` },
+  { label: "Utilisateurs", icon: Users, path: `${ADMIN_BASE_PATH}/users` },
+  { label: "Pros", icon: ShieldCheck, path: `${ADMIN_BASE_PATH}/pros` },
+  { label: "Entreprises", icon: Building2, path: `${ADMIN_BASE_PATH}/companies` },
+  { label: "Demandes", icon: History, path: `${ADMIN_BASE_PATH}/requests` },
+  { label: "Alertes", icon: AlertCircle, path: `${ADMIN_BASE_PATH}/alerts` },
+  { label: "Gestion licence", icon: CreditCard, path: `${ADMIN_BASE_PATH}/licences` },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -41,7 +42,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const handleLogout = async () => {
     await signOut(auth);
-    navigate("/admin/login");
+    navigate(`${ADMIN_BASE_PATH}/login`);
   };
 
   return (

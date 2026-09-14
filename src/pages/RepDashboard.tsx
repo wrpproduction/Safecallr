@@ -66,7 +66,6 @@ export default function RepDashboard() {
     !!sessionStorage.getItem("adminToken") || 
     !!localStorage.getItem("adminToken") || 
     userEmail?.includes("admin") || 
-    userEmail === "xdcam10@gmail.com" || 
     (currentUser as any)?.role === "admin";
 
   const orgAny = organization as any;

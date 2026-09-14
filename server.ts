@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import crypto from "crypto";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { fileURLToPath } from "url";
@@ -144,19 +145,19 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   }
 }
 
+// Liste des emails super-admin configurable par variable d'environnement
+const SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || "xdcam10@gmail.com,contact@wrpproduction.com,contact@safecallr.com")
+  .split(",")
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
 async function verifyAdmin(idToken: string) {
   if (!idToken) throw new Error("Accès non autorisé");
   const decodedToken = await admin.auth().verifyIdToken(idToken);
   const callerUid = decodedToken.uid;
-  const callerEmail = decodedToken.email;
+  const callerEmail = (decodedToken.email || "").toLowerCase();
 
-  const superAdmins = [
-    "xdcam10@gmail.com",
-    "contact@wrpproduction.com",
-    "contact@safecallr.com"
-  ];
-
-  const isAdminEmail = superAdmins.includes(callerEmail || "");
+  const isAdminEmail = SUPER_ADMIN_EMAILS.includes(callerEmail);
   let adminExists = false;
 
   if (!isAdminEmail) {
@@ -209,8 +210,117 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+  // En-têtes HTTP de durcissement de sécurité (Security Headers)
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Empêcher l'intégration dans des iframes tierces externes non autorisées
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    next();
+  });
+
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+  // In-Memory Rate Limiter simple et efficace pour protéger contre les attaques par déni de service et spam
+  interface RateLimitRecord {
+    count: number;
+    resetTime: number;
+  }
+  const rateLimitBuckets = new Map<string, RateLimitRecord>();
+
+  function createRateLimiter(maxRequests: number, windowMs: number, customMessage: string) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const clientIp = (req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || "unknown")
+        .split(",")[0].trim();
+      const bucketKey = `${req.baseUrl || ""}${req.path}:${clientIp}`;
+      const now = Date.now();
+
+      const record = rateLimitBuckets.get(bucketKey);
+      if (!record || now > record.resetTime) {
+        rateLimitBuckets.set(bucketKey, { count: 1, resetTime: now + windowMs });
+        return next();
+      }
+
+      if (record.count >= maxRequests) {
+        const retryAfterSeconds = Math.ceil((record.resetTime - now) / 1000);
+        res.setHeader("Retry-After", retryAfterSeconds.toString());
+        return res.status(429).json({ 
+          error: customMessage || "Trop de requêtes. Veuillez patienter avant de réessayer.",
+          retryAfterSeconds
+        });
+      }
+
+      record.count += 1;
+      next();
+    };
+  }
+
+  // Nettoyage périodique du cache de rate limiting pour éviter les fuites de mémoire
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of rateLimitBuckets.entries()) {
+      if (now > record.resetTime) {
+        rateLimitBuckets.delete(key);
+      }
+    }
+  }, 5 * 60 * 1000);
+
+  // Rate limiters dédiés
+  const verificationEmailLimiter = createRateLimiter(
+    6, // max 6 requêtes
+    10 * 60 * 1000, // par 10 minutes
+    "Trop de demandes de vérification d'e-mail. Veuillez patienter 10 minutes avant de réessayer."
+  );
+
+  const verifyCodeLimiter = createRateLimiter(
+    10, // max 10 tentatives
+    15 * 60 * 1000, // par 15 minutes
+    "Trop de tentatives de validation de code. Veuillez patienter 15 minutes."
+  );
+
+  const notifyLimiter = createRateLimiter(
+    15, // max 15 notifications
+    10 * 60 * 1000, // par 10 minutes
+    "Trop de notifications envoyées. Veuillez patienter quelques minutes."
+  );
+
+  const contactFormLimiter = createRateLimiter(
+    5, // max 5 formulaires
+    15 * 60 * 1000, // par 15 minutes
+    "Trop de messages de contact envoyés. Veuillez patienter 15 minutes."
+  );
+
+  const authTriggerLimiter = createRateLimiter(
+    20, // max 20 demandes de vérification
+    10 * 60 * 1000, // par 10 minutes
+    "Trop de demandes d'authentification initiées. Veuillez patienter 10 minutes."
+  );
+
+  const userSearchLimiter = createRateLimiter(
+    25, // max 25 recherches d'utilisateurs
+    10 * 60 * 1000, // par 10 minutes
+    "Trop de requêtes de recherche d'utilisateurs. Protection anti-scraping active."
+  );
+
+  const memberCreationLimiter = createRateLimiter(
+    30, // max 30 créations de collaborateurs
+    15 * 60 * 1000, // par 15 minutes
+    "Limite de création de collaborateurs atteinte. Veuillez patienter 15 minutes."
+  );
+
+  const accountActivationLimiter = createRateLimiter(
+    8, // max 8 tentatives d'activation
+    15 * 60 * 1000, // par 15 minutes
+    "Trop de tentatives d'activation. Veuillez patienter 15 minutes."
+  );
+
+  const blogGenLimiter = createRateLimiter(
+    8, // max 8 générations
+    10 * 60 * 1000, // par 10 minutes
+    "Trop de générations d'articles demandées. Veuillez patienter 10 minutes."
+  );
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -245,9 +355,17 @@ async function startServer() {
     res.json({ configured: !!apiKey });
   });
 
-  // API: Save or update Resend API Key directly in Firestore settings (Admin)
-  app.post("/api/resend-config", requireAuth, async (req, res) => {
+  // API: Save or update Resend API Key directly in Firestore settings (Admin only)
+  app.post("/api/resend-config", async (req, res) => {
     try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+      if (!idToken) {
+        return res.status(401).json({ error: "Authentification requise." });
+      }
+
+      await verifyAdmin(idToken);
+
       const { apiKey } = req.body;
       if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
         return res.status(400).json({ error: "Clé API Resend requise." });
@@ -262,13 +380,20 @@ async function startServer() {
         return res.status(500).json({ error: "Base de données non initialisée." });
       }
     } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      return res.status(403).json({ error: err.message || "Accès refusé. Droits administrateur requis." });
     }
   });
 
-  // API: AI-powered blog post generation with Gemini (SEO & GEO optimized)
-  app.post("/api/generate-blog-post", requireAuth, async (req, res) => {
+  // API: AI-powered blog post generation with Gemini (SEO & GEO optimized - Réservé aux administrateurs)
+  app.post("/api/generate-blog-post", requireAuth, blogGenLimiter, async (req, res) => {
     try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+      if (!idToken) {
+        return res.status(401).json({ error: "Authentification requise." });
+      }
+      await verifyAdmin(idToken);
+
       const { topic, category, targetLocation, keywords } = req.body;
       if (!topic) {
         return res.status(400).json({ error: "Le champ 'topic' (sujet) est requis." });
@@ -341,6 +466,51 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
 
       if (!to || !subject) {
         return res.status(400).json({ error: "Les champs 'to' et 'subject' sont requis." });
+      }
+
+      // Protection anti Open-Relay :
+      // Vérifier que le sujet correspond aux communications système autorisées ou que l'expéditeur est admin
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+      let isCallerAdmin = false;
+      let callerEmail = "";
+      if (idToken) {
+        try {
+          const decoded = await admin.auth().verifyIdToken(idToken);
+          callerEmail = (decoded.email || "").toLowerCase();
+          if (SUPER_ADMIN_EMAILS.includes(callerEmail)) {
+            isCallerAdmin = true;
+          }
+        } catch {
+          // Token invalide déjà géré par requireAuth
+        }
+      }
+
+      // Si l'utilisateur n'est pas super-admin, valider strictement la finalité et les destinataires pour empêcher tout spam/phishing arbitraire
+      if (!isCallerAdmin) {
+        // Empêcher strictement l'envoi vers un destinataire arbitraire externe (anti Open-Relay)
+        const isSendingToOfficialAdmin = to.toLowerCase() === "contact@safecallr.com";
+        const isSendingToSelf = callerEmail && to.toLowerCase() === callerEmail.toLowerCase();
+
+        if (!isSendingToOfficialAdmin && !isSendingToSelf) {
+          return res.status(403).json({ error: "Envoi non autorisé vers ce destinataire tiers." });
+        }
+
+        const allowedSubjectKeywords = [
+          "NOUVELLE INSCRIPTION",
+          "VALIDATION",
+          "SAFECALLR",
+          "COMMERCIAL",
+          "ORGANISATION",
+          "COMPTE",
+          "CONTACT"
+        ];
+        const subjectUpper = subject.toUpperCase();
+        const isLegitPurpose = allowedSubjectKeywords.some(kw => subjectUpper.includes(kw));
+
+        if (!isLegitPurpose) {
+          return res.status(403).json({ error: "Envoi non autorisé pour ce type d'e-mail." });
+        }
       }
 
       const apiKey = await getResendApiKey();
@@ -525,7 +695,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   });
 
   // API: Générer un code de vérification à 6 chiffres personnalisé et envoyer le courriel
-  app.post("/api/send-custom-verification", async (req, res) => {
+  app.post("/api/send-custom-verification", verificationEmailLimiter, async (req, res) => {
     try {
       const { email, firstName, lang } = req.body;
       if (!email) {
@@ -536,10 +706,11 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(500).json({ error: "Le SDK Admin de Firebase n'est pas prêt." });
       }
 
-      // 1. Générer le code de sécurité (6 chiffres + 1 lettre au hasard à la fin)
+      // 1. Générer le code de sécurité (6 chiffres + 1 lettre au hasard à la fin) avec CSPRNG (crypto)
       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
-      const code = `${Math.floor(100000 + Math.random() * 900000)}${randomLetter}`;
+      const randomLetter = letters.charAt(crypto.randomInt(0, letters.length));
+      const codeDigits = crypto.randomInt(100000, 1000000);
+      const code = `${codeDigits}${randomLetter}`;
 
       // 2. Stocker le code dans Firebase Firestore (expiration sous 30 mins)
       try {
@@ -599,7 +770,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   });
 
   // API: Endpoint de vérification de code à 6 chiffres pour SafeCallr
-  app.post("/api/verify-email-code", async (req, res) => {
+  app.post("/api/verify-email-code", verifyCodeLimiter, async (req, res) => {
     try {
       const { email, code } = req.body;
       if (!email || !code) {
@@ -664,6 +835,66 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
     } catch (err: any) {
       console.error("[Verification Code API] Erreur critique :", err);
       return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API: Recherche sécurisée d'utilisateur par email ou téléphone (protection RGPD contre l'aspiration d'annuaire)
+  app.get("/api/users/search", requireAuth, userSearchLimiter, async (req, res) => {
+    try {
+      const email = ((req.query.email as string) || "").trim().toLowerCase();
+      const rawPhone = ((req.query.phone as string) || "").replace(/\s/g, "").replace(/-/g, "");
+
+      if (!email && !rawPhone) {
+        return res.status(400).json({ error: "Email ou numéro de téléphone requis pour la recherche." });
+      }
+
+      if (!firebaseInitialized || !db) {
+        return res.status(500).json({ error: "Base de données non disponible." });
+      }
+
+      let targetUser: any = null;
+
+      // 1. Recherche par email
+      if (email) {
+        const snap = await db.collection("users").where("email", "==", email).limit(1).get();
+        if (!snap.empty) {
+          const docSnap = snap.docs[0];
+          targetUser = { id: docSnap.id, ...docSnap.data() };
+        }
+      }
+
+      // 2. Recherche par téléphone si non trouvé
+      if (!targetUser && rawPhone) {
+        let snapPhone = await db.collection("users").where("phoneNumber", "==", rawPhone).limit(1).get();
+        if (snapPhone.empty) {
+          snapPhone = await db.collection("users").where("phone", "==", rawPhone).limit(1).get();
+        }
+        if (!snapPhone.empty) {
+          const docSnap = snapPhone.docs[0];
+          targetUser = { id: docSnap.id, ...docSnap.data() };
+        }
+      }
+
+      if (targetUser) {
+        // Renvoyer uniquement les données publiques nécessaires (pas de métadonnées sensibles)
+        return res.json({
+          found: true,
+          user: {
+            id: targetUser.id,
+            firstName: targetUser.firstName || "",
+            lastName: targetUser.lastName || "",
+            displayName: targetUser.displayName || `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim() || "Utilisateur SafeCallr",
+            email: targetUser.email || "",
+            phoneNumber: targetUser.phoneNumber || targetUser.phone || "",
+            avatarUrl: targetUser.avatarUrl || targetUser.photoURL || null,
+          }
+        });
+      }
+
+      return res.json({ found: false, user: null });
+    } catch (err: any) {
+      console.error("[Search User API Error]:", err);
+      return res.status(500).json({ error: err.message || "Erreur de recherche." });
     }
   });
 
@@ -743,7 +974,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
   });
 
   // API: Demande de contact entreprise
-  app.post("/api/contact", async (req, res) => {
+  app.post("/api/contact", contactFormLimiter, async (req, res) => {
     try {
       const { firstName, lastName, email, phone, companyName, message } = req.body;
 
@@ -903,7 +1134,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
   });
 
   // API: Trouver un utilisateur par téléphone
-  app.get("/api/user-by-phone/:phone", requireAuth, async (req, res) => {
+  app.get("/api/user-by-phone/:phone", requireAuth, userSearchLimiter, async (req, res) => {
     try {
       const { phone } = req.params;
       const snapshot = await db.collection("users").where("phoneNumber", "==", phone).limit(1).get();
@@ -936,12 +1167,97 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     }
   });
 
-  // API: Envoyer une notification FCM
-  app.post("/api/notify", requireAuth, async (req, res) => {
+  // API: Envoyer une notification FCM (Sécurisé : textes contrôlés par le serveur, aucun code transmis)
+  app.post("/api/notify", requireAuth, notifyLimiter, async (req, res) => {
     try {
       const { recipientId, title, body, data } = req.body;
+      const callerUid = (req as any).user?.uid;
       
-      if (!recipientId) return res.status(400).json({ error: "recipientId manquant" });
+      if (!recipientId || typeof recipientId !== "string") {
+        return res.status(400).json({ error: "recipientId manquant ou invalide" });
+      }
+
+      // Interdire l'envoi vers soi-même
+      if (recipientId === callerUid) {
+        return res.status(400).json({ error: "Envoi vers soi-même impossible" });
+      }
+
+      // SÉCURITÉ ATTAQUE 9 : Vérifier la légitimité de la notification et l'appartenance
+      const notifType = data?.type || "auth_request";
+      const validTypes = ["auth_request", "contact_request", "system_alert"];
+      if (!validTypes.includes(notifType)) {
+        return res.status(403).json({ error: "Type de notification non autorisé" });
+      }
+
+      // Si un requestId est fourni, vérifier que l'appelant est bien l'émetteur de la demande
+      if (data?.requestId) {
+        let isAuthorizedSender = false;
+        // Vérifier d'abord dans verification_requests
+        const verifSnap = await db.collection("verification_requests").doc(data.requestId).get();
+        if (verifSnap.exists) {
+          const vData = verifSnap.data();
+          if (vData?.requesterId === callerUid && (vData?.targetId === recipientId || vData?.targetPhone)) {
+            isAuthorizedSender = true;
+          }
+        } else {
+          // Vérifier dans authRequests
+          const authSnap = await db.collection("authRequests").doc(data.requestId).get();
+          if (authSnap.exists) {
+            const aData = authSnap.data();
+            if ((aData?.fromProId === callerUid || aData?.proId === callerUid || aData?.fromUserId === callerUid) && aData?.toUserId === recipientId) {
+              isAuthorizedSender = true;
+            }
+          } else {
+            // Vérifier dans contact_requests
+            const contactSnap = await db.collection("contact_requests").doc(data.requestId).get();
+            if (contactSnap.exists) {
+              const cData = contactSnap.data();
+              if (cData?.fromUserId === callerUid && cData?.toUserId === recipientId) {
+                isAuthorizedSender = true;
+              }
+            }
+          }
+        }
+
+        // Si la demande n'existe pas ou que l'appelant n'en est pas l'émetteur légitime
+        if (!isAuthorizedSender) {
+          return res.status(403).json({ error: "Action non autorisée : demande introuvable ou non émise par votre compte." });
+        }
+      }
+
+      // Récupérer le nom de l'expéditeur depuis son profil vérifié
+      const callerDoc = await db.collection("users").doc(callerUid).get();
+      const callerData = callerDoc.data();
+      const callerName = callerData?.displayName || callerData?.companyName || "Un utilisateur SafeCallr";
+
+      // SÉCURITÉ ATTAQUE 9 : Textes construits et imposés par le serveur
+      let safeTitle = "SafeCallr";
+      let safeBody = "Vous avez reçu une nouvelle notification sur SafeCallr.";
+
+      if (notifType === "auth_request") {
+        safeTitle = "Demande de vérification d'identité";
+        safeBody = `${callerName} souhaite vérifier votre identité sur SafeCallr.`;
+      } else if (notifType === "contact_request") {
+        safeTitle = "Demande de contact";
+        safeBody = `${callerName} souhaite vous ajouter à ses contacts sécurisés.`;
+      } else if (title && body) {
+        // Nettoyage strict si type spécial
+        safeTitle = String(title).substring(0, 60);
+        safeBody = String(body).substring(0, 160);
+      }
+
+      // SÉCURITÉ ATTAQUE 12 : FILTRE TOTAL DU PAYLOAD DATA (Aucun code secret dans le push)
+      const safeData: Record<string, string> = {
+        type: notifType,
+        recipientId: String(recipientId)
+      };
+      if (data?.requestId && typeof data.requestId === "string") {
+        safeData.requestId = data.requestId;
+      }
+      // Interdiction expresse de transmettre des codes dans le push
+      delete (safeData as any).code;
+      delete (safeData as any).codeA;
+      delete (safeData as any).codeB;
 
       const userDoc = await db.collection("users").doc(recipientId).get();
       if (!userDoc.exists) {
@@ -956,8 +1272,8 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       }
 
       const message = {
-        notification: { title, body },
-        data: data || {},
+        notification: { title: safeTitle, body: safeBody },
+        data: safeData,
         token: targetToken,
       };
 
@@ -1082,13 +1398,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       logSteps.push(`Caller verified: ${callerEmail} (UID: ${callerUid})`);
       safeWriteFileSync("./create-org-progress.log", JSON.stringify({ steps: logSteps }, null, 2));
 
-      const superAdmins = [
-        "xdcam10@gmail.com",
-        "contact@wrpproduction.com",
-        "contact@safecallr.com"
-      ];
-
-      const isAdminEmail = superAdmins.includes(callerEmail || "");
+      const isAdminEmail = SUPER_ADMIN_EMAILS.includes((callerEmail || "").toLowerCase());
       let adminExists = false;
 
       if (!isAdminEmail) {
@@ -1607,7 +1917,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
   });
 
   // API: Ajouter un collaborateur (Par le Représentant)
-  app.post("/api/dashboard/create-member", async (req, res) => {
+  app.post("/api/dashboard/create-member", memberCreationLimiter, async (req, res) => {
     try {
       const { idToken, orgId, memberData, lang } = req.body;
       if (!idToken || !orgId) return res.status(401).json({ error: "Requête invalide" });
@@ -1724,7 +2034,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
   });
 
   // API: Import massif CSV de collaborateurs (SafeCallr Business & Organisations)
-  app.post("/api/dashboard/import-members-csv", async (req, res) => {
+  app.post("/api/dashboard/import-members-csv", memberCreationLimiter, async (req, res) => {
     try {
       const { idToken, orgId, members, lang } = req.body;
       if (!idToken || !orgId || !Array.isArray(members)) {
@@ -1734,6 +2044,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       // Verify Auth Token
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const callerUid = decodedToken.uid;
+      const callerEmail = decodedToken.email || "";
 
       // Check Organization or Company
       let orgDoc = await db.collection("organizations").doc(orgId).get();
@@ -1743,7 +2054,25 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
         collectionName = "companies";
       }
 
+      if (!orgDoc.exists) {
+        return res.status(404).json({ error: "Organisation non trouvée." });
+      }
+
       const orgData = orgDoc.data();
+
+      // Contrôle de sécurité (IDOR) : Vérifier que l'appelant est bien le représentant de cette organisation ou un Super Admin
+      const isSuperAdmin = SUPER_ADMIN_EMAILS.includes((callerEmail || "").toLowerCase());
+      const isRepresentative = orgData?.representativeUserId === callerUid || orgData?.createdBy === callerUid || orgData?.adminEmail?.toLowerCase() === callerEmail.toLowerCase();
+
+      if (!isSuperAdmin && !isRepresentative) {
+        // Vérifier également s'il est membre admin dans la sous-collection members
+        const memberDoc = await db.collection(collectionName).doc(orgId).collection("members").doc(callerUid).get();
+        const isOrgAdmin = memberDoc.exists && memberDoc.data()?.role === "admin";
+        if (!isOrgAdmin) {
+          return res.status(403).json({ error: "Accès refusé. Vous n'avez pas les droits d'administration sur cette organisation." });
+        }
+      }
+
       const allowedDomains = orgData?.allowedEmailDomains || (orgData?.domain ? [orgData.domain] : []);
 
       let importedCount = 0;
@@ -1837,7 +2166,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
   });
 
   // API: Activation d'un compte organisation / business via lien d'invitation
-  app.post("/api/business/activate-account", async (req, res) => {
+  app.post("/api/business/activate-account", accountActivationLimiter, async (req, res) => {
     try {
       const {
         orgId,
@@ -1864,27 +2193,72 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
       const trimmedEmail = email.trim().toLowerCase();
 
-      // 1. Check or create Firebase Auth user
+      // SÉCURITÉ CRITIQUE : Protection anti-prise de contrôle de compte (Account Takeover)
+      // 1. Interdiction formelle d'écraser le mot de passe d'un Super Admin ou Admin plateforme
+      if (SUPER_ADMIN_EMAILS.includes(trimmedEmail)) {
+        return res.status(403).json({ error: "Action non autorisée sur un compte administrateur." });
+      }
+
+      // 2. Vérifier si l'utilisateur existe déjà
       let userRecord;
+      let isExistingUser = false;
       try {
         userRecord = await admin.auth().getUserByEmail(trimmedEmail);
-        // User exists (e.g. pre-created by admin SDK), update password and verify email
+        isExistingUser = true;
+      } catch (authErr: any) {
+        if (authErr.code === "auth/user-not-found") {
+          isExistingUser = false;
+        } else {
+          throw authErr;
+        }
+      }
+
+      // Si l'utilisateur existe déjà dans Firebase Auth, vérifier qu'il s'agit bien d'une invitation
+      // d'organisation en attente (pré-créée sans mot de passe / non activée).
+      // Un attaquant ne doit PAS pouvoir écraser le mot de passe d'un utilisateur régulier actif.
+      if (isExistingUser && userRecord) {
+        // Vérifier si le compte est lié à une invitation légitime d'organisation
+        const targetOrgCheckId = orgId;
+        let isAuthorizedToActivate = false;
+
+        if (targetOrgCheckId) {
+          const orgSnap = await db.collection("organizations").doc(targetOrgCheckId).get();
+          if (orgSnap.exists) {
+            const orgData = orgSnap.data();
+            // Cas 1 : Est le représentant désigné de cette organisation
+            if (orgData?.representativeUserId === userRecord.uid || orgData?.adminEmail?.toLowerCase() === trimmedEmail) {
+              isAuthorizedToActivate = true;
+            } else {
+              // Cas 2 : Est un membre de cette organisation en statut invité/pending
+              const memberDoc = await db.collection("organizations").doc(targetOrgCheckId).collection("members").doc(userRecord.uid).get();
+              if (memberDoc.exists && (memberDoc.data()?.status === "pending" || memberDoc.data()?.status === "invited")) {
+                isAuthorizedToActivate = true;
+              }
+            }
+          }
+        }
+
+        // SÉCURITÉ CRITIQUE ATTAQUE 7 : Si l'utilisateur existe déjà, interdire formellement tout écrasement s'il n'est pas une invitation valide
+        if (!isAuthorizedToActivate) {
+          return res.status(409).json({
+            error: "Ce compte existe déjà. Veuillez vous connecter directement avec vos identifiants ou utiliser la réinitialisation de mot de passe."
+          });
+        }
+
+        // Mettre à jour le mot de passe du compte invité et marquer email comme vérifié
         await admin.auth().updateUser(userRecord.uid, {
           password: password,
           emailVerified: true,
           displayName: `${firstName || ''} ${lastName || ''}`.trim() || undefined
         });
-      } catch (authErr: any) {
-        if (authErr.code === "auth/user-not-found") {
-          userRecord = await admin.auth().createUser({
-            email: trimmedEmail,
-            password: password,
-            emailVerified: true,
-            displayName: `${firstName || ''} ${lastName || ''}`.trim() || undefined
-          });
-        } else {
-          throw authErr;
-        }
+      } else {
+        // Utilisateur nouveau : création sécurisée
+        userRecord = await admin.auth().createUser({
+          email: trimmedEmail,
+          password: password,
+          emailVerified: true,
+          displayName: `${firstName || ''} ${lastName || ''}`.trim() || undefined
+        });
       }
 
       const uid = userRecord.uid;
@@ -2026,7 +2400,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
   });
 
   // API: Déclencher une demande d'authentification
-  app.post("/api/auth/trigger", async (req, res) => {
+  app.post("/api/auth/trigger", authTriggerLimiter, async (req, res) => {
     try {
       const { idToken, orgId, clientPhone } = req.body;
       const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -2068,10 +2442,11 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
       const userData = userSnapshot.docs[0].data();
 
-      // 4. Générer le code de sécurité (chiffres + 1 lettre au hasard à la fin)
+      // 4. Générer le code de sécurité (chiffres + 1 lettre au hasard à la fin) avec CSPRNG (crypto)
       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
-      const code = `${Math.floor(1000 + Math.random() * 9000)}${randomLetter}`;
+      const randomLetter = letters.charAt(crypto.randomInt(0, letters.length));
+      const codeDigits = crypto.randomInt(1000, 10000);
+      const code = `${codeDigits}${randomLetter}`;
 
       // 5. Créer l'authRequest
       const requestRef = db.collection("organizations").doc(orgId).collection("authRequests").doc();

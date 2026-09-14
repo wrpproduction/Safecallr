@@ -38,14 +38,14 @@ export default function CompanyContact() {
       // 1. Enregistrer la demande
       await addDoc(collection(db, "companyContactRequests"), {
         ...formData,
-        targetEmail: "contact@remiprevel.com",
+        targetEmail: "contact@safecallr.com",
         status: "new",
         createdAt: serverTimestamp()
       });
 
       // 2. Envoyer l'email via l'extension Trigger Email
       await addDoc(collection(db, "mail"), {
-        to: "contact@remiprevel.com",
+        to: "contact@safecallr.com",
         replyTo: formData.email,
         message: {
           subject: `NOUVELLE DEMANDE SAFECALLR : ${formData.companyName || formData.firstName + " " + formData.lastName}`,

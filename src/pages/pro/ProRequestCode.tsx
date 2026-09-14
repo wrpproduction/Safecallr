@@ -6,6 +6,7 @@ import {
   CheckCircle2, 
   Loader2,
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   RefreshCw
 } from "lucide-react";
@@ -189,7 +190,28 @@ export default function ProRequestCode() {
     );
   }
 
-  const code = request.code || "123456A"; // Fallback if not present
+  const code = request.code;
+  if (!code) {
+    return (
+      <div className="max-w-md mx-auto text-center space-y-6 py-12">
+        <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+          <AlertTriangle size={32} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-white">Code introuvable</h2>
+          <p className="text-slate-400 text-sm">
+            Le code de sécurité pour cette demande n'a pas pu être chargé ou a expiré. Veuillez relancer une nouvelle demande.
+          </p>
+        </div>
+        <Link
+          to="/pro/search"
+          className="block w-full bg-[#4ade80] text-black py-4 rounded-2xl font-bold hover:bg-[#22c55e] transition-all shadow-lg shadow-[#4ade80]/10"
+        >
+          Nouvelle vérification
+        </Link>
+      </div>
+    );
+  }
   const codeChars = code.split("");
 
   return (

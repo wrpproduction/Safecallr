@@ -1,4 +1,5 @@
 import { LanguageType } from "../locales/translations";
+import { ADMIN_BASE_PATH } from "../config/adminPath";
 
 export const APP_ROUTE_PREFIXES = [
   "/dashboard",
@@ -6,6 +7,7 @@ export const APP_ROUTE_PREFIXES = [
   "/register",
   "/me",
   "/admin",
+  ADMIN_BASE_PATH,
   "/pro",
   "/onboarding",
   "/welcome",

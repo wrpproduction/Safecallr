@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
+import { ADMIN_BASE_PATH } from "../config/adminPath";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -15,31 +16,24 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   const checkAdminRole = async (user: any) => {
-    const adminEmails = ["xdcam10@gmail.com", "ulrich.vidal@gmail.com", "contact@wrpproduction.com"];
-    
     // Wrap admin profile retrieval in a 15-second timeout
     const adminDocPromise = getDoc(doc(db, "admins", user.uid));
     const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error("La vérification de votre rôle administrateur a expiré (timeout de 15 secondes). Veuillez réessayer.")), 15000)
+      setTimeout(() => reject(new Error("La vérification de votre rôle administrateur a expiré. Veuillez réessayer.")), 15000)
     );
 
     try {
       const adminDoc = await Promise.race([adminDocPromise, timeoutPromise]);
-      if (adminEmails.includes(user.email || "") || (adminDoc.exists() && adminDoc.data().role === "admin")) {
-        navigate("/admin");
+      if (adminDoc.exists() && (adminDoc.data().role === "admin" || adminDoc.data().role === "superadmin" || adminDoc.data().isAdmin === true)) {
+        navigate(ADMIN_BASE_PATH);
       } else {
         await auth.signOut();
         setError("Accès refusé. Vous n'êtes pas administrateur.");
       }
     } catch (err: any) {
       console.error("Admin role check failed or timed out:", err);
-      // Fallback: if their email is in the hardcoded list, let them log in anyway
-      if (adminEmails.includes(user.email || "")) {
-        navigate("/admin");
-      } else {
-        await auth.signOut();
-        setError(err.message || "Erreur de connexion ou session expirée.");
-      }
+      await auth.signOut();
+      setError(err.message || "Erreur de connexion ou session expirée.");
     }
   };
 
