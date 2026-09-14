@@ -77,22 +77,19 @@ export default function Dashboard({ user }: { user: any }) {
     // Nettoyer le numéro de téléphone de l'utilisateur pour la recherche
     const cleanUserPhone = user.phoneNumber?.replace(/\s/g, "").replace(/-/g, "");
 
-    // On écoute les demandes de connexion pro (Mise en relation)
-    // On cherche par userId OU par numéro de téléphone/email
+    // On écoute les demandes de connexion pro ciblées sur l'utilisateur connecté
     const qConnections = query(
-      collection(db, "proClientConnections")
+      collection(db, "proClientConnections"),
+      where("userId", "==", user.uid)
     );
 
     const unsubConnections = onSnapshot(qConnections, (snapshot) => {
-      const allConns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const userConns = allConns.filter((c: any) => 
-        (c.userId === user.uid || 
-        (cleanUserPhone && c.clientPhone?.replace(/\s/g, "").replace(/-/g, "") === cleanUserPhone) ||
-        c.clientEmail === user.email)
-      );
-      
+      const userConns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setConnections(userConns.filter((c: any) => c.status === "pending"));
       setMyContacts(userConns.filter((c: any) => c.status === "connected"));
+      setLoadingConnections(false);
+    }, (err) => {
+      console.warn("proClientConnections snapshot listener error:", err);
       setLoadingConnections(false);
     });
 
@@ -123,19 +120,21 @@ export default function Dashboard({ user }: { user: any }) {
 
     const unsubPersoReq = onSnapshot(qPersoReq, (snapshot) => {
       setPersonalRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("personalContactRequests snapshot listener error:", err);
     });
 
-    // On écoute les demandes envoyées
+    // On écoute les demandes envoyées (où l'utilisateur est le demandeur)
     const qSent = query(
       collection(db, "verification_requests"),
       where("requesterId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
-    // On écoute les demandes reçues (via numéro de téléphone)
+    // On écoute les demandes reçues (où l'utilisateur est la cible)
     const qReceived = query(
       collection(db, "verification_requests"),
-      where("targetPhone", "==", user.phoneNumber),
+      where("targetId", "==", user.uid),
       orderBy("createdAt", "desc")
     );
 
@@ -149,17 +148,23 @@ export default function Dashboard({ user }: { user: any }) {
         return combined;
       });
       setLoading(false);
+    }, (err) => {
+      console.warn("verification_requests (sent) listener error:", err);
+      setLoading(false);
     });
 
     const unsubReceived = onSnapshot(qReceived, (snapshot) => {
       const received = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRequests(prev => {
-        const others = prev.filter(r => (r as any).targetPhone !== user.phoneNumber);
+        const others = prev.filter(r => (r as any).targetId !== user.uid);
         const combined = [...received, ...others].sort((a: any, b: any) => 
           (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
         );
         return combined;
       });
+      setLoading(false);
+    }, (err) => {
+      console.warn("verification_requests (received) listener error:", err);
       setLoading(false);
     });
 
@@ -178,6 +183,8 @@ export default function Dashboard({ user }: { user: any }) {
         const other = prev.filter(c => c.userBId === user.uid);
         return [...connsA, ...other];
       });
+    }, (err) => {
+      console.warn("userConnections A listener error:", err);
     });
 
     const unsubscribeUserConnB = onSnapshot(qUserConnB, (snapshot) => {
@@ -186,6 +193,8 @@ export default function Dashboard({ user }: { user: any }) {
         const other = prev.filter(c => c.userAId === user.uid);
         return [...other, ...connsB];
       });
+    }, (err) => {
+      console.warn("userConnections B listener error:", err);
     });
 
     const qPerso = query(
@@ -194,14 +203,20 @@ export default function Dashboard({ user }: { user: any }) {
     );
     const unsubscribePerso = onSnapshot(qPerso, (snapshot) => {
       setPersonalContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("personalContacts listener error:", err);
     });
 
     const unsubscribePros = onSnapshot(collection(db, "pros"), (snapshot) => {
       setPros(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("pros collection listener error:", err);
     });
 
     const unsubscribeCompanies = onSnapshot(collection(db, "companies"), (snapshot) => {
       setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("companies collection listener error:", err);
     });
 
     return () => {

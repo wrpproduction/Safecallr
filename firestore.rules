@@ -239,6 +239,7 @@ service cloud.firestore {
       allow read, update: if isAuthenticated() && (
         resource.data.proId == request.auth.uid ||
         resource.data.userId == request.auth.uid ||
+        (resource.data.clientEmail != null && request.auth.token.email != null && resource.data.clientEmail == request.auth.token.email) ||
         isAdmin()
       );
       allow create: if isAuthenticated() && (

@@ -29,6 +29,9 @@ export default function History({ user }: { user: any }) {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
+    }, (err) => {
+      console.warn("verification_requests in History error:", err);
+      setLoading(false);
     });
 
     // 2. User to User Connections
@@ -47,6 +50,8 @@ export default function History({ user }: { user: any }) {
         const other = prev.filter(c => c.userBId === user.uid);
         return [...connsA, ...other];
       });
+    }, (err) => {
+      console.warn("userConnections A in History error:", err);
     });
 
     const unsubscribeUserConnB = onSnapshot(qUserConnB, (snapshot) => {
@@ -55,6 +60,8 @@ export default function History({ user }: { user: any }) {
         const other = prev.filter(c => c.userAId === user.uid);
         return [...other, ...connsB];
       });
+    }, (err) => {
+      console.warn("userConnections B in History error:", err);
     });
 
     // 3. Personal Contacts
@@ -64,16 +71,22 @@ export default function History({ user }: { user: any }) {
     );
     const unsubscribePerso = onSnapshot(qPerso, (snapshot) => {
       setPersonalContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("personalContacts in History error:", err);
     });
 
     // 4. Pros
     const unsubscribePros = onSnapshot(collection(db, "pros"), (snapshot) => {
       setPros(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("pros in History error:", err);
     });
 
     // 5. Companies
     const unsubscribeCompanies = onSnapshot(collection(db, "companies"), (snapshot) => {
       setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("companies in History error:", err);
     });
 
     return () => {

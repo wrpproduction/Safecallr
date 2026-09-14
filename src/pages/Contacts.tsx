@@ -38,17 +38,17 @@ export default function Contacts({ user }: { user: any }) {
 
     const cleanUserPhone = user.phoneNumber?.replace(/\s/g, "").replace(/-/g, "");
 
-    // Fetch Professional Connections
-    const qPro = query(collection(db, "proClientConnections"));
+    // Fetch Professional Connections scoped to user
+    const qPro = query(
+      collection(db, "proClientConnections"),
+      where("userId", "==", user.uid)
+    );
 
     const unsubscribePro = onSnapshot(qPro, (snapshot) => {
-      const allConns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const userConns = allConns.filter((c: any) => 
-        (c.userId === user.uid || 
-        (cleanUserPhone && c.clientPhone?.replace(/\s/g, "").replace(/-/g, "") === cleanUserPhone) ||
-        c.clientEmail === user.email)
-      );
+      const userConns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setConnections(userConns);
+    }, (err) => {
+      console.warn("proClientConnections in Contacts error:", err);
     });
 
     // Fetch User to User Connections
@@ -67,6 +67,8 @@ export default function Contacts({ user }: { user: any }) {
         const other = prev.filter(c => c.userBId === user.uid);
         return [...connsA, ...other];
       });
+    }, (err) => {
+      console.warn("userConnections A in Contacts error:", err);
     });
 
     const unsubscribeUserConnB = onSnapshot(qUserConnB, (snapshot) => {
@@ -75,6 +77,8 @@ export default function Contacts({ user }: { user: any }) {
         const other = prev.filter(c => c.userAId === user.uid);
         return [...other, ...connsB];
       });
+    }, (err) => {
+      console.warn("userConnections B in Contacts error:", err);
     });
 
     // Fetch Validated Auth Requests (Retroactive support - scoped strictly to user)
@@ -100,6 +104,9 @@ export default function Contacts({ user }: { user: any }) {
     const unsubscribePerso = onSnapshot(qPerso, (snapshot) => {
       setPersonalContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
+    }, (err) => {
+      console.warn("personalContacts in Contacts error:", err);
+      setLoading(false);
     });
 
     // Fetch Personal Contact Requests
@@ -111,15 +118,21 @@ export default function Contacts({ user }: { user: any }) {
 
     const unsubscribePersoReq = onSnapshot(qPersoReq, (snapshot) => {
       setPersonalRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("personalContactRequests in Contacts error:", err);
     });
 
     // Fetch all pros and companies for joining data
     const unsubscribePros = onSnapshot(collection(db, "pros"), (snapshot) => {
       setPros(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("pros in Contacts error:", err);
     });
 
     const unsubscribeCompanies = onSnapshot(collection(db, "companies"), (snapshot) => {
       setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn("companies in Contacts error:", err);
     });
 
     return () => {
