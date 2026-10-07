@@ -4,6 +4,7 @@ import { db, doc, onSnapshot, getDoc, updateDoc, serverTimestamp, collection, qu
 import { Shield, CheckCircle, AlertTriangle, Clock, XCircle, Phone, User, ShieldCheck, ShieldAlert, ShieldQuestion, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { toast } from "sonner";
 
 export default function RequestStatus({ user }: { user: any }) {
   const { t } = useLanguage();
@@ -19,30 +20,37 @@ export default function RequestStatus({ user }: { user: any }) {
   useEffect(() => {
     if (!id) return;
 
-    const unsubscribe = onSnapshot(doc(db, "verification_requests", id), async (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        setRequest({ id: snap.id, ...data });
+    const unsubscribe = onSnapshot(
+      doc(db, "verification_requests", id),
+      async (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setRequest({ id: snap.id, ...data });
 
-        // If target (B), fetch requesterPhone from users collection if not stored in the document
-        if (data.requesterId && data.requesterId !== user.uid && !data.requesterPhone) {
-          try {
-            const userSnap = await getDoc(doc(db, "users", data.requesterId));
-            if (userSnap.exists()) {
-              const uData = userSnap.data();
-              if (uData.phoneNumber) {
-                setFetchedRequesterPhone(uData.phoneNumber);
+          // If target (B), fetch requesterPhone from users collection if not stored in the document
+          if (data.requesterId && data.requesterId !== user.uid && !data.requesterPhone) {
+            try {
+              const userSnap = await getDoc(doc(db, "users", data.requesterId));
+              if (userSnap.exists()) {
+                const uData = userSnap.data();
+                if (uData.phoneNumber) {
+                  setFetchedRequesterPhone(uData.phoneNumber);
+                }
               }
+            } catch (err) {
+              console.error("Error fetching requester phone fallback:", err);
             }
-          } catch (err) {
-            console.error("Error fetching requester phone fallback:", err);
           }
+        } else {
+          navigate("/dashboard");
         }
-      } else {
-        navigate("/dashboard");
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("verification_requests listener error in RequestStatus:", err);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
 
     return () => unsubscribe();
   }, [id, navigate, user.uid]);
@@ -60,7 +68,7 @@ export default function RequestStatus({ user }: { user: any }) {
     if (!baseTime) return;
     
     const calculateTimeLeft = () => {
-      const baseDate = baseTime.toDate();
+      const baseDate = typeof baseTime?.toDate === "function" ? baseTime.toDate() : (baseTime instanceof Date ? baseTime : new Date(baseTime));
       const now = new Date();
       const diff = Math.floor((now.getTime() - baseDate.getTime()) / 1000);
       return Math.max(0, 60 - diff);
@@ -140,17 +148,29 @@ export default function RequestStatus({ user }: { user: any }) {
   const handleAction = async (newStatus: string) => {
     if (!id) return;
     try {
-      await updateDoc(doc(db, "verification_requests", id), {
+      const updateData: any = {
         status: newStatus,
         updatedAt: serverTimestamp(),
-        ...(newStatus === "accepted" ? { respondedAt: serverTimestamp(), targetId: user.uid } : {}),
-        ...(newStatus === "verified" ? { verifiedAt: serverTimestamp() } : {}),
-      });
+      };
+      if (newStatus === "accepted") {
+        updateData.respondedAt = serverTimestamp();
+        // Only set targetId if not already set or empty
+        if (!request?.targetId || request.targetId === "") {
+          updateData.targetId = user.uid;
+        }
+      }
+      if (newStatus === "verified") {
+        updateData.verifiedAt = serverTimestamp();
+      }
+
+      await updateDoc(doc(db, "verification_requests", id), updateData);
+
       if (newStatus === "verified") {
         await createConnection();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Action error:", error);
+      toast.error(error?.message || "Impossible de mettre à jour la demande.");
     }
   };
 

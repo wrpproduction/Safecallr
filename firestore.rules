@@ -159,10 +159,12 @@ service cloud.firestore {
     
     // Verification Requests (Codes 2FA sécurisés particulier à particulier)
     match /verification_requests/{requestId} {
-      // Lecture d'une demande spécifique : uniquement l'émetteur, le destinataire (par UID ou téléphone vérifié), ou l'admin
+      // Lecture d'une demande spécifique : uniquement l'émetteur, le destinataire (par UID, en attente de revendication, ou téléphone vérifié), ou l'admin
       allow get: if isAuthenticated() && (
         resource.data.requesterId == request.auth.uid ||
         resource.data.targetId == request.auth.uid ||
+        resource.data.targetId == '' ||
+        !('targetId' in resource.data) ||
         (request.auth.token.phone_number != null && resource.data.targetPhone == request.auth.token.phone_number) ||
         isAdmin()
       );
@@ -177,13 +179,25 @@ service cloud.firestore {
         request.resource.data.requesterId == request.auth.uid ||
         isAdmin()
       );
-      // Mise à jour : IMPOSSIBLE de modifier les codes de sécurité ou les identifiants
+      // Mise à jour : IMPOSSIBLE de modifier les codes de sécurité ou l'émetteur
       allow update: if isAuthenticated() && (
         (
-          (resource.data.requesterId == request.auth.uid || resource.data.targetId == request.auth.uid) &&
+          (
+            resource.data.requesterId == request.auth.uid ||
+            resource.data.targetId == request.auth.uid ||
+            (resource.data.targetId == '' || !('targetId' in resource.data))
+          ) &&
           request.resource.data.diff(resource.data).affectedKeys().hasNone([
-            'codeA', 'codeB', 'code', 'requesterId', 'targetId', 'targetPhone', 'requesterPhone', 'createdAt'
-          ])
+            'codeA', 'codeB', 'code', 'requesterId', 'targetPhone', 'requesterPhone', 'createdAt'
+          ]) &&
+          (
+            // targetId reste inchangé, ou si vide, est revendiqué par l'utilisateur connecté
+            request.resource.data.targetId == resource.data.targetId ||
+            (
+              (resource.data.targetId == '' || !('targetId' in resource.data)) &&
+              request.resource.data.targetId == request.auth.uid
+            )
+          )
         ) ||
         isAdmin()
       );

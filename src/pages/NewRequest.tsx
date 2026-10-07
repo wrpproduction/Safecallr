@@ -101,7 +101,7 @@ export default function NewRequest({ user }: { user: any }) {
               recipientId: targetId,
               title: "Demande de vérification",
               body: `${user.displayName || user.firstName} souhaite vérifier votre identité.`,
-              data: { requestId: docRef.id, type: "auth_request" },
+              data: { requestId: docRef.id, type: "verification" },
             }),
           });
         } catch (fetchErr) {
