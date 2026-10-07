@@ -48,6 +48,14 @@ service cloud.firestore {
       );
     }
 
+    function isTargetUser(data, uid) {
+      return ('targetId' in data) && data.targetId == uid;
+    }
+
+    function isTargetUnassigned(data) {
+      return (!('targetId' in data)) || data.targetId == null || data.targetId == '';
+    }
+
     function isValidPersonalRequest(data) {
       return data.keys().hasAll(['fromUserId', 'fromUserName', 'fromUserPhone', 'toUserId', 'toUserName', 'toUserPhone', 'toUserEmail', 'status', 'createdAt']) &&
              data.status in ['pending', 'accepted', 'rejected'];
@@ -159,19 +167,19 @@ service cloud.firestore {
     
     // Verification Requests (Codes 2FA sécurisés particulier à particulier)
     match /verification_requests/{requestId} {
-      // Lecture d'une demande spécifique : uniquement l'émetteur, le destinataire (par UID, en attente de revendication, ou téléphone vérifié), ou l'admin
+      // Lecture d'une demande spécifique : émetteur, destinataire, demande en attente, ou admin
       allow get: if isAuthenticated() && (
         resource.data.requesterId == request.auth.uid ||
-        resource.data.targetId == request.auth.uid ||
-        resource.data.targetId == '' ||
-        !('targetId' in resource.data) ||
-        (request.auth.token.phone_number != null && resource.data.targetPhone == request.auth.token.phone_number) ||
+        isTargetUser(resource.data, request.auth.uid) ||
+        isTargetUnassigned(resource.data) ||
+        resource.data.status == 'pending' ||
+        (request.auth.token.phone_number != null && ('targetPhone' in resource.data) && resource.data.targetPhone == request.auth.token.phone_number) ||
         isAdmin()
       );
       // Écoute de requêtes de liste : STRICTEMENT bornée par une clause where sur son propre UID
       allow list: if isAuthenticated() && (
         resource.data.requesterId == request.auth.uid ||
-        resource.data.targetId == request.auth.uid ||
+        isTargetUser(resource.data, request.auth.uid) ||
         isAdmin()
       );
       // Création : l'émetteur doit impérativement être l'utilisateur connecté
@@ -182,21 +190,22 @@ service cloud.firestore {
       // Mise à jour : IMPOSSIBLE de modifier les codes de sécurité ou l'émetteur
       allow update: if isAuthenticated() && (
         (
+          // 1. Participant autorisé : émetteur, destinataire désigné, ou utilisateur acceptant/revendiquant la demande
           (
             resource.data.requesterId == request.auth.uid ||
-            resource.data.targetId == request.auth.uid ||
-            (resource.data.targetId == '' || !('targetId' in resource.data))
+            isTargetUser(resource.data, request.auth.uid) ||
+            isTargetUser(request.resource.data, request.auth.uid) ||
+            isTargetUnassigned(resource.data) ||
+            (request.auth.token.phone_number != null && ('targetPhone' in resource.data) && resource.data.targetPhone == request.auth.token.phone_number)
           ) &&
+          // 2. Protection absolue des codes de sécurité et de l'auteur
           request.resource.data.diff(resource.data).affectedKeys().hasNone([
             'codeA', 'codeB', 'code', 'requesterId', 'targetPhone', 'requesterPhone', 'createdAt'
           ]) &&
+          // 3. targetId ne peut jamais être forgé vers un tiers : soit inchangé, soit associé à request.auth.uid
           (
-            // targetId reste inchangé, ou si vide, est revendiqué par l'utilisateur connecté
-            request.resource.data.targetId == resource.data.targetId ||
-            (
-              (resource.data.targetId == '' || !('targetId' in resource.data)) &&
-              request.resource.data.targetId == request.auth.uid
-            )
+            (!('targetId' in request.resource.data.diff(resource.data).affectedKeys())) ||
+            isTargetUser(request.resource.data, request.auth.uid)
           )
         ) ||
         isAdmin()

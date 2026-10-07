@@ -114,27 +114,28 @@ export default function RequestStatus({ user }: { user: any }) {
     if (!request) return;
     try {
       const connectionsRef = collection(db, "userConnections");
-      const q = query(
-        connectionsRef,
-        where("userAId", "in", [request.requesterId, request.targetId]),
-        where("userBId", "in", [request.requesterId, request.targetId])
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const existing = querySnapshot.docs.find(doc => {
+      const targetUid = request.targetId || user.uid;
+      const otherUid = user.uid === request.requesterId ? targetUid : request.requesterId;
+
+      const qA = query(connectionsRef, where("userAId", "==", user.uid));
+      const qB = query(connectionsRef, where("userBId", "==", user.uid));
+
+      const [snapA, snapB] = await Promise.all([getDocs(qA), getDocs(qB)]);
+      const allDocs = [...snapA.docs, ...snapB.docs];
+      const existing = allDocs.find(doc => {
         const d = doc.data();
-        return (d.userAId === request.requesterId && d.userBId === request.targetId) ||
-               (d.userAId === request.targetId && d.userBId === request.requesterId);
+        return (d.userAId === otherUid && d.userBId === user.uid) ||
+               (d.userAId === user.uid && d.userBId === otherUid);
       });
 
       if (!existing) {
         await addDoc(connectionsRef, {
           userAId: request.requesterId,
           userAName: request.requesterName,
-          userAPhone: user.uid === request.requesterId ? user.phoneNumber : "",
-          userBId: request.targetId,
+          userAPhone: user.uid === request.requesterId ? (user.phoneNumber || "") : (request.requesterPhone || fetchedRequesterPhone || ""),
+          userBId: targetUid,
           userBName: request.targetName || "",
-          userBPhone: request.targetPhone,
+          userBPhone: request.targetPhone || "",
           status: "verified",
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -154,10 +155,8 @@ export default function RequestStatus({ user }: { user: any }) {
       };
       if (newStatus === "accepted") {
         updateData.respondedAt = serverTimestamp();
-        // Only set targetId if not already set or empty
-        if (!request?.targetId || request.targetId === "") {
-          updateData.targetId = user.uid;
-        }
+        // Always bind targetId to user.uid
+        updateData.targetId = user.uid;
       }
       if (newStatus === "verified") {
         updateData.verifiedAt = serverTimestamp();
@@ -415,6 +414,19 @@ export default function RequestStatus({ user }: { user: any }) {
         </div>
       </div>
 
+      {/* Actions pour l'émetteur (A) en attente : possibilité d'annuler */}
+      {isRequester && request.status === "pending" && (
+        <div className="w-full">
+          <button 
+            onClick={() => handleAction("refused")}
+            className="w-full bg-surface-container-highest text-error font-headline font-bold py-5 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 border border-error/20 hover:bg-error/10"
+          >
+            <XCircle className="w-5 h-5" />
+            {t("request.decline") || "Annuler la demande"}
+          </button>
+        </div>
+      )}
+
       {/* Actions pour la cible (B) au début */}
       {isTarget && request.status === "pending" && (
         <div className="grid grid-cols-2 gap-4">
@@ -431,6 +443,18 @@ export default function RequestStatus({ user }: { user: any }) {
           >
             <CheckCircle className="w-5 h-5" />
             {t("request.accept")}
+          </button>
+        </div>
+      )}
+
+      {/* Bouton de retour si la demande est refusée, terminée ou expirée */}
+      {(request.status === "refused" || request.status === "verified" || (timeLeft <= 0 && request.status === "pending")) && (
+        <div className="w-full">
+          <button 
+            onClick={() => navigate("/dashboard")}
+            className="w-full bg-surface-container-high text-on-surface font-headline font-bold py-5 rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/5 shadow-md"
+          >
+            {t("common.back") || "Retour au tableau de bord"}
           </button>
         </div>
       )}
