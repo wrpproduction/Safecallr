@@ -218,6 +218,28 @@ export default function ProSearch() {
 
       const docRef = await addDoc(collection(db, "authRequests"), requestData);
       
+      // Envoi de la notification push mobile si le client possède un compte SafeCallr
+      if (client?.id) {
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          await fetch("/api/notify", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
+            },
+            body: JSON.stringify({
+              recipientId: client.id,
+              title: "Demande de vérification",
+              body: `${fromCompanyName} (${fromProName}) souhaite vérifier votre identité.`,
+              data: { requestId: docRef.id, type: "auth_request" },
+            }),
+          });
+        } catch (pushErr) {
+          console.warn("Could not send push notification for pro auth request:", pushErr);
+        }
+      }
+
       // Redirection vers la page d'attente
       navigate(`/pro/request/${docRef.id}/wait`);
     } catch (err: any) {

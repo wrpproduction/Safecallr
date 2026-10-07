@@ -1184,8 +1184,9 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
       // SÉCURITÉ ATTAQUE 9 : Vérifier la légitimité de la notification et l'appartenance
       const notifType = data?.type || "auth_request";
-      const validTypes = ["auth_request", "contact_request", "system_alert"];
+      const validTypes = ["auth_request", "verification", "request", "contact_request", "system_alert"];
       if (!validTypes.includes(notifType)) {
+        console.warn(`[Notify] Type de notification rejeté: ${notifType}`);
         return res.status(403).json({ error: "Type de notification non autorisé" });
       }
 
@@ -1221,6 +1222,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
 
         // Si la demande n'existe pas ou que l'appelant n'en est pas l'émetteur légitime
         if (!isAuthorizedSender) {
+          console.warn(`[Notify] Émetteur ${callerUid} non autorisé pour la demande ${data.requestId}`);
           return res.status(403).json({ error: "Action non autorisée : demande introuvable ou non émise par votre compte." });
         }
       }
@@ -1234,7 +1236,7 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       let safeTitle = "SafeCallr";
       let safeBody = "Vous avez reçu une nouvelle notification sur SafeCallr.";
 
-      if (notifType === "auth_request") {
+      if (notifType === "auth_request" || notifType === "verification" || notifType === "request") {
         safeTitle = "Demande de vérification d'identité";
         safeBody = `${callerName} souhaite vérifier votre identité sur SafeCallr.`;
       } else if (notifType === "contact_request") {
@@ -1268,20 +1270,69 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       const targetToken = userData?.fcmToken || userData?.token;
 
       if (!targetToken || typeof targetToken !== "string") {
+        console.warn(`[Notify] Token push introuvable pour le destinataire ${recipientId} (${userData?.displayName || userData?.email || "inconnu"})`);
         return res.status(404).json({ error: "Token FCM du destinataire non trouvé" });
       }
 
-      const message = {
-        notification: { title: safeTitle, body: safeBody },
-        data: safeData,
+      // Configuration multiplateforme native iOS (APNs via FCM) et Android
+      const message: any = {
         token: targetToken,
+        notification: { 
+          title: safeTitle, 
+          body: safeBody 
+        },
+        data: safeData,
+        android: {
+          priority: "high",
+          notification: {
+            title: safeTitle,
+            body: safeBody,
+            sound: "default",
+            priority: "high",
+            channelId: "default",
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              alert: {
+                title: safeTitle,
+                body: safeBody,
+              },
+              sound: "default",
+              badge: 1,
+              contentAvailable: true,
+            },
+          },
+          headers: {
+            "apns-priority": "10",
+            "apns-push-type": "alert",
+          },
+        },
       };
 
-      await fcm.send(message);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("FCM Error:", error);
-      res.status(500).json({ error: "Erreur d'envoi notification" });
+      const sendResult = await fcm.send(message);
+      console.log(`[Notify] Notification push envoyée avec succès à ${recipientId} (${userData?.platform || "web/app"}):`, sendResult);
+      res.json({ success: true, messageId: sendResult });
+    } catch (error: any) {
+      console.error("[Notify] Erreur envoi push FCM:", error);
+      // Nettoyage automatique si le jeton n'est plus enregistré chez Apple ou Google
+      if (error?.code === "messaging/registration-token-not-registered" || error?.code === "messaging/invalid-registration-token") {
+        try {
+          const { recipientId } = req.body;
+          if (recipientId) {
+            await db.collection("users").doc(recipientId).update({
+              fcmToken: admin.firestore.FieldValue.delete(),
+              token: admin.firestore.FieldValue.delete(),
+              tokenInvalidAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`[Notify] Jeton push expiré supprimé pour l'utilisateur ${recipientId}`);
+          }
+        } catch (cleanupErr) {
+          // Ignore
+        }
+      }
+      res.status(500).json({ error: "Erreur d'envoi notification", details: error?.message || String(error) });
     }
   });
 
@@ -2475,18 +2526,47 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
       const targetToken = userData.fcmToken || userData.token;
       if (targetToken) {
         try {
+          const orgTitle = "Vérification SafeCallr";
+          const orgBody = `${memberData.firstName} de ${orgDoc.data()?.name} souhaite authentifier cet appel.`;
           await fcm.send({
             token: targetToken,
             notification: {
-              title: "Vérification SafeCallr",
-              body: `${memberData.firstName} de ${orgDoc.data()?.name} souhaite authentifier cet appel.`
+              title: orgTitle,
+              body: orgBody
             },
             data: {
               requestId: requestRef.id,
               orgId: orgId,
               type: "auth_request",
               trustMessage: orgDoc.data()?.trustMessage || ""
-            }
+            },
+            android: {
+              priority: "high",
+              notification: {
+                title: orgTitle,
+                body: orgBody,
+                sound: "default",
+                priority: "high",
+                channelId: "default",
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: orgTitle,
+                    body: orgBody,
+                  },
+                  sound: "default",
+                  badge: 1,
+                  contentAvailable: true,
+                },
+              },
+              headers: {
+                "apns-priority": "10",
+                "apns-push-type": "alert",
+              },
+            },
           });
         } catch (e) {
           console.error("FCM Send Error:", e);

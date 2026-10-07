@@ -91,6 +91,24 @@ const setupNativePush = async (
       return;
     }
 
+    // Créer le canal de notification avec importance maximale sur Android (Bannière + Sonnerie)
+    if (Capacitor.getPlatform() === "android") {
+      try {
+        await PushNotifications.createChannel({
+          id: "default",
+          name: "Alertes SafeCallr",
+          description: "Demandes de vérification et alertes d'authentification",
+          importance: 5,
+          visibility: 1,
+          sound: "default",
+          vibration: true,
+        });
+        console.log("[SafeCallr] Android notification channel 'default' verified/created.");
+      } catch (channelErr) {
+        console.warn("[SafeCallr] Note: unable to create Android notification channel:", channelErr);
+      }
+    }
+
     // 2. Add event listeners if they haven't been configured yet
     if (!isNativeListenersSetup) {
       console.log("[SafeCallr] Setting up native push event listeners...");

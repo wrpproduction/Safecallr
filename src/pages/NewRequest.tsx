@@ -91,7 +91,7 @@ export default function NewRequest({ user }: { user: any }) {
       if (targetId && typeof targetId === "string" && !targetId.includes("[") && !targetId.includes("]")) {
         try {
           const idToken = await auth.currentUser?.getIdToken();
-          await fetch("/api/notify", {
+          const resp = await fetch("/api/notify", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -104,6 +104,12 @@ export default function NewRequest({ user }: { user: any }) {
               data: { requestId: docRef.id, type: "verification" },
             }),
           });
+          if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            console.warn("[SafeCallr] /api/notify returned status:", resp.status, errData);
+          } else {
+            console.log("[SafeCallr] Push notification triggered successfully for target:", targetId);
+          }
         } catch (fetchErr) {
           console.warn("Could not send push notification:", fetchErr);
         }
