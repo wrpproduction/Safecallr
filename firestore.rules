@@ -34,7 +34,7 @@ service cloud.firestore {
       return isAdmin() || (
         isOwner(userId) &&
         isValidUser(request.resource.data) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasNone([
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'role', 'isAdmin', 'isPro', 'isSuperAdmin', 'companyId', 'orgId', 'adminNotes', 'subscriptionPlan', 'plan', 'verified', 'isVerified', 'emailVerified', 'phone', 'phoneNumber'
         ])
       );
@@ -125,7 +125,7 @@ service cloud.firestore {
       // Mise à jour : statut vérifié et notes administratives réservés à l'admin
       allow update: if isAdmin() || (
         isOwner(proId) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasNone(['isVerified', 'verified', 'adminNotes', 'rating'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified', 'verified', 'adminNotes', 'rating'])
       );
       allow delete: if isAdmin();
     }
@@ -151,7 +151,7 @@ service cloud.firestore {
         allow create, delete: if isAdmin() || isCompanyOwner(companyId);
         allow update: if isAdmin() || isCompanyOwner(companyId) || (
           request.auth.uid == memberId &&
-          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'role', 'status', 'email', 'createdAt'
           ])
         );
@@ -199,7 +199,7 @@ service cloud.firestore {
             (request.auth.token.phone_number != null && ('targetPhone' in resource.data) && resource.data.targetPhone == request.auth.token.phone_number)
           ) &&
           // 2. Protection absolue des codes de sécurité et de l'auteur
-          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'codeA', 'codeB', 'code', 'requesterId', 'targetPhone', 'requesterPhone', 'createdAt'
           ]) &&
           // 3. targetId ne peut jamais être forgé vers un tiers : soit inchangé, soit associé à request.auth.uid
@@ -248,7 +248,7 @@ service cloud.firestore {
             resource.data.proId == request.auth.uid ||
             resource.data.fromUserId == request.auth.uid
           ) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'code', 'codeA', 'codeB', 'fromProId', 'proId', 'fromUserId', 'toUserId', 'createdAt', 'companyId'
           ])
         ) ||
@@ -353,7 +353,7 @@ service cloud.firestore {
       // Seul l'administrateur de l'organisation ou l'admin plateforme peut modifier la fiche, et interdiction de modifier les champs critiques
       allow update: if isAdmin() || (
         isOrgAdmin(orgId) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasNone([
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'licensePlan', 'status', 'active', 'representativeUserId', 'representativeEmail', 'siret', 'createdAt'
         ])
       );
@@ -367,7 +367,7 @@ service cloud.firestore {
         // Modification : admin d'org ou collaborateur individuel sur ses propres champs non sensibles
         allow update: if isOrgAdmin(orgId) || isAdmin() || (
           isOrgMember(orgId) && request.auth.uid == memberId &&
-          request.resource.data.diff(resource.data).affectedKeys().hasNone([
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'role', 'status', 'email', 'createdAt'
           ])
         );
@@ -382,7 +382,7 @@ service cloud.firestore {
         allow update: if isOrgMember(orgId) && (
           (
             (resource.data.memberId == request.auth.uid || isOrgAdmin(orgId)) &&
-            request.resource.data.diff(resource.data).affectedKeys().hasNone([
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
               'code', 'codeA', 'codeB', 'orgId', 'memberId', 'createdBy', 'createdAt'
             ])
           ) || isAdmin()
