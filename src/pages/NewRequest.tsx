@@ -213,29 +213,13 @@ export default function NewRequest({ user }: { user: any }) {
           )}
         </div>
 
-        {/* Info Card */}
-        <div className="bg-surface-container-low p-6 rounded-2xl border border-white/5 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-3xl"></div>
-          <div className="flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Shield className="text-primary w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-on-surface font-bold text-sm mb-1">{t("request.secureExchange")}</h4>
-              <p className="text-slate-500 text-xs leading-relaxed">
-                {t("request.secureExchangeDesc")}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {error && <p className="text-error text-xs font-medium">{error}</p>}
 
-        {/* Action */}
-        <div className="pt-4">
+        {/* Action Button */}
+        <div>
           <button 
             type="submit" disabled={loading}
-            className="w-full bg-primary-gradient py-6 rounded-2xl text-on-primary font-headline font-extrabold text-lg tracking-wide shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="w-full bg-primary-gradient py-5 sm:py-6 rounded-2xl text-on-primary font-headline font-extrabold text-lg tracking-wide shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             {loading ? <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-on-primary"></div> : (
               <>
@@ -244,10 +228,27 @@ export default function NewRequest({ user }: { user: any }) {
               </>
             )}
           </button>
-          <p className="text-center mt-6 text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">
-            {t("request.securedBy")}
-          </p>
         </div>
+
+        {/* Info Card (placé sous le bouton pour un accès immédiat sans scroll) */}
+        <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl border border-white/5 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-3xl"></div>
+          <div className="flex gap-3 sm:gap-4 items-start">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Shield className="text-primary w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <h4 className="text-on-surface font-bold text-sm mb-0.5">{t("request.secureExchange")}</h4>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                {t("request.secureExchangeDesc")}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-center text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">
+          {t("request.securedBy")}
+        </p>
       </form>
     </div>
   );

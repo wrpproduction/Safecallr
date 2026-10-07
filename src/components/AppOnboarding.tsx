@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Shield, Smartphone, Bell, Volume2, ArrowRight, UserPlus, LogIn } from "lucide-react";
+import { Users, Bell, Volume2, ShieldCheck, ArrowRight, UserPlus, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import AppLogo from "./AppLogo";
 
@@ -74,7 +74,7 @@ export default function AppOnboarding() {
       </div>
 
       {/* Slide Area */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden py-4">
+      <div className="flex-1 flex items-center justify-center overflow-hidden py-3">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
@@ -85,8 +85,12 @@ export default function AppOnboarding() {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="flex flex-col items-center text-center max-w-xs mx-auto my-auto"
             >
-              <div className="w-20 h-20 rounded-3xl bg-[#3DFFA0]/10 border border-[#3DFFA0]/30 flex items-center justify-center mb-8 shadow-xl shadow-[#3DFFA0]/10">
-                <Shield className="w-10 h-10 text-[#3DFFA0]" />
+              <div className="mb-8 flex items-center justify-center">
+                <AppLogo
+                  showText={false}
+                  size={80}
+                  iconContainerClassName="shadow-2xl shadow-[#3DFFA0]/25 ring-1 ring-[#3DFFA0]/30"
+                />
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-headline font-black text-white leading-tight mb-4">
@@ -107,33 +111,46 @@ export default function AppOnboarding() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="flex flex-col items-center max-w-xs mx-auto w-full my-auto"
+              className="flex flex-col items-center max-w-xs sm:max-w-sm mx-auto w-full my-auto"
             >
-              <div className="w-full space-y-4">
-                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10">
+              <h2 className="text-xl sm:text-2xl font-headline font-black text-white text-center mb-4 leading-tight">
+                Comment ça <span className="text-[#3DFFA0]">fonctionne ?</span>
+              </h2>
+
+              <div className="w-full space-y-2.5">
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
                   <div className="w-9 h-9 rounded-xl bg-[#3DFFA0]/10 border border-[#3DFFA0]/20 flex items-center justify-center shrink-0 text-[#3DFFA0]">
-                    <Smartphone className="w-4 h-4" />
+                    <Users className="w-4 h-4" />
                   </div>
-                  <p className="text-xs font-semibold text-white leading-snug">
-                    Le professionnel déclenche la vérification
+                  <p className="text-xs sm:text-sm font-semibold text-white leading-snug">
+                    Un proche ou un professionnel demande à vérifier son identité
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
                   <div className="w-9 h-9 rounded-xl bg-[#3DFFA0]/10 border border-[#3DFFA0]/20 flex items-center justify-center shrink-0 text-[#3DFFA0]">
                     <Bell className="w-4 h-4" />
                   </div>
-                  <p className="text-xs font-semibold text-white leading-snug">
+                  <p className="text-xs sm:text-sm font-semibold text-white leading-snug">
                     Vous recevez une notification en direct
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
                   <div className="w-9 h-9 rounded-xl bg-[#3DFFA0]/10 border border-[#3DFFA0]/20 flex items-center justify-center shrink-0 text-[#3DFFA0]">
                     <Volume2 className="w-4 h-4" />
                   </div>
-                  <p className="text-xs font-semibold text-white leading-snug">
-                    Il vous donne le code de vive voix
+                  <p className="text-xs sm:text-sm font-semibold text-white leading-snug">
+                    Vous validez la demande, il vous communique le code de vive voix
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="w-9 h-9 rounded-xl bg-[#3DFFA0]/10 border border-[#3DFFA0]/20 flex items-center justify-center shrink-0 text-[#3DFFA0]">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-semibold text-white leading-snug">
+                    Vous confirmez ainsi que c'est bien la bonne personne au téléphone
                   </p>
                 </div>
               </div>
