@@ -540,15 +540,17 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
       try {
         emailResult = await resend.emails.send({
           from: `${fromName} <${fromAddress}>`,
+          reply_to: fromAddress,
           to: to,
           subject: subject,
           html: html || text,
           text: text || ""
         });
       } catch (domainErr: any) {
-        console.warn("[Resend Backend] Sending from custom domain failed, falling back to onboarding@resend.dev:", domainErr.message);
+        console.warn("[Resend Backend] Sending from custom domain failed, retrying:", domainErr.message);
         emailResult = await resend.emails.send({
-          from: `${fromName} <onboarding@resend.dev>`,
+          from: `${fromName} <${fromAddress}>`,
+          reply_to: fromAddress,
           to: to,
           subject: subject,
           html: html || text,
@@ -558,11 +560,13 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
 
       console.log(`[Resend Backend] Mail envoyé avec succès à ${to} via Resend. ID:`, emailResult.data?.id);
 
-      // Tenter d'enregistrer l'audit log dans la collection Firestore mail si disponible (optionnel)
+      // Audit log dans la collection Firestore mail_logs (n'active pas l'extension Trigger Email)
       if (firebaseInitialized && db) {
         try {
-          await db.collection("mail").add({
+          await db.collection("mail_logs").add({
             to,
+            from: `${fromName} <${fromAddress}>`,
+            replyTo: fromAddress,
             message: { subject, html, text },
             status: "sent",
             sentVia: "resend",
@@ -570,7 +574,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
         } catch (dbErr) {
-          console.warn("[Resend Backend] Sauvegarde de l'audit logFirestore ignorée (Droits Firestore Admin limités).");
+          console.warn("[Resend Backend] Sauvegarde de l'audit log ignorée.");
         }
       }
 
@@ -736,6 +740,7 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
       const { subject, html, text } = buildActivationEmail(code, firstName || "", lang || "en");
 
       // Envoi de l'email via la collection "mail" ou via Resend directement
+      let sent = false;
       const apiKey = process.env.RESEND_API_KEY;
       if (apiKey) {
         try {
@@ -743,30 +748,38 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
           const fromAddress = process.env.EMAIL_FROM_ADDRESS || "contact@safecallr.com";
           const fromName = process.env.EMAIL_FROM_NAME || "SafeCallr";
 
-          await resend.emails.send({
+          const sendRes = await resend.emails.send({
             from: `${fromName} <${fromAddress}>`,
+            reply_to: fromAddress,
             to: email,
             subject: subject,
             html: html,
             text: text
           });
 
-          console.log(`[Verification] Email de vérification à 6 chiffres envoyé à ${email} via Resend.`);
+          if (sendRes.error) {
+            console.warn("[Verification] Erreur retournée par l'API Resend :", sendRes.error);
+          } else {
+            sent = true;
+            console.log(`[Verification] Email de vérification envoyé à ${email} via Resend (ID: ${sendRes.data?.id}).`);
+          }
         } catch (resendErr) {
-          console.error("[Verification] Échec de l'envoi via Resend d'Express, tentative de repli via Firestore...");
-          await db.collection("mail").add({
-            to: email,
-            message: { subject, html, text },
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
-          }).catch(() => {});
+          console.error("[Verification] Échec de l'envoi via Resend d'Express :", resendErr);
         }
-      } else {
-        console.log(`[Verification] Pas de clé API Resend configurée. Enregistrement en brouillon dans Firestore mail...`);
-        await db.collection("mail").add({
+      }
+
+      // Enregistrer l'audit log
+      if (firebaseInitialized && db) {
+        await db.collection("mail_logs").add({
           to: email,
+          from: "SafeCallr <contact@safecallr.com>",
+          replyTo: "contact@safecallr.com",
           message: { subject, html, text },
+          sentVia: sent ? "resend" : "failed",
           createdAt: admin.firestore.FieldValue.serverTimestamp()
-        }).catch(() => {});
+        }).catch((err: any) => {
+          console.error("[Verification] Échec d'écriture dans mail_logs :", err);
+        });
       }
 
       return res.json({ success: true });
@@ -1425,6 +1438,102 @@ ${dynamicUrlsXml ? dynamicUrlsXml + '\n' : ''}</urlset>`;
     } catch (error: any) {
       console.error("Global Reset Error:", error);
       res.status(500).json({ error: error.message || "Erreur lors de la réinitialisation" });
+    }
+  });
+
+  // API: Suppression définitive de compte utilisateur (Conforme App Store Guideline 5.1.1(v) & RGPD)
+  // Efface le compte Firebase Auth ainsi que l'ensemble des données Firestore associées
+  app.post("/api/user/delete-account", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : req.body?.idToken;
+      if (!idToken) {
+        return res.status(401).json({ error: "Non authentifié : jeton de session manquant." });
+      }
+
+      let uid: string;
+      let email: string | undefined;
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        uid = decodedToken.uid;
+        email = decodedToken.email;
+      } catch (authErr: any) {
+        return res.status(401).json({ error: "Session invalide ou expirée. Veuillez vous reconnecter avant de supprimer votre compte." });
+      }
+
+      console.log(`[DeleteAccount] Début de la suppression définitive du compte pour UID: ${uid} (${email || "sans email"})`);
+
+      // 1. Suppression du document dans la collection "users"
+      try {
+        await db.collection("users").doc(uid).delete();
+        console.log(`[DeleteAccount] Document users/${uid} supprimé.`);
+      } catch (e) {
+        console.error(`[DeleteAccount] Erreur suppression users/${uid}:`, e);
+      }
+
+      // 2. Suppression du document dans la collection "pros" si existant
+      try {
+        const proDoc = await db.collection("pros").doc(uid).get();
+        if (proDoc.exists) {
+          await db.collection("pros").doc(uid).delete();
+          console.log(`[DeleteAccount] Document pros/${uid} supprimé.`);
+        }
+      } catch (e) {
+        console.error(`[DeleteAccount] Erreur suppression pros/${uid}:`, e);
+      }
+
+      // Helper pour supprimer en batch
+      const deleteQueryBatch = async (queryRef: FirebaseFirestore.Query) => {
+        try {
+          const snapshot = await queryRef.get();
+          if (snapshot.empty) return;
+          const batch = db.batch();
+          snapshot.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+          await batch.commit();
+        } catch (err) {
+          console.error("[DeleteAccount] Erreur batch delete:", err);
+        }
+      };
+
+      // 3. Suppression des liaisons inter-particuliers (userConnections)
+      await deleteQueryBatch(db.collection("userConnections").where("userAId", "==", uid));
+      await deleteQueryBatch(db.collection("userConnections").where("userBId", "==", uid));
+
+      // 4. Suppression des liaisons pro-clients (proClientConnections)
+      await deleteQueryBatch(db.collection("proClientConnections").where("userId", "==", uid));
+      await deleteQueryBatch(db.collection("proClientConnections").where("proId", "==", uid));
+
+      // 5. Suppression des requêtes et de l'historique
+      await deleteQueryBatch(db.collection("verification_requests").where("requesterId", "==", uid));
+      await deleteQueryBatch(db.collection("verification_requests").where("targetUserId", "==", uid));
+      await deleteQueryBatch(db.collection("authRequests").where("requesterId", "==", uid));
+      await deleteQueryBatch(db.collection("authRequests").where("targetUserId", "==", uid));
+      await deleteQueryBatch(db.collection("authRequests").where("userId", "==", uid));
+      await deleteQueryBatch(db.collection("authRequests").where("clientId", "==", uid));
+
+      // 6. Suppression des alertes et notifications
+      await deleteQueryBatch(db.collection("alerts").where("userId", "==", uid));
+      await deleteQueryBatch(db.collection("notifications").where("userId", "==", uid));
+      await deleteQueryBatch(db.collection("notifications").where("recipientId", "==", uid));
+      await deleteQueryBatch(db.collection("userNotifications").where("userId", "==", uid));
+
+      // 7. Suppression du compte dans Firebase Authentication
+      try {
+        await admin.auth().deleteUser(uid);
+        console.log(`[DeleteAccount] Compte Firebase Auth supprimé avec succès pour UID: ${uid}`);
+      } catch (e: any) {
+        if (e.code !== "auth/user-not-found") {
+          console.error("[DeleteAccount] Erreur suppression Firebase Auth:", e);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: "Compte et données définitivement supprimés avec succès."
+      });
+    } catch (error: any) {
+      console.error("[DeleteAccount] Erreur globale lors de la suppression:", error);
+      return res.status(500).json({ error: error.message || "Erreur interne lors de la suppression du compte." });
     }
   });
 

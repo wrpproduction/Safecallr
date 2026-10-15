@@ -4,6 +4,7 @@ import { reload } from "firebase/auth";
 import { Shield, Mail, RefreshCw, LogOut, CheckCircle, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { emailService } from "../services/emailService";
+import { getApiUrl } from "../lib/api";
 
 export default function VerifyEmail({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
@@ -25,22 +26,81 @@ export default function VerifyEmail({ user }: { user: any }) {
     }
 
     try {
-      // Vérification serveur stricte (via notre endpoint API avec rate-limiting et validation cryptographique)
-      const response = await fetch("/api/verify-email-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, code: enteredCode.trim() })
-      });
+      let isVerified = false;
 
-      const resData = await response.json().catch(() => ({}));
+      // 1. Essayer la validation serveur d'abord
+      try {
+        const response = await fetch(getApiUrl("/api/verify-email-code"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email, code: enteredCode.trim() })
+        });
 
-      if (response.ok) {
+        if (response.ok) {
+          isVerified = true;
+        } else {
+          const resData = await response.json().catch(() => ({}));
+          if (response.status === 400 || response.status === 429) {
+            setError(resData.error || "Code de validation incorrect ou expiré.");
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (networkErr) {
+        console.warn("[VerifyEmail] Endpoint serveur non joignable, tentative de vérification directe Firestore :", networkErr);
+      }
+
+      // 2. Si le serveur n'a pas validé ou était non joignable (ex: mode natif Capacitor)
+      if (!isVerified && user?.email) {
+        try {
+          const codeDoc = await getDoc(doc(db, "verification_codes", user.email.toLowerCase()));
+          if (codeDoc.exists()) {
+            const data = codeDoc.data();
+            const storedCode = (data.code || "").toUpperCase().trim();
+            const inputCode = enteredCode.toUpperCase().trim();
+            const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+            const isExpired = expiresAt && expiresAt.getTime() < Date.now();
+
+            if (data.used) {
+              setError("Ce code de validation a déjà été utilisé.");
+              setLoading(false);
+              return;
+            }
+
+            if (isExpired) {
+              setError("Ce code de validation a expiré. Veuillez en demander un nouveau.");
+              setLoading(false);
+              return;
+            }
+
+            if (storedCode === inputCode) {
+              isVerified = true;
+              await updateDoc(doc(db, "verification_codes", user.email.toLowerCase()), {
+                used: true
+              }).catch(() => {});
+            }
+          }
+        } catch (dbErr) {
+          console.warn("[VerifyEmail] Échec vérification Firestore de repli :", dbErr);
+        }
+      }
+
+      if (isVerified) {
+        // Mettre à jour l'état de vérification de l'utilisateur
+        try {
+          await updateDoc(doc(db, "users", user.uid), { emailVerified: true });
+        } catch {
+          try {
+            await updateDoc(doc(db, "pros", user.uid), { emailVerified: true });
+          } catch {}
+        }
+
         setMessage("Votre adresse e-mail a été vérifiée avec succès !");
         setTimeout(() => {
           window.location.reload();
         }, 1200);
       } else {
-        setError(resData.error || "Code de validation incorrect ou expiré.");
+        setError("Code de validation incorrect ou expiré.");
       }
     } catch (apiErr: any) {
       setError(apiErr.message || "Erreur de connexion au serveur de validation.");

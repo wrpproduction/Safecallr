@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { db, doc, updateDoc, serverTimestamp, auth, collection, query, where, getDocs, deleteDoc, writeBatch, addDoc, storage } from "../firebase";
 import { updateProfile } from "firebase/auth";
 import { ref } from "firebase/storage";
-import { Shield, User, Mail, Phone, ArrowLeft, Save, AlertTriangle, LogOut, Globe, Camera, Loader2 } from "lucide-react";
+import { Shield, User, Mail, Phone, ArrowLeft, Save, AlertTriangle, LogOut, Globe, Camera, Loader2, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -444,6 +444,17 @@ export default function Profile({ user }: { user: any }) {
         <LogOut size={20} />
         {t("common.logOut")}
       </button>
+
+      <div className="pt-2">
+        <button 
+          type="button"
+          onClick={() => navigate("/supprimer-compte")}
+          className="w-full text-error/80 hover:text-error hover:bg-error/10 py-3.5 px-4 rounded-2xl border border-error/20 transition-all font-bold text-sm flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+        >
+          <Trash2 size={16} />
+          {lang === "en" ? "Delete my SafeCallr account" : lang === "es" ? "Eliminar mi cuenta de SafeCallr" : "Supprimer mon compte SafeCallr"}
+        </button>
+      </div>
 
       <div className="pt-8 text-center text-[10px] text-slate-600 uppercase tracking-[0.2em] font-black">
         SafeCallr Protocol v2.4

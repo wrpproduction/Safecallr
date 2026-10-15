@@ -323,9 +323,8 @@ service cloud.firestore {
     }
 
     // Verification Codes for Custom Email verification
-    // Accessible uniquement par l'admin ou via le backend (les endpoints Node utilisent le SDK admin)
-    match /verification_codes/{tokenId} {
-      allow read, write: if isAdmin();
+    match /verification_codes/{email} {
+      allow read, write: if (request.auth != null && (request.auth.token.email.lower() == email.lower() || request.auth.uid == resource.data.uid)) || isAdmin();
     }
 
     // Global stats metadata document

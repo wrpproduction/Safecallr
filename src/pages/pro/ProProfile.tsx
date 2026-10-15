@@ -15,7 +15,8 @@ import {
   ChevronRight,
   MapPin,
   Globe,
-  Shield
+  Shield,
+  Trash2
 } from "lucide-react";
 import { auth, db, storage } from "../../firebase";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -561,11 +562,20 @@ export default function ProProfile() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => navigate("/supprimer-compte")}
+                className="text-error/80 hover:text-error hover:bg-error/10 py-3 px-4 rounded-xl border border-error/20 transition-all font-bold text-xs flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+              >
+                <Trash2 size={14} />
+                Supprimer mon compte SafeCallr
+              </button>
+
               <button
                 type="submit"
                 disabled={isSaving}
-                className="w-full md:w-auto bg-[#4ade80] text-black px-12 py-4 rounded-2xl font-bold hover:bg-[#22c55e] transition-all shadow-lg shadow-[#4ade80]/10 disabled:opacity-70 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto bg-[#4ade80] text-black px-12 py-4 rounded-2xl font-bold hover:bg-[#22c55e] transition-all shadow-lg shadow-[#4ade80]/10 disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSaving ? <Loader2 className="animate-spin" size={20} /> : "Enregistrer les modifications"}
               </button>

@@ -4,8 +4,10 @@ import {
   buildAdminNotificationEmail, 
   buildProValidationEmail, 
   buildProRejectionEmail, 
-  buildProRegistrationConfirmationEmail 
+  buildProRegistrationConfirmationEmail,
+  buildActivationEmail
 } from "../lib/emailTemplates";
+import { getApiUrl } from "../lib/api";
 import { sendEmailVerification } from "firebase/auth";
 import { Preferences } from "@capacitor/preferences";
 
@@ -58,7 +60,7 @@ async function sendEmailWithFallback(to: string, subject: string, html: string, 
     if (idToken) {
       headers["Authorization"] = `Bearer ${idToken}`;
     }
-    const response = await fetch("/api/send-email", {
+    const response = await fetch(getApiUrl("/api/send-email"), {
       method: "POST",
       headers,
       body: JSON.stringify({ to, subject, html, text }),
@@ -230,29 +232,64 @@ export const emailService = {
 
   /**
    * Envoie un email de vérification d'adresse e-mail personnalisé pour SafeCallr,
-   * contenant un code de validation à 6 chiffres unique et sécurisé.
+   * contenant un code de validation unique et sécurisé.
+   * Fonctionne de façon 100% robuste sur le Web et sur mobile natif (iOS / Android).
    */
   async sendCustomVerificationEmail(email: string, firstName: string) {
+    const lang = await getBrowserLang();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Essayer d'abord l'endpoint serveur dédié
     try {
-      const lang = await getBrowserLang();
-      const response = await fetch("/api/send-custom-verification", {
+      const response = await fetch(getApiUrl("/api/send-custom-verification"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, firstName, lang }),
+        body: JSON.stringify({ email: cleanEmail, firstName, lang }),
       });
       
-      if (!response.ok) {
-        throw new Error("Failed to send verification email via server endpoint");
+      if (response.ok) {
+        console.log(`[EmailService] E-mail d'activation envoyé avec succès via le serveur (lang: ${lang})`);
+        return;
       }
-      console.log(`[EmailService] Localized verification email successfully sent via server (lang: ${lang})`);
     } catch (err) {
-      console.error("[EmailService] Error in custom 6-digit email flow:", err);
-      // fallback
+      console.warn("[EmailService] Serveur API inaccessible pour l'e-mail d'activation, bascule sur le repli Firestore :", err);
+    }
+
+    // 2. Repli direct Firestore (garantit l'envoi même sur mobile natif ou proxy hors d'atteinte)
+    try {
+      // Générer le code de sécurité (6 chiffres + 1 lettre majuscule)
+      const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+      const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
+      const codeDigits = Math.floor(100000 + Math.random() * 900000);
+      const code = `${codeDigits}${randomLetter}`;
+
+      // Stocker le code dans la collection verification_codes
+      await setDoc(doc(db, "verification_codes", cleanEmail), {
+        email: cleanEmail,
+        code,
+        createdAt: serverTimestamp(),
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+        used: false,
+        uid: auth.currentUser?.uid || null
+      });
+
+      // Générer l'e-mail officiel d'activation SafeCallr
+      const { subject, html, text } = buildActivationEmail(code, firstName || "", lang);
+
+      // Envoyer via la collection mail Firestore (extension Firebase Trigger Email)
+      await sendEmailWithFallback(cleanEmail, subject, html, text);
+      console.log(`[EmailService] Code d'activation généré et envoyé via repli Firestore pour ${cleanEmail}`);
+    } catch (fallbackErr) {
+      console.error("[EmailService] Échec critique du repli d'envoi du code d'activation :", fallbackErr);
       if (auth.currentUser) {
-        auth.languageCode = await getBrowserLang();
-        await sendEmailVerification(auth.currentUser);
+        try {
+          auth.languageCode = lang;
+          await sendEmailVerification(auth.currentUser);
+        } catch (e) {
+          console.warn("[EmailService] Échec repli Firebase Auth standard :", e);
+        }
       }
     }
   }

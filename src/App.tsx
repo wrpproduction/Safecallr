@@ -16,6 +16,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import Profile from "./pages/Profile";
+import DeleteAccount from "./pages/DeleteAccount";
 import CompanyContact from "./pages/CompanyContact";
 import Welcome from "./pages/Welcome";
 import AdminLogin from "./pages/AdminLogin";
@@ -507,6 +508,9 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
             <Route path="/history" element={renderProtectedRoute(History)} />
             <Route path="/contacts" element={renderProtectedRoute(Contacts)} />
             <Route path="/profile" element={renderProtectedRoute(Profile)} />
+            <Route path="/supprimer-compte" element={<DeleteAccount user={user} />} />
+            <Route path="/delete-account" element={<DeleteAccount user={user} />} />
+            <Route path="/profile/delete-account" element={<DeleteAccount user={user} />} />
           </Route>
 
           <Route path="/org-auth/:orgId/:requestId" element={renderProtectedRoute(OrgAuthRequestDetails)} />
