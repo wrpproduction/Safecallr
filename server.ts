@@ -739,9 +739,9 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
 
       const { subject, html, text } = buildActivationEmail(code, firstName || "", lang || "en");
 
-      // Envoi de l'email via la collection "mail" ou via Resend directement
+      // Envoi de l'email via Resend
       let sent = false;
-      const apiKey = process.env.RESEND_API_KEY;
+      const apiKey = await getResendApiKey();
       if (apiKey) {
         try {
           const resend = new Resend(apiKey);
