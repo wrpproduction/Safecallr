@@ -25,6 +25,8 @@ export default function Auth() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,31 +230,50 @@ export default function Auth() {
           </div>
 
           {isLogin && (
-            <div className="flex justify-end">
+            <div className="flex flex-col items-end gap-2">
               <button 
                 type="button"
+                disabled={resetLoading}
                 onClick={async () => {
                   if (!email) {
-                    setError("Veuillez entrer votre email pour réinitialiser votre mot de passe.");
+                    setError("Veuillez saisir votre adresse email pour réinitialiser votre mot de passe.");
                     return;
                   }
+                  setResetLoading(true);
+                  setError("");
+                  setResetSent(false);
                   try {
-                    auth.languageCode = lang;
-                    const actionCodeSettings = {
-                      url: window.location.origin + "/auth?mode=login",
-                      handleCodeInApp: true,
-                    };
-                    await sendPasswordResetEmail(auth, email, actionCodeSettings);
-                    setError("");
-                    alert("Un email de réinitialisation a été envoyé.");
+                    auth.languageCode = lang || "fr";
+                    // Appel direct sans actionCodeSettings pour éviter auth/unauthorized-continue-uri
+                    // sur Capacitor native (capacitor://localhost) et les domaines non-whitelistés
+                    await sendPasswordResetEmail(auth, email.trim());
+                    setResetSent(true);
                   } catch (err: any) {
-                    setError(err.message);
+                    console.error("[Auth] Reset password error:", err);
+                    if (err.code === "auth/user-not-found") {
+                      setError("Aucun compte n'est associé à cette adresse email.");
+                    } else if (err.code === "auth/invalid-email") {
+                      setError("L'adresse email saisie n'est pas valide.");
+                    } else if (err.code === "auth/too-many-requests") {
+                      setError("Trop de tentatives. Veuillez patienter quelques instants avant de réessayer.");
+                    } else {
+                      setError("Impossible d'envoyer l'email de réinitialisation. Veuillez réessayer.");
+                    }
+                  } finally {
+                    setResetLoading(false);
                   }
                 }}
-                className="text-xs text-primary font-bold hover:underline"
+                className="text-xs text-primary font-bold hover:underline transition-opacity disabled:opacity-50"
               >
-                Mot de passe oublié ?
+                {resetLoading ? "Envoi en cours..." : "Mot de passe oublié ?"}
               </button>
+
+              {resetSent && (
+                <div className="w-full p-3 bg-primary/10 border border-primary/20 text-primary text-xs rounded-xl flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>Un email contenant un lien pour réinitialiser votre mot de passe vient de vous être envoyé. Pensez à vérifier vos courriers indésirables (spams).</span>
+                </div>
+              )}
             </div>
           )}
 

@@ -208,7 +208,14 @@ async function createAuditLog(orgId: string, actor: { uid: string, email: string
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  // Support CLI arguments (--port 3000), DEFAULT_APP_PORT, or port 3000 in dev
+  const portArgIndex = process.argv.indexOf("--port");
+  const cliPort = portArgIndex !== -1 && process.argv[portArgIndex + 1] ? parseInt(process.argv[portArgIndex + 1], 10) : null;
+  const isNginxEnv = !!process.env.NGINX_PORT || process.env.PORT === "8080";
+  // Dev server must run on port 3000 per AI Studio environment constraints
+  const PORT = cliPort || 
+    (process.env.DEFAULT_APP_PORT ? parseInt(process.env.DEFAULT_APP_PORT, 10) : 
+    (!isProductionBundle || isNginxEnv ? 3000 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000)));
 
   // En-têtes HTTP de durcissement de sécurité (Security Headers)
   app.use((req, res, next) => {
@@ -3587,8 +3594,11 @@ ${JSON.stringify(jsonLdObj, null, 2)}
   });
 
   if (!process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`Serveur SafeCallr démarré sur http://localhost:${PORT}`);
+    });
+    server.on("error", (err: any) => {
+      console.error(`[Server Error] Erreur sur le port ${PORT}:`, err);
     });
   }
 

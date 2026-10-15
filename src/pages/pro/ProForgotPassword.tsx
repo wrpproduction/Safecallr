@@ -19,19 +19,19 @@ export default function ProForgotPassword() {
     setError(null);
 
     try {
-      auth.languageCode = lang;
-      const actionCodeSettings = {
-        url: window.location.origin + "/pro/login",
-        handleCodeInApp: true,
-      };
-      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      auth.languageCode = lang || "fr";
+      await sendPasswordResetEmail(auth, email.trim());
       setIsSent(true);
     } catch (err: any) {
-      console.error("Reset error:", err);
+      console.error("[ProForgotPassword] Reset error:", err);
       if (err.code === "auth/user-not-found") {
         setError("Aucun compte n'est associé à cet email.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("L'adresse email saisie n'est pas valide.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Trop de tentatives. Veuillez patienter avant de réessayer.");
       } else {
-        setError("Une erreur est survenue. Veuillez réessayer.");
+        setError("Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.");
       }
     } finally {
       setIsLoading(false);
