@@ -35,7 +35,7 @@ service cloud.firestore {
         isOwner(userId) &&
         isValidUser(request.resource.data) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'role', 'isAdmin', 'isPro', 'isSuperAdmin', 'companyId', 'orgId', 'adminNotes', 'subscriptionPlan', 'plan', 'verified', 'isVerified', 'emailVerified', 'phone', 'phoneNumber'
+          'role', 'isAdmin', 'isPro', 'isSuperAdmin', 'companyId', 'orgId', 'adminNotes', 'subscriptionPlan', 'plan', 'verified', 'isVerified', 'phone', 'phoneNumber'
         ])
       );
     }

@@ -801,16 +801,25 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(500).json({ error: "Firebase non prêt ou inactif sur le serveur." });
       }
 
-      const ref = db.collection("verification_codes").doc(email);
+      const cleanEmail = (email || "").toLowerCase().trim();
+      const ref = db.collection("verification_codes").doc(cleanEmail);
       const docSnap = await ref.get();
 
       if (!docSnap.exists) {
         return res.status(400).json({ error: "Code de validation incorrect ou expiré." });
       }
 
-      const data = docSnap.data();
+      const data = docSnap.data() || {};
 
       if (data.used) {
+        // Si le compte est déjà validé, retourner un succès immédiat pour éviter de bloquer l'utilisateur
+        try {
+          const userRecord = await admin.auth().getUserByEmail(cleanEmail);
+          const userDoc = await db.collection("users").doc(userRecord.uid).get();
+          if (userDoc.exists && userDoc.data()?.emailVerified === true) {
+            return res.json({ success: true, alreadyVerified: true });
+          }
+        } catch {}
         return res.status(400).json({ error: "Ce code de validation a déjà été utilisé." });
       }
 
@@ -839,16 +848,17 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
       // Marquer le code comme utilisé
       await ref.update({ used: true }).catch(() => {});
 
-      // Mettre à jour Firebase Auth
+      // Mettre à jour Firebase Auth & Firestore
       try {
-        const userRecord = await admin.auth().getUserByEmail(email);
+        const userRecord = await admin.auth().getUserByEmail(cleanEmail);
         await admin.auth().updateUser(userRecord.uid, { emailVerified: true });
         
-        // Mettre à jour Firestore document users & pros pour synchroniser
-        await db.collection("users").doc(userRecord.uid).update({ emailVerified: true }).catch(() => {});
-        await db.collection("pros").doc(userRecord.uid).update({ emailVerified: true }).catch(() => {});
+        // Mettre à jour Firestore document users & pros pour synchroniser (avec merge)
+        await db.collection("users").doc(userRecord.uid).set({ emailVerified: true }, { merge: true });
+        await db.collection("pros").doc(userRecord.uid).set({ emailVerified: true }, { merge: true });
+        console.log(`[Verification Code API] Compte ${cleanEmail} (uid: ${userRecord.uid}) validé avec succès.`);
       } catch (authErr: any) {
-        console.warn("[Verification Code API] Note: Mise à jour optionnelle Firebase Auth bloquée ou échouée :", authErr.message);
+        console.warn("[Verification Code API] Note lors de la mise à jour utilisateur :", authErr.message);
       }
 
       return res.json({ success: true });

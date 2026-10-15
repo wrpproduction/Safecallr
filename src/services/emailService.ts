@@ -78,10 +78,12 @@ async function sendEmailWithFallback(to: string, subject: string, html: string, 
     console.warn("[EmailService] Impossible de contacter le proxy d'envoi d'e-mail du serveur, repli sur Firestore...", err);
   }
 
-  // Repli absolu : Écrire directement dans la collection Firestore 'mail' depuis le navigateur client
+  // Repli d'audit : Écrire dans la collection 'mail_logs' (n'active pas l'extension Trigger Email tierce)
   try {
-    await addDoc(collection(db, "mail"), {
+    await addDoc(collection(db, "mail_logs"), {
       to,
+      from: "SafeCallr <contact@safecallr.com>",
+      replyTo: "contact@safecallr.com",
       message: {
         subject,
         html,
@@ -89,9 +91,9 @@ async function sendEmailWithFallback(to: string, subject: string, html: string, 
       },
       createdAt: serverTimestamp()
     });
-    console.log(`[EmailService] E-mail enregistré en brouillon dans Firestore collection 'mail' (sentVia: ${sentVia})`);
+    console.log(`[EmailService] E-mail consigné dans mail_logs (sentVia: ${sentVia})`);
   } catch (error) {
-    console.error("[EmailService] Échec critique, impossible d'enregistrer l'e-mail de repli dans Firestore :", error);
+    console.warn("[EmailService] Sauvegarde journal d'e-mail ignorée :", error);
   }
 }
 

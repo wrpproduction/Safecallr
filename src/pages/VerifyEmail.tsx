@@ -26,46 +26,64 @@ export default function VerifyEmail({ user }: { user: any }) {
     }
 
     try {
-      let isVerified = false;
+      // 0. Vérifier d'abord si le compte n'est pas déjà validé
+      try {
+        const userDocSnap = await getDoc(doc(db, "users", user.uid));
+        if (userDocSnap.exists() && userDocSnap.data()?.emailVerified === true) {
+          setMessage("Votre compte est déjà vérifié ! Redirection vers votre tableau de bord...");
+          setTimeout(() => {
+            navigate("/dashboard");
+            window.location.reload();
+          }, 800);
+          return;
+        }
+      } catch {}
 
-      // 1. Essayer la validation serveur d'abord
+      let isVerified = false;
+      const cleanEmail = (user.email || "").toLowerCase().trim();
+      const inputCode = enteredCode.toUpperCase().trim();
+
+      // 1. Essayer la validation serveur d'abord (recommandé car utilise Admin SDK)
       try {
         const response = await fetch(getApiUrl("/api/verify-email-code"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: user.email, code: enteredCode.trim() })
+          body: JSON.stringify({ email: cleanEmail, code: inputCode })
         });
 
         if (response.ok) {
           isVerified = true;
         } else {
           const resData = await response.json().catch(() => ({}));
-          if (response.status === 400 || response.status === 429) {
-            setError(resData.error || "Code de validation incorrect ou expiré.");
-            setLoading(false);
-            return;
+          // Si le code a été marqué comme utilisé dans une tentative précédente
+          if (resData.error && resData.error.includes("déjà été utilisé")) {
+            const checkSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
+            if (checkSnap?.exists() && checkSnap.data()?.emailVerified === true) {
+              setMessage("Votre compte a été activé avec succès !");
+              setTimeout(() => {
+                navigate("/dashboard");
+                window.location.reload();
+              }, 800);
+              return;
+            }
           }
+          setError(resData.error || "Code de validation incorrect ou expiré.");
+          setLoading(false);
+          return;
         }
       } catch (networkErr) {
-        console.warn("[VerifyEmail] Endpoint serveur non joignable, tentative de vérification directe Firestore :", networkErr);
+        console.warn("[VerifyEmail] Endpoint serveur non joignable, bascule sur la vérification directe Firestore :", networkErr);
       }
 
-      // 2. Si le serveur n'a pas validé ou était non joignable (ex: mode natif Capacitor)
-      if (!isVerified && user?.email) {
+      // 2. Si le serveur était injoignable (ex: réseau, mode mobile natif)
+      if (!isVerified && cleanEmail) {
         try {
-          const codeDoc = await getDoc(doc(db, "verification_codes", user.email.toLowerCase()));
+          const codeDoc = await getDoc(doc(db, "verification_codes", cleanEmail));
           if (codeDoc.exists()) {
             const data = codeDoc.data();
             const storedCode = (data.code || "").toUpperCase().trim();
-            const inputCode = enteredCode.toUpperCase().trim();
             const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
             const isExpired = expiresAt && expiresAt.getTime() < Date.now();
-
-            if (data.used) {
-              setError("Ce code de validation a déjà été utilisé.");
-              setLoading(false);
-              return;
-            }
 
             if (isExpired) {
               setError("Ce code de validation a expiré. Veuillez en demander un nouveau.");
@@ -75,10 +93,15 @@ export default function VerifyEmail({ user }: { user: any }) {
 
             if (storedCode === inputCode) {
               isVerified = true;
-              await updateDoc(doc(db, "verification_codes", user.email.toLowerCase()), {
-                used: true
-              }).catch(() => {});
+            } else {
+              setError("Code de validation incorrect. Veuillez vérifier les caractères saisis.");
+              setLoading(false);
+              return;
             }
+          } else {
+            setError("Aucun code actif trouvé pour cette adresse. Cliquez sur 'Renvoyer le code'.");
+            setLoading(false);
+            return;
           }
         } catch (dbErr) {
           console.warn("[VerifyEmail] Échec vérification Firestore de repli :", dbErr);
@@ -86,19 +109,33 @@ export default function VerifyEmail({ user }: { user: any }) {
       }
 
       if (isVerified) {
-        // Mettre à jour l'état de vérification de l'utilisateur
+        // Mettre à jour Firestore document users
         try {
           await updateDoc(doc(db, "users", user.uid), { emailVerified: true });
-        } catch {
+        } catch (uErr) {
+          console.warn("[VerifyEmail] Avertissement updateDoc users :", uErr);
+        }
+        try {
+          await updateDoc(doc(db, "pros", user.uid), { emailVerified: true });
+        } catch {}
+
+        // Marquer le code comme consommé
+        try {
+          await updateDoc(doc(db, "verification_codes", cleanEmail), { used: true });
+        } catch {}
+
+        // Rafraîchir l'objet Auth Firebase local
+        if (auth.currentUser) {
           try {
-            await updateDoc(doc(db, "pros", user.uid), { emailVerified: true });
+            await reload(auth.currentUser);
           } catch {}
         }
 
         setMessage("Votre adresse e-mail a été vérifiée avec succès !");
         setTimeout(() => {
+          navigate("/dashboard");
           window.location.reload();
-        }, 1200);
+        }, 800);
       } else {
         setError("Code de validation incorrect ou expiré.");
       }
