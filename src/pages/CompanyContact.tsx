@@ -12,8 +12,8 @@ import {
   Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { functions } from "../firebase";
+import { httpsCallable } from "firebase/functions";
 import AppLogo from "../components/AppLogo";
 
 export default function CompanyContact() {
@@ -35,33 +35,8 @@ export default function CompanyContact() {
     setError("");
 
     try {
-      // 1. Enregistrer la demande
-      await addDoc(collection(db, "companyContactRequests"), {
-        ...formData,
-        targetEmail: "contact@safecallr.com",
-        status: "new",
-        createdAt: serverTimestamp()
-      });
-
-      // 2. Envoyer l'email via l'extension Trigger Email
-      await addDoc(collection(db, "mail"), {
-        to: "contact@safecallr.com",
-        replyTo: formData.email,
-        message: {
-          subject: `NOUVELLE DEMANDE SAFECALLR : ${formData.companyName || formData.firstName + " " + formData.lastName}`,
-          html: `
-            <h3>Nouvelle demande de contact entreprise</h3>
-            <p><strong>Nom :</strong> ${formData.firstName} ${formData.lastName}</p>
-            <p><strong>Entreprise :</strong> ${formData.companyName || "N/A"}</p>
-            <p><strong>Email :</strong> ${formData.email}</p>
-            <p><strong>Téléphone :</strong> ${formData.phone || "N/A"}</p>
-            <p><strong>Message :</strong></p>
-            <p>${formData.message.replace(/\n/g, "<br>")}</p>
-          `
-        },
-        createdAt: serverTimestamp()
-      });
-
+      const submitContactFn = httpsCallable(functions, "submitCompanyContact");
+      await submitContactFn(formData);
       setSuccess(true);
     } catch (err: any) {
       console.error("Error submitting contact form:", err);

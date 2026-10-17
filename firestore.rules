@@ -309,11 +309,7 @@ service cloud.firestore {
       );
     }
 
-    // Mail collection (Trigger Email extension)
-    // Protection anti Open-Relay : seuls les administrateurs peuvent envoyer à des destinataires arbitraires.
-    // Les utilisateurs authentifiés ne peuvent émettre des e-mails que vers le support officiel ou vers leur propre adresse vérifiée.
-    // Extension Firebase Trigger Email : les Cloud Functions utilisent le SDK Admin (accès privilégié).
-    // Les créations clientes résiduelles (invitations pros / collaborateurs) sont restreintes aux utilisateurs authentifiés avec champs to et message.
+    // TODO: Dette MVP : tout utilisateur authentifié peut envoyer un e-mail depuis noreply@safecallr.com. Migrer ProClients et AdminDashboard vers des callables.
     match /mail/{mailId} {
       allow create: if isAuthenticated() && (
         isAdmin() || (

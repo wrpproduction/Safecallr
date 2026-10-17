@@ -139,7 +139,8 @@ export const sendVerificationCode = onCall({ region: "europe-west3" }, async (re
  * Cloud Function Callable: verifyCode
  * Région: europe-west3
  * Valide le code haché, gère l'expiration et le compteur d'essais (max 5),
- * puis marque l'utilisateur vérifié (Firebase Auth + Firestore) et détruit le document.
+ * met à jour users/{uid} et pros/{uid} avec update() (sans créer pros si absent),
+ * puis détruit le document de code.
  */
 export const verifyCode = onCall({ region: "europe-west3" }, async (request) => {
   if (!request.auth) {
@@ -202,21 +203,79 @@ export const verifyCode = onCall({ region: "europe-west3" }, async (request) => 
   // 1. Firebase Auth : emailVerified = true
   await authAdmin.updateUser(uid, { emailVerified: true });
 
-  // 2. Firestore : collection users/{uid}
-  await db.collection("users").doc(uid).set({ emailVerified: true }, { merge: true });
-
-  // 3. Firestore : collection pros/{uid} (si profil pro)
+  // 2. Firestore : update users/{uid}
   try {
-    const proDoc = await db.collection("pros").doc(uid).get();
-    if (proDoc.exists) {
-      await db.collection("pros").doc(uid).set({ emailVerified: true }, { merge: true });
+    await db.collection("users").doc(uid).update({ emailVerified: true });
+  } catch (err: any) {
+    console.warn(`[verifyCode] Échec mise à jour users/${uid} :`, err.message);
+  }
+
+  // 3. Firestore : update pros/{uid} (ne pas créer si inexistant, ignorer NOT_FOUND)
+  try {
+    await db.collection("pros").doc(uid).update({ emailVerified: true });
+  } catch (err: any) {
+    const isNotFound = err.code === 5 || err.message?.includes("NOT_FOUND") || err.message?.includes("No document to update");
+    if (!isNotFound) {
+      console.warn(`[verifyCode] Note mise à jour pros/${uid} :`, err.message);
     }
-  } catch (err) {
-    console.warn("[verifyCode] Impossible de mettre à jour pros/{uid} :", err);
   }
 
   // 4. Suppression immédiate du code à usage unique
   await codeRef.delete();
+
+  return { ok: true };
+});
+
+/**
+ * Cloud Function Callable: submitCompanyContact
+ * Région: europe-west3
+ * Accessible aux visiteurs (connectés ou non).
+ * Enregistre la demande entreprise et déclenche l'email d'alerte sans exposer de droits en écriture directe sur "mail".
+ */
+export const submitCompanyContact = onCall({ region: "europe-west3" }, async (request) => {
+  const { firstName, lastName, email, phone, companyName, message } = request.data || {};
+  if (!firstName || !lastName || !email || !message) {
+    throw new HttpsError("invalid-argument", "Veuillez renseigner tous les champs obligatoires (prénom, nom, email, message).");
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  // 1. Enregistrer la demande
+  await db.collection("companyContactRequests").add({
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    email: cleanEmail,
+    phone: (phone || "").trim(),
+    companyName: (companyName || "").trim(),
+    message: message.trim(),
+    targetEmail: "contact@safecallr.com",
+    status: "new",
+    createdAt: FieldValue.serverTimestamp()
+  });
+
+  // 2. Envoyer l'email via la collection mail (Admin SDK)
+  const cleanMessage = message.trim().replace(/\n/g, "<br>");
+  const subject = `NOUVELLE DEMANDE SAFECALLR : ${companyName || `${firstName} ${lastName}`}`;
+  const html = `
+    <h3>Nouvelle demande de contact entreprise</h3>
+    <p><strong>Nom :</strong> ${firstName} ${lastName}</p>
+    <p><strong>Entreprise :</strong> ${companyName || "N/A"}</p>
+    <p><strong>Email :</strong> ${cleanEmail}</p>
+    <p><strong>Téléphone :</strong> ${phone || "N/A"}</p>
+    <p><strong>Message :</strong></p>
+    <p>${cleanMessage}</p>
+  `;
+  const text = `Nouvelle demande de contact entreprise\nNom: ${firstName} ${lastName}\nEntreprise: ${companyName || "N/A"}\nEmail: ${cleanEmail}\nTéléphone: ${phone || "N/A"}\n\nMessage:\n${message.trim()}`;
+
+  await db.collection("mail").add({
+    to: "contact@safecallr.com",
+    replyTo: cleanEmail,
+    message: {
+      subject,
+      text,
+      html
+    }
+  });
 
   return { ok: true };
 });
