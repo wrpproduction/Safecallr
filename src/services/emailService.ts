@@ -237,11 +237,35 @@ export const emailService = {
    * et l'envoi est assuré par l'extension Trigger Email (collection "mail").
    */
   async sendCustomVerificationEmail(_email?: string, firstName?: string) {
-    const sendVerificationCodeFn = httpsCallable<{ firstName?: string }, { ok: boolean }>(
-      functions,
-      "sendVerificationCode"
-    );
-    const result = await sendVerificationCodeFn({ firstName: firstName || "" });
-    return result.data;
+    // 1. Tenter la Cloud Function callable
+    try {
+      const sendVerificationCodeFn = httpsCallable<{ firstName?: string }, { ok: boolean }>(
+        functions,
+        "sendVerificationCode"
+      );
+      const result = await sendVerificationCodeFn({ firstName: firstName || "" });
+      if (result.data?.ok) {
+        return result.data;
+      }
+    } catch (cfErr: any) {
+      console.warn("[EmailService] Cloud Function non joignable (" + cfErr.message + "), bascule sur le proxy serveur local...");
+    }
+
+    // 2. Repli serveur : /api/send-verification-code (qui écrit dans 'mail' et 'verification_codes' via Admin SDK)
+    const idToken = await auth.currentUser?.getIdToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
+
+    const response = await fetch(getApiUrl("/api/send-verification-code"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ firstName: firstName || "" })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || "Impossible d'envoyer le code d'activation.");
+    }
+    return await response.json();
   }
 };

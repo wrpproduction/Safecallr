@@ -705,8 +705,140 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
     }
   });
 
-  // Les routes /api/send-custom-verification et /api/verify-email-code ont été migrées
-  // vers les Cloud Functions natives Firebase (sendVerificationCode & verifyCode).
+  // Endpoint d'envoi du code d'activation SafeCallr (utilise l'extension Firebase Trigger Email via la collection "mail")
+  app.post("/api/send-verification-code", requireAuth, verificationEmailLimiter, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user || !user.uid || !user.email) {
+        return res.status(401).json({ error: "Utilisateur non authentifié ou adresse e-mail manquante." });
+      }
+
+      if (!firebaseInitialized || !db) {
+        return res.status(500).json({ error: "Le SDK Firebase Admin n'est pas prêt." });
+      }
+
+      const uid = user.uid;
+      const email = user.email.toLowerCase().trim();
+      const firstName = (req.body?.firstName || "").trim();
+
+      const codeRef = db.collection("verification_codes").doc(uid);
+      const existingDoc = await codeRef.get();
+
+      // Rate Limiting : 1 code toutes les 60 secondes maximum
+      if (existingDoc.exists) {
+        const data = existingDoc.data();
+        const createdAt = data?.createdAt;
+        if (createdAt && createdAt.toMillis) {
+          const elapsedMs = Date.now() - createdAt.toMillis();
+          if (elapsedMs < 60000) {
+            const remainingSecs = Math.ceil((60000 - elapsedMs) / 1000);
+            return res.status(429).json({
+              error: `Veuillez patienter ${remainingSecs} seconde${remainingSecs > 1 ? "s" : ""} avant de demander un nouveau code.`
+            });
+          }
+        }
+      }
+
+      // 1. Génération du code OTP (6 chiffres + 1 lettre majuscule)
+      const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+      const randomLetter = letters.charAt(crypto.randomInt(0, letters.length));
+      const codeDigits = crypto.randomInt(100000, 1000000);
+      const code = `${codeDigits}${randomLetter}`;
+
+      // 2. Hash SHA-256
+      const codeHash = crypto.createHash("sha256").update(code).digest("hex");
+
+      // 3. Sauvegarde dans verification_codes/{uid}
+      await codeRef.set({
+        codeHash,
+        email,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        attempts: 0
+      });
+
+      // 4. Construction de l'e-mail officiel SafeCallr
+      const { subject, html, text } = buildActivationEmail(code, firstName, "fr");
+
+      // 5. Envoi par l'extension Trigger Email (collection "mail")
+      await db.collection("mail").add({
+        to: email,
+        message: { subject, html, text }
+      });
+
+      console.log(`[Verification] Code généré pour ${email} (${uid}) et envoyé via collection mail.`);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[Verification] Erreur envoi code :", err);
+      return res.status(500).json({ error: err.message || "Erreur interne lors de l'envoi du code." });
+    }
+  });
+
+  // Endpoint de validation du code d'activation
+  app.post("/api/verify-code", requireAuth, verifyCodeLimiter, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user || !user.uid) {
+        return res.status(401).json({ error: "Utilisateur non authentifié." });
+      }
+
+      const uid = user.uid;
+      const inputCode = (req.body?.code || "").trim().toUpperCase();
+
+      if (!inputCode) {
+        return res.status(400).json({ error: "Le code de validation est requis." });
+      }
+
+      if (!firebaseInitialized || !db) {
+        return res.status(500).json({ error: "Base de données non disponible." });
+      }
+
+      const codeRef = db.collection("verification_codes").doc(uid);
+      const codeSnap = await codeRef.get();
+
+      if (!codeSnap.exists) {
+        return res.status(404).json({ error: "Aucun code d'activation en attente ou code déjà consommé. Veuillez demander un nouveau code." });
+      }
+
+      const data = codeSnap.data()!;
+      const currentAttempts = data.attempts || 0;
+
+      if (currentAttempts >= 5) {
+        await codeRef.delete().catch(() => {});
+        return res.status(429).json({ error: "Nombre maximal de tentatives dépassé. Ce code a été révoqué par sécurité. Veuillez demander un nouveau code." });
+      }
+
+      const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+      if (expiresAt && expiresAt.getTime() < Date.now()) {
+        await codeRef.delete().catch(() => {});
+        return res.status(400).json({ error: "Ce code d'activation a expiré. Veuillez demander un nouveau code." });
+      }
+
+      const inputHash = crypto.createHash("sha256").update(inputCode).digest("hex");
+      if (inputHash !== data.codeHash) {
+        const nextAttempts = currentAttempts + 1;
+        await codeRef.update({ attempts: nextAttempts }).catch(() => {});
+        const remaining = 5 - nextAttempts;
+        if (remaining <= 0) {
+          await codeRef.delete().catch(() => {});
+          return res.status(429).json({ error: "Code incorrect. Nombre maximal de tentatives atteint. Veuillez demander un nouveau code." });
+        }
+        return res.status(400).json({ error: `Code incorrect (${remaining} tentative${remaining > 1 ? "s" : ""} restante${remaining > 1 ? "s" : ""}).` });
+      }
+
+      // Succès
+      await admin.auth().updateUser(uid, { emailVerified: true });
+      await db.collection("users").doc(uid).update({ emailVerified: true }).catch(() => {});
+      await db.collection("pros").doc(uid).update({ emailVerified: true }).catch(() => {});
+      await codeRef.delete().catch(() => {});
+
+      console.log(`[Verification] Compte ${uid} activé avec succès.`);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[Verification] Erreur validation code :", err);
+      return res.status(500).json({ error: err.message || "Erreur lors de la validation du code." });
+    }
+  });
 
 
   // API: Recherche sécurisée d'utilisateur par email ou téléphone (protection RGPD contre l'aspiration d'annuaire)

@@ -5,6 +5,7 @@ import { httpsCallable } from "firebase/functions";
 import { Shield, Mail, RefreshCw, LogOut, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { emailService } from "../services/emailService";
+import { getApiUrl } from "../lib/api";
 
 export default function VerifyEmail({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
@@ -36,11 +37,38 @@ export default function VerifyEmail({ user }: { user: any }) {
     }
 
     try {
-      const verifyCodeFn = httpsCallable<{ code: string }, { ok: boolean }>(
-        functions,
-        "verifyCode"
-      );
-      await verifyCodeFn({ code: inputCode });
+      let verified = false;
+
+      // 1. Tenter d'abord la Cloud Function callable
+      try {
+        const verifyCodeFn = httpsCallable<{ code: string }, { ok: boolean }>(
+          functions,
+          "verifyCode"
+        );
+        const res = await verifyCodeFn({ code: inputCode });
+        if (res.data?.ok) verified = true;
+      } catch (cfErr: any) {
+        console.warn("[VerifyEmail] Cloud Function non joignable (" + cfErr.message + "), bascule sur le proxy serveur...");
+      }
+
+      // 2. Si la Cloud Function n'est pas joignable, repli sur l'endpoint serveur
+      if (!verified) {
+        const idToken = await auth.currentUser?.getIdToken();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
+
+        const response = await fetch(getApiUrl("/api/verify-code"), {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ code: inputCode })
+        });
+
+        if (!response.ok) {
+          const resData = await response.json().catch(() => ({}));
+          throw new Error(resData.error || "Code de validation incorrect ou expiré.");
+        }
+        verified = true;
+      }
 
       // Rafraîchir l'objet Auth Firebase local
       if (auth.currentUser) {
@@ -56,7 +84,9 @@ export default function VerifyEmail({ user }: { user: any }) {
       }, 800);
     } catch (err: any) {
       console.error("[VerifyEmail] Erreur lors de la validation du code :", err);
-      const msg = err.message || "Code de validation incorrect ou expiré.";
+      const msg = err.message === "internal" 
+        ? "Service d'activation momentanément indisponible. Veuillez réessayer." 
+        : (err.message || "Code de validation incorrect ou expiré.");
       setError(msg);
     } finally {
       setLoading(false);
