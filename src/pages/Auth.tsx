@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth, signInWithPopup, googleProvider, db, setDoc, doc, getDoc, serverTimestamp } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -60,9 +60,6 @@ export default function Auth() {
       } else {
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
-        // Envoyer l'email de vérification personnalisé SafeCallr
-        await emailService.sendCustomVerificationEmail(email, firstName);
 
         try {
           await setDoc(doc(db, "users", user.uid), {
@@ -89,12 +86,44 @@ export default function Auth() {
         } catch (dbErr: any) {
           console.error("Error creating user doc:", dbErr);
         }
-        setVerificationSent(true);
+
+        // Envoyer l'email de vérification personnalisé SafeCallr via la Cloud Function
+        try {
+          await emailService.sendCustomVerificationEmail(email, firstName);
+          setVerificationSent(true);
+        } catch (sendErr: any) {
+          console.error("Échec de l'envoi du code d'activation :", sendErr);
+          setError("Compte créé, mais l'envoi du code d'activation a échoué : " + (sendErr.message || "Erreur de service"));
+          setVerificationSent(false);
+        }
       }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMessage, setResendMessage] = useState("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      setResendMessage("");
+      await emailService.sendCustomVerificationEmail(email, firstName);
+      setResendMessage("Nouveau code envoyé par e-mail !");
+      setResendCooldown(60);
+    } catch (err: any) {
+      setError(err.message || "Impossible de renvoyer le code.");
     }
   };
 
@@ -107,25 +136,51 @@ export default function Auth() {
               <Mail className="w-12 h-12" />
             </div>
             <h2 className="font-headline font-extrabold text-3xl tracking-tight text-on-surface">
-              Vérifiez votre email
+              Activez votre compte
             </h2>
             <p className="text-slate-400 text-lg leading-relaxed">
-              Un email de validation a été envoyé à <span className="text-primary font-bold">{email}</span>.
+              Un code de sécurité (chiffres + lettre) a été envoyé à <span className="text-primary font-bold">{email}</span>.
             </p>
             <p className="text-slate-500 text-sm">
-              Veuillez cliquer sur le lien dans l'email pour activer votre compte et accéder à votre espace personnel.
+              Saisissez ce code dans l'application pour finaliser votre activation et sécuriser vos appels.
             </p>
           </div>
-          <div className="pt-8">
-            <button 
-              onClick={() => {
-                setVerificationSent(false);
-                setIsLogin(true);
-              }}
-              className="text-primary font-bold hover:underline"
+
+          <div className="space-y-4 pt-4">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="w-full bg-primary text-on-primary font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-all"
             >
-              Retour à la connexion
+              Saisir mon code d'activation
             </button>
+
+            <button
+              onClick={handleResend}
+              disabled={resendCooldown > 0}
+              className="w-full text-slate-300 font-bold text-sm py-2 hover:text-white transition-colors disabled:opacity-50"
+            >
+              {resendCooldown > 0 ? (
+                `Renvoyer le code (${resendCooldown}s)`
+              ) : (
+                "Renvoyer le code par e-mail"
+              )}
+            </button>
+
+            {resendMessage && (
+              <p className="text-emerald-400 text-xs font-semibold">{resendMessage}</p>
+            )}
+
+            <div>
+              <button 
+                onClick={() => {
+                  setVerificationSent(false);
+                  setIsLogin(true);
+                }}
+                className="text-slate-500 text-sm hover:underline"
+              >
+                Retour à la connexion
+              </button>
+            </div>
           </div>
         </div>
       </div>

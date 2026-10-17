@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { auth, db, doc, updateDoc, getDoc } from "../firebase";
+import { auth, functions } from "../firebase";
 import { reload } from "firebase/auth";
-import { Shield, Mail, RefreshCw, LogOut, CheckCircle, ShieldCheck } from "lucide-react";
+import { httpsCallable } from "firebase/functions";
+import { Shield, Mail, RefreshCw, LogOut, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { emailService } from "../services/emailService";
-import { getApiUrl } from "../lib/api";
 
 export default function VerifyEmail({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
   const [enteredCode, setEnteredCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,178 +28,53 @@ export default function VerifyEmail({ user }: { user: any }) {
     setError("");
     setMessage("");
 
-    if (enteredCode.trim().length < 5) {
-      setError("Le code de validation saisi est invalide.");
+    const inputCode = enteredCode.trim().toUpperCase();
+    if (inputCode.length < 5) {
+      setError("Le code de validation saisi est invalide (format attendu : 6 chiffres + 1 lettre).");
       setLoading(false);
       return;
     }
 
     try {
-      // 0. Vérifier d'abord si le compte n'est pas déjà validé
-      try {
-        const userDocSnap = await getDoc(doc(db, "users", user.uid));
-        if (userDocSnap.exists() && userDocSnap.data()?.emailVerified === true) {
-          setMessage("Votre compte est déjà vérifié ! Redirection vers votre tableau de bord...");
-          setTimeout(() => {
-            navigate("/dashboard");
-            window.location.reload();
-          }, 800);
-          return;
-        }
-      } catch {}
+      const verifyCodeFn = httpsCallable<{ code: string }, { ok: boolean }>(
+        functions,
+        "verifyCode"
+      );
+      await verifyCodeFn({ code: inputCode });
 
-      let isVerified = false;
-      const cleanEmail = (user.email || "").toLowerCase().trim();
-      const inputCode = enteredCode.toUpperCase().trim();
-
-      // 1. Essayer la validation serveur d'abord (recommandé car utilise Admin SDK)
-      try {
-        const response = await fetch(getApiUrl("/api/verify-email-code"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: cleanEmail, code: inputCode })
-        });
-
-        if (response.ok) {
-          isVerified = true;
-        } else {
-          const resData = await response.json().catch(() => ({}));
-          // Si le code a été marqué comme utilisé dans une tentative précédente
-          if (resData.error && resData.error.includes("déjà été utilisé")) {
-            const checkSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
-            if (checkSnap?.exists() && checkSnap.data()?.emailVerified === true) {
-              setMessage("Votre compte a été activé avec succès !");
-              setTimeout(() => {
-                navigate("/dashboard");
-                window.location.reload();
-              }, 800);
-              return;
-            }
-          }
-          setError(resData.error || "Code de validation incorrect ou expiré.");
-          setLoading(false);
-          return;
-        }
-      } catch (networkErr) {
-        console.warn("[VerifyEmail] Endpoint serveur non joignable, bascule sur la vérification directe Firestore :", networkErr);
-      }
-
-      // 2. Si le serveur était injoignable (ex: réseau, mode mobile natif)
-      if (!isVerified && cleanEmail) {
+      // Rafraîchir l'objet Auth Firebase local
+      if (auth.currentUser) {
         try {
-          const codeDoc = await getDoc(doc(db, "verification_codes", cleanEmail));
-          if (codeDoc.exists()) {
-            const data = codeDoc.data();
-            const storedCode = (data.code || "").toUpperCase().trim();
-            const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-            const isExpired = expiresAt && expiresAt.getTime() < Date.now();
-
-            if (isExpired) {
-              setError("Ce code de validation a expiré. Veuillez en demander un nouveau.");
-              setLoading(false);
-              return;
-            }
-
-            if (storedCode === inputCode) {
-              isVerified = true;
-            } else {
-              setError("Code de validation incorrect. Veuillez vérifier les caractères saisis.");
-              setLoading(false);
-              return;
-            }
-          } else {
-            setError("Aucun code actif trouvé pour cette adresse. Cliquez sur 'Renvoyer le code'.");
-            setLoading(false);
-            return;
-          }
-        } catch (dbErr) {
-          console.warn("[VerifyEmail] Échec vérification Firestore de repli :", dbErr);
-        }
-      }
-
-      if (isVerified) {
-        // Mettre à jour Firestore document users
-        try {
-          await updateDoc(doc(db, "users", user.uid), { emailVerified: true });
-        } catch (uErr) {
-          console.warn("[VerifyEmail] Avertissement updateDoc users :", uErr);
-        }
-        try {
-          await updateDoc(doc(db, "pros", user.uid), { emailVerified: true });
+          await reload(auth.currentUser);
         } catch {}
-
-        // Marquer le code comme consommé
-        try {
-          await updateDoc(doc(db, "verification_codes", cleanEmail), { used: true });
-        } catch {}
-
-        // Rafraîchir l'objet Auth Firebase local
-        if (auth.currentUser) {
-          try {
-            await reload(auth.currentUser);
-          } catch {}
-        }
-
-        setMessage("Votre adresse e-mail a été vérifiée avec succès !");
-        setTimeout(() => {
-          navigate("/dashboard");
-          window.location.reload();
-        }, 800);
-      } else {
-        setError("Code de validation incorrect ou expiré.");
       }
-    } catch (apiErr: any) {
-      setError(apiErr.message || "Erreur de connexion au serveur de validation.");
+
+      setMessage("Votre compte SafeCallr a été vérifié avec succès !");
+      setTimeout(() => {
+        navigate("/dashboard");
+        window.location.reload();
+      }, 800);
+    } catch (err: any) {
+      console.error("[VerifyEmail] Erreur lors de la validation du code :", err);
+      const msg = err.message || "Code de validation incorrect ou expiré.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   const resendEmail = async () => {
+    if (cooldown > 0 || loading) return;
     setLoading(true);
     setError("");
     setMessage("");
     try {
-      let firstName = "";
-      if (user?.uid) {
-        try {
-          const userSnap = await getDoc(doc(db, "users", user.uid));
-          if (userSnap.exists()) {
-            firstName = userSnap.data().firstName || "";
-          } else {
-            const proSnap = await getDoc(doc(db, "pros", user.uid));
-            if (proSnap.exists()) {
-              firstName = proSnap.data().firstName || "";
-            }
-          }
-        } catch (dbErr) {
-          console.warn("Could not fetch user document for name customization:", dbErr);
-        }
-      }
-      await emailService.sendCustomVerificationEmail(user.email, firstName);
+      await emailService.sendCustomVerificationEmail(user?.email, user?.displayName || "");
       setMessage("Un nouveau code de validation a été envoyé par e-mail.");
+      setCooldown(60);
     } catch (err: any) {
-      setError("Impossible d'envoyer le code : " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const bypassVerification = async () => {
-    setLoading(true);
-    try {
-      try {
-        await updateDoc(doc(db, "users", user.uid), {
-          emailVerified: true
-        });
-      } catch (e) {
-        await updateDoc(doc(db, "pros", user.uid), {
-          emailVerified: true
-        });
-      }
-      window.location.reload();
-    } catch (err: any) {
-      setError(err.message);
+      console.error("[VerifyEmail] Erreur renvoi code :", err);
+      setError(err.message || "Impossible de renvoyer le code.");
     } finally {
       setLoading(false);
     }
@@ -211,7 +95,7 @@ export default function VerifyEmail({ user }: { user: any }) {
           <h1 className="font-headline font-black text-3xl tracking-tight text-primary">Activez votre compte</h1>
           <p className="text-slate-400 text-sm leading-relaxed">
             Pour sécuriser votre compte, saisissez le <strong>code de sécurité</strong> envoyé à : <br />
-            <span className="text-on-surface font-extrabold block mt-1 text-base text-primary">{user.email}</span>
+            <span className="text-on-surface font-extrabold block mt-1 text-base text-primary">{user?.email}</span>
           </p>
         </div>
 
@@ -245,23 +129,15 @@ export default function VerifyEmail({ user }: { user: any }) {
         <div className="space-y-3">
           <button 
             onClick={resendEmail}
-            disabled={loading}
-            className="w-full text-slate-300 font-bold text-sm py-2 hover:text-white transition-colors flex items-center justify-center gap-2"
+            disabled={loading || cooldown > 0}
+            className="w-full text-slate-300 font-bold text-sm py-2 hover:text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Renvoyer le code par e-mail
+            {cooldown > 0 ? (
+              <span>Renvoyer le code ({cooldown}s)</span>
+            ) : (
+              <span>Renvoyer le code par e-mail</span>
+            )}
           </button>
-
-          {/* Debug Bypass representation en développement uniquement */}
-          {process.env.NODE_ENV === "development" && (
-            <button 
-              onClick={bypassVerification}
-              disabled={loading}
-              className="w-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold text-xs py-2 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              <Shield className="w-3 h-3" />
-              DEBUG: Simuler la validation du compte
-            </button>
-          )}
 
           <button 
             onClick={handleLogout}

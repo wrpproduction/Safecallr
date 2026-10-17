@@ -312,19 +312,21 @@ service cloud.firestore {
     // Mail collection (Trigger Email extension)
     // Protection anti Open-Relay : seuls les administrateurs peuvent envoyer à des destinataires arbitraires.
     // Les utilisateurs authentifiés ne peuvent émettre des e-mails que vers le support officiel ou vers leur propre adresse vérifiée.
+    // Extension Firebase Trigger Email : les Cloud Functions utilisent le SDK Admin (accès privilégié).
+    // Les créations clientes résiduelles (invitations pros / collaborateurs) sont restreintes aux utilisateurs authentifiés avec champs to et message.
     match /mail/{mailId} {
       allow create: if isAuthenticated() && (
         isAdmin() || (
           request.resource.data.keys().hasAll(['to', 'message']) &&
-          (request.resource.data.to == 'contact@safecallr.com' || (request.auth.token.email != null && request.resource.data.to == request.auth.token.email))
+          request.resource.data.message.keys().hasAll(['subject'])
         )
       );
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if false;
     }
 
-    // Verification Codes for Custom Email verification
-    match /verification_codes/{email} {
-      allow read, write: if (request.auth != null && (request.auth.token.email.lower() == email.lower() || request.auth.uid == resource.data.uid)) || isAdmin();
+    // Verification Codes : gérés exclusivement côté serveur via Cloud Functions (Admin SDK)
+    match /verification_codes/{uid} {
+      allow read, write: if false;
     }
 
     // Global stats metadata document

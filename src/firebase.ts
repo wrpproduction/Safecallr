@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, signInWithPopup as fbSignInWithPopup, signOut, onAuthStateChanged, getIdToken } from "firebase/auth";
 import { initializeFirestore, getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
 
@@ -38,6 +39,7 @@ export const db = isServer
     }, firebaseConfig.firestoreDatabaseId);
 
 export const storage = getStorage(app);
+export const functions = getFunctions(app, "europe-west3");
 export const googleProvider = (isServer || Capacitor.isNativePlatform()) ? null : new GoogleAuthProvider();
 
 // Safe wrapper for Google popup sign in to prevent crashes on native Capacitor platforms

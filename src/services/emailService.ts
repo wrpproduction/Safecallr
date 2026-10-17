@@ -1,14 +1,13 @@
-import { db, auth } from "../firebase";
+import { db, auth, functions } from "../firebase";
 import { collection, addDoc, serverTimestamp, getCountFromServer, doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { 
   buildAdminNotificationEmail, 
   buildProValidationEmail, 
   buildProRejectionEmail, 
-  buildProRegistrationConfirmationEmail,
-  buildActivationEmail
+  buildProRegistrationConfirmationEmail
 } from "../lib/emailTemplates";
 import { getApiUrl } from "../lib/api";
-import { sendEmailVerification } from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
 import { Preferences } from "@capacitor/preferences";
 
 async function getBrowserLang(): Promise<string> {
@@ -233,66 +232,16 @@ export const emailService = {
   },
 
   /**
-   * Envoie un email de vérification d'adresse e-mail personnalisé pour SafeCallr,
-   * contenant un code de validation unique et sécurisé.
-   * Fonctionne de façon 100% robuste sur le Web et sur mobile natif (iOS / Android).
+   * Envoie l'email contenant le code d'activation via la Cloud Function sendVerificationCode.
+   * L'email est pris directement depuis le compte Firebase Auth de l'utilisateur connecté
+   * et l'envoi est assuré par l'extension Trigger Email (collection "mail").
    */
-  async sendCustomVerificationEmail(email: string, firstName: string) {
-    const lang = await getBrowserLang();
-    const cleanEmail = email.trim().toLowerCase();
-
-    // 1. Essayer d'abord l'endpoint serveur dédié
-    try {
-      const response = await fetch(getApiUrl("/api/send-custom-verification"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: cleanEmail, firstName, lang }),
-      });
-      
-      if (response.ok) {
-        console.log(`[EmailService] E-mail d'activation envoyé avec succès via le serveur (lang: ${lang})`);
-        return;
-      }
-    } catch (err) {
-      console.warn("[EmailService] Serveur API inaccessible pour l'e-mail d'activation, bascule sur le repli Firestore :", err);
-    }
-
-    // 2. Repli direct Firestore (garantit l'envoi même sur mobile natif ou proxy hors d'atteinte)
-    try {
-      // Générer le code de sécurité (6 chiffres + 1 lettre majuscule)
-      const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-      const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length));
-      const codeDigits = Math.floor(100000 + Math.random() * 900000);
-      const code = `${codeDigits}${randomLetter}`;
-
-      // Stocker le code dans la collection verification_codes
-      await setDoc(doc(db, "verification_codes", cleanEmail), {
-        email: cleanEmail,
-        code,
-        createdAt: serverTimestamp(),
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
-        used: false,
-        uid: auth.currentUser?.uid || null
-      });
-
-      // Générer l'e-mail officiel d'activation SafeCallr
-      const { subject, html, text } = buildActivationEmail(code, firstName || "", lang);
-
-      // Envoyer via la collection mail Firestore (extension Firebase Trigger Email)
-      await sendEmailWithFallback(cleanEmail, subject, html, text);
-      console.log(`[EmailService] Code d'activation généré et envoyé via repli Firestore pour ${cleanEmail}`);
-    } catch (fallbackErr) {
-      console.error("[EmailService] Échec critique du repli d'envoi du code d'activation :", fallbackErr);
-      if (auth.currentUser) {
-        try {
-          auth.languageCode = lang;
-          await sendEmailVerification(auth.currentUser);
-        } catch (e) {
-          console.warn("[EmailService] Échec repli Firebase Auth standard :", e);
-        }
-      }
-    }
+  async sendCustomVerificationEmail(_email?: string, firstName?: string) {
+    const sendVerificationCodeFn = httpsCallable<{ firstName?: string }, { ok: boolean }>(
+      functions,
+      "sendVerificationCode"
+    );
+    const result = await sendVerificationCodeFn({ firstName: firstName || "" });
+    return result.data;
   }
 };
