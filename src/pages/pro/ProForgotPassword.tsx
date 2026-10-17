@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ShieldCheck, Mail, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { auth } from "../../firebase";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { emailService } from "../../services/emailService";
 import AppLogo from "../../components/AppLogo";
 import { useLanguage } from "../../contexts/LanguageContext";
 
@@ -20,18 +20,18 @@ export default function ProForgotPassword() {
 
     try {
       auth.languageCode = lang || "fr";
-      await sendPasswordResetEmail(auth, email.trim());
+      await emailService.sendCustomPasswordResetEmail(email.trim(), lang || "fr");
       setIsSent(true);
     } catch (err: any) {
       console.error("[ProForgotPassword] Reset error:", err);
-      if (err.code === "auth/user-not-found") {
+      if (err.code === "not-found" || err.message?.includes("not-found") || err.message?.includes("Aucun compte")) {
         setError("Aucun compte n'est associé à cet email.");
-      } else if (err.code === "auth/invalid-email") {
+      } else if (err.code === "invalid-argument" || err.message?.includes("invalid-argument") || err.message?.includes("invalide")) {
         setError("L'adresse email saisie n'est pas valide.");
-      } else if (err.code === "auth/too-many-requests") {
+      } else if (err.code === "resource-exhausted" || err.message?.includes("trop")) {
         setError("Trop de tentatives. Veuillez patienter avant de réessayer.");
       } else {
-        setError("Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.");
+        setError(err.message || "Une erreur est survenue lors de l'envoi de l'email. Veuillez réessayer.");
       }
     } finally {
       setIsLoading(false);

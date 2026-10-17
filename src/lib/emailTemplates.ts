@@ -880,3 +880,102 @@ ${t.footer}`;
 
   return { subject, html, text };
 }
+
+/**
+ * Construit un e-mail officiel SafeCallr de réinitialisation de mot de passe
+ * aux couleurs de l'application (Dark navy #0b0f19 et Vert émeraude #10b981).
+ */
+export function buildPasswordResetEmail(resetLink: string, email: string, lang: string = "fr") {
+  const isEn = lang === "en";
+  const isEs = lang === "es";
+
+  const subject = isEn 
+    ? "Réinitialisation de votre mot de passe SafeCallr" 
+    : isEs 
+    ? "Restablecer su contraseña de SafeCallr" 
+    : "Réinitialisation de votre mot de passe SafeCallr";
+
+  const title = isEn ? "Reset your password" : isEs ? "Restablecer su contraseña" : "Réinitialisation de mot de passe";
+  const subtitle = "L'authentification humaine contre la fraude";
+  const greeting = isEn ? "Hello," : isEs ? "Hola:" : "Bonjour,";
+  const textBody = isEn
+    ? `You requested to reset your password for SafeCallr account (${email}). Click the button below to choose a new password:`
+    : isEs
+    ? `Ha solicitado restablecer la contraseña de su cuenta SafeCallr (${email}). Haga clic en el botón siguiente para elegir una nueva contraseña:`
+    : `Vous avez demandé la réinitialisation du mot de passe associé à votre compte SafeCallr (<strong>${email}</strong>). Cliquez sur le bouton ci-dessous pour choisir votre nouveau mot de passe :`;
+
+  const buttonText = isEn ? "Reset my password" : isEs ? "Restablecer mi contraseña" : "Réinitialiser mon mot de passe";
+  const warning = isEn
+    ? "This link is secure and valid for 1 hour. If you did not make this request, you can safely ignore this email; your password will remain unchanged."
+    : isEs
+    ? "Este enlace es seguro y válido durante 1 hora. Si no ha solicitado este cambio, puede ignorar este mensaje; su contraseña permanecerá sin cambios."
+    : "Ce lien est sécurisé et valable pendant 1 heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité ; votre mot de passe actuel restera inchangé.";
+
+  const automated = isEn
+    ? "This is an automated email. Please do not reply directly."
+    : isEs
+    ? "Este es un correo automático. Por favor, no responda directamente."
+    : "Cet e-mail est automatique. Merci de ne pas y répondre directement.";
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #ffffff; background-color: #0b0f19; margin: 0; padding: 0; }
+    .wrapper { max-width: 600px; margin: 0 auto; padding: 30px 20px; border: 1px solid #1f2937; border-radius: 16px; background-color: #0b0f19; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .icon-container { display: inline-block; background-color: #10b981; padding: 12px; border-radius: 12px; margin-bottom: 10px; }
+    .app-name { font-size: 24px; font-weight: 800; color: #10b981; margin: 0; letter-spacing: -0.05em; }
+    .subtitle { font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 0.15em; }
+    .card { background-color: #111827; padding: 25px; border-radius: 12px; border: 1px solid #1f2937; text-align: center; }
+    .card-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-top: 0; margin-bottom: 15px; text-align: left; }
+    .card-text { font-size: 14px; line-height: 1.6; color: #d1d5db; margin-bottom: 25px; text-align: left; }
+    .button-container { margin: 30px 0; text-align: center; }
+    .btn { background-color: #10b981; color: #0b0f19 !important; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 15px; display: inline-block; }
+    .warning-text { font-size: 12px; color: #9ca3af; margin-top: 20px; text-align: left; line-height: 1.5; }
+    .fallback-url { font-size: 11px; color: #6b7280; word-break: break-all; margin-top: 15px; text-align: left; }
+    .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; border-top: 1px solid #1f2937; padding-top: 20px; }
+    .footer-automated { margin: 0 0 10px 0; }
+    .footer-team { margin: 0; font-weight: bold; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6z"/></svg>
+      </div>
+      <h1 class="app-name">SafeCallr</h1>
+      <p class="subtitle">${subtitle}</p>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">${title}</h2>
+      <p class="card-text">
+        ${greeting}<br/><br/>
+        ${textBody}
+      </p>
+
+      <div class="button-container">
+        <a href="${resetLink}" class="btn" target="_blank" rel="noopener noreferrer">${buttonText}</a>
+      </div>
+
+      <p class="warning-text">${warning}</p>
+      <p class="fallback-url">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br/>${resetLink}</p>
+    </div>
+
+    <div class="footer">
+      <p class="footer-automated">${automated}</p>
+      <p class="footer-team">L'équipe SafeCallr — MOTIOON</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `SafeCallr — ${title}\n\n${greeting}\n\n${textBody.replace(/<[^>]*>/g, "")}\n\nLien de réinitialisation : ${resetLink}\n\n${warning}\n\n${automated}\nL'équipe SafeCallr — MOTIOON`;
+
+  return { subject, html, text };
+}

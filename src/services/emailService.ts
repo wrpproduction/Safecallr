@@ -267,5 +267,48 @@ export const emailService = {
       throw new Error(errData.error || "Impossible d'envoyer le code d'activation.");
     }
     return await response.json();
+  },
+
+  /**
+   * Envoie un email de réinitialisation de mot de passe aux couleurs officielles SafeCallr,
+   * sans aucune mention de compte GCP tiers.
+   */
+  async sendCustomPasswordResetEmail(email: string, lang: string = "fr") {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Tenter la Cloud Function callable (architecture cible 100% Firebase)
+    try {
+      const sendResetFn = httpsCallable<{ email: string; lang?: string }, { ok: boolean }>(
+        functions,
+        "sendPasswordReset"
+      );
+      const res = await sendResetFn({ email: cleanEmail, lang });
+      if (res.data?.ok) return res.data;
+    } catch (cfErr: any) {
+      console.warn("[EmailService] Cloud Function sendPasswordReset exception :", cfErr.message || cfErr);
+      // Si l'erreur provient de la Cloud Function (utilisateur non trouvé, argument invalide, trop de requêtes)
+      if (cfErr.code === "not-found" || cfErr.code === "functions/not-found" || cfErr.message?.includes("Aucun compte")) {
+        throw new Error("Aucun compte n'est associé à cette adresse email.");
+      }
+      if (cfErr.code === "invalid-argument" || cfErr.code === "functions/invalid-argument") {
+        throw new Error("L'adresse email saisie n'est pas valide.");
+      }
+      if (cfErr.code === "resource-exhausted" || cfErr.code === "functions/resource-exhausted") {
+        throw new Error("Trop de tentatives. Veuillez patienter avant de réessayer.");
+      }
+    }
+
+    // 2. Repli serveur : /api/send-password-reset
+    const response = await fetch(getApiUrl("/api/send-password-reset"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: cleanEmail, lang })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || "Impossible d'envoyer l'e-mail de réinitialisation.");
+    }
+    return await response.json();
   }
 };

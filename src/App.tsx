@@ -15,6 +15,7 @@ import HowItWorks from "./pages/HowItWorks";
 import CompleteProfile from "./pages/CompleteProfile";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import DeleteAccount from "./pages/DeleteAccount";
 import CompanyContact from "./pages/CompanyContact";
@@ -453,6 +454,11 @@ export default function App({ forcedLang }: { forcedLang?: 'fr' | 'en' | 'es' } 
           <Route path="/pro/login" element={<ProLogin />} />
           <Route path="/pro/register" element={<ProRegister />} />
           <Route path="/pro/forgot-password" element={<ProForgotPassword />} />
+          
+          {/* Routes de réinitialisation de mot de passe aux couleurs SafeCallr */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/action" element={<ResetPassword />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
           
           {/* zones non indexées (robots.txt les bloquera) */}
           <Route path="/pro" element={

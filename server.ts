@@ -8,7 +8,7 @@ import fs from "fs";
 import { Resend } from "resend";
 import { sendAdminNotification } from "./server/notify.js";
 import { getPlatformStats } from "./server/stats.js";
-import { EmailData, buildActivationEmail, buildOrganizationEmail } from "./src/lib/emailTemplates.js";
+import { EmailData, buildActivationEmail, buildOrganizationEmail, buildPasswordResetEmail } from "./src/lib/emailTemplates.js";
 
 // Global process exception handlers to prevent any unhandled error from crashing the server
 process.on("unhandledRejection", (reason, promise) => {
@@ -837,6 +837,63 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
     } catch (err: any) {
       console.error("[Verification] Erreur validation code :", err);
       return res.status(500).json({ error: err.message || "Erreur lors de la validation du code." });
+    }
+  });
+
+  // Endpoint de réinitialisation de mot de passe avec template officiel SafeCallr
+  app.post("/api/send-password-reset", verificationEmailLimiter, async (req, res) => {
+    try {
+      const email = ((req.body?.email as string) || "").trim().toLowerCase();
+      const lang = ((req.body?.lang as string) || "fr").trim().toLowerCase();
+      if (!email) {
+        return res.status(400).json({ error: "L'adresse email est requise." });
+      }
+
+      if (!firebaseInitialized || !db) {
+        return res.status(500).json({ error: "Base de données non disponible." });
+      }
+
+      // 1. Vérifier si l'utilisateur existe dans Firebase Auth
+      try {
+        await admin.auth().getUserByEmail(email);
+      } catch (userErr: any) {
+        if (userErr.code === "auth/user-not-found") {
+          return res.status(404).json({ error: "Aucun compte n'est associé à cette adresse email." });
+        }
+      }
+
+      // 2. Générer le lien sécurisé de réinitialisation via le SDK Admin Firebase
+      const firebaseRawLink = await admin.auth().generatePasswordResetLink(email);
+      let resetLink = firebaseRawLink;
+
+      try {
+        const parsedUrl = new URL(firebaseRawLink);
+        const oobCode = parsedUrl.searchParams.get("oobCode");
+        if (oobCode) {
+          resetLink = `https://safecallr.com/reset-password?oobCode=${oobCode}&email=${encodeURIComponent(email)}`;
+        }
+      } catch (parseErr) {
+        console.warn("[PasswordReset] Impossible de parser l'URL :", parseErr);
+      }
+
+      // 3. Construire l'e-mail officiel SafeCallr (Dark Navy #0b0f19 et Vert émeraude #10b981)
+      const { subject, html, text } = buildPasswordResetEmail(resetLink, email, lang);
+
+      // 4. Injecter dans la collection "mail" pour l'extension Trigger Email
+      await db.collection("mail").add({
+        to: email,
+        message: {
+          subject,
+          html,
+          text
+        }
+      });
+
+      console.log(`[PasswordReset] Lien généré pour ${email} et envoyé aux couleurs de SafeCallr.`);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[PasswordReset] Erreur :", err);
+      return res.status(500).json({ error: err.message || "Impossible d'envoyer l'e-mail de réinitialisation." });
     }
   });
 

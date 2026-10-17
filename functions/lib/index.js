@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.submitCompanyContact = exports.verifyCode = exports.sendVerificationCode = void 0;
+exports.sendPasswordReset = exports.submitCompanyContact = exports.verifyCode = exports.sendVerificationCode = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
@@ -269,6 +269,110 @@ exports.submitCompanyContact = (0, https_1.onCall)({ region: "europe-west3" }, a
             subject,
             text,
             html
+        }
+    });
+    return { ok: true };
+});
+/**
+ * Cloud Function Callable: sendPasswordReset
+ * Région: europe-west3
+ * Génère le lien sécurisé de réinitialisation de mot de passe via l'Admin SDK,
+ * et envoie un e-mail officiel aux couleurs de SafeCallr via la collection "mail".
+ */
+exports.sendPasswordReset = (0, https_1.onCall)({ region: "europe-west3" }, async (request) => {
+    const email = (request.data?.email || "").trim().toLowerCase();
+    if (!email) {
+        throw new https_1.HttpsError("invalid-argument", "L'adresse email est requise.");
+    }
+    // 1. Vérifier si l'utilisateur existe dans Firebase Auth
+    try {
+        await authAdmin.getUserByEmail(email);
+    }
+    catch (err) {
+        if (err.code === "auth/user-not-found") {
+            throw new https_1.HttpsError("not-found", "Aucun compte n'est associé à cette adresse email.");
+        }
+    }
+    // 2. Générer le lien sécurisé Firebase et router vers notre page brandée SafeCallr
+    const firebaseRawLink = await authAdmin.generatePasswordResetLink(email);
+    let resetLink = firebaseRawLink;
+    try {
+        const parsedUrl = new URL(firebaseRawLink);
+        const oobCode = parsedUrl.searchParams.get("oobCode");
+        if (oobCode) {
+            resetLink = `https://safecallr.com/reset-password?oobCode=${oobCode}&email=${encodeURIComponent(email)}`;
+        }
+    }
+    catch (parseErr) {
+        console.warn("[sendPasswordReset] Impossible de parser l'URL Firebase :", parseErr);
+    }
+    // 3. Template HTML officiel SafeCallr (Dark navy #0b0f19 et Vert émeraude #10b981)
+    const subject = "Réinitialisation de votre mot de passe SafeCallr";
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réinitialisation de mot de passe SafeCallr</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #ffffff; background-color: #0b0f19; margin: 0; padding: 0; }
+    .wrapper { max-width: 600px; margin: 0 auto; padding: 30px 20px; border: 1px solid #1f2937; border-radius: 16px; background-color: #0b0f19; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .icon-container { display: inline-block; background-color: #10b981; padding: 12px; border-radius: 12px; margin-bottom: 10px; }
+    .app-name { font-size: 24px; font-weight: 800; color: #10b981; margin: 0; letter-spacing: -0.05em; }
+    .subtitle { font-size: 13px; color: #9ca3af; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 0.15em; }
+    .card { background-color: #111827; padding: 25px; border-radius: 12px; border: 1px solid #1f2937; text-align: center; }
+    .card-title { font-size: 18px; font-weight: 700; color: #ffffff; margin-top: 0; margin-bottom: 15px; text-align: left; }
+    .card-text { font-size: 14px; line-height: 1.6; color: #d1d5db; margin-bottom: 25px; text-align: left; }
+    .button-container { margin: 30px 0; text-align: center; }
+    .btn { background-color: #10b981; color: #0b0f19 !important; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 15px; display: inline-block; }
+    .warning-text { font-size: 12px; color: #9ca3af; margin-top: 20px; text-align: left; line-height: 1.5; }
+    .fallback-url { font-size: 11px; color: #6b7280; word-break: break-all; margin-top: 15px; text-align: left; }
+    .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; border-top: 1px solid #1f2937; padding-top: 20px; }
+    .footer-automated { margin: 0 0 10px 0; }
+    .footer-team { margin: 0; font-weight: bold; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6z"/></svg>
+      </div>
+      <h1 class="app-name">SafeCallr</h1>
+      <p class="subtitle">L'authentification humaine contre la fraude</p>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Réinitialisation de votre mot de passe</h2>
+      <p class="card-text">
+        Bonjour,<br/><br/>
+        Vous avez demandé la réinitialisation du mot de passe associé à votre compte SafeCallr (<strong>${email}</strong>). Cliquez sur le bouton ci-dessous pour choisir votre nouveau mot de passe :
+      </p>
+
+      <div class="button-container">
+        <a href="${resetLink}" class="btn" target="_blank" rel="noopener noreferrer">Réinitialiser mon mot de passe</a>
+      </div>
+
+      <p class="warning-text">Ce lien est sécurisé et valable pendant 1 heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail ; votre mot de passe actuel restera inchangé.</p>
+      <p class="fallback-url">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br/>${resetLink}</p>
+    </div>
+
+    <div class="footer">
+      <p class="footer-automated">Cet e-mail est automatique. Merci de ne pas y répondre directement.</p>
+      <p class="footer-team">L'équipe SafeCallr — MOTIOON</p>
+    </div>
+  </div>
+</body>
+</html>`;
+    const text = `SafeCallr — Réinitialisation de mot de passe\n\nBonjour,\n\nVous avez demandé la réinitialisation du mot de passe pour votre compte SafeCallr (${email}).\n\nLien de réinitialisation : ${resetLink}\n\nCe lien est sécurisé et valable 1 heure.\n\nL'équipe SafeCallr — MOTIOON`;
+    // 4. Injecter dans la collection mail
+    await db.collection("mail").add({
+        to: email,
+        message: {
+            subject,
+            html,
+            text
         }
     });
     return { ok: true };

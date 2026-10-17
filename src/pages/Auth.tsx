@@ -299,20 +299,18 @@ export default function Auth() {
                   setResetSent(false);
                   try {
                     auth.languageCode = lang || "fr";
-                    // Appel direct sans actionCodeSettings pour éviter auth/unauthorized-continue-uri
-                    // sur Capacitor native (capacitor://localhost) et les domaines non-whitelistés
-                    await sendPasswordResetEmail(auth, email.trim());
+                    await emailService.sendCustomPasswordResetEmail(email.trim(), lang || "fr");
                     setResetSent(true);
                   } catch (err: any) {
                     console.error("[Auth] Reset password error:", err);
-                    if (err.code === "auth/user-not-found") {
+                    if (err.code === "not-found" || err.message?.includes("not-found") || err.message?.includes("Aucun compte")) {
                       setError("Aucun compte n'est associé à cette adresse email.");
-                    } else if (err.code === "auth/invalid-email") {
+                    } else if (err.code === "invalid-argument" || err.message?.includes("invalid-argument") || err.message?.includes("invalide")) {
                       setError("L'adresse email saisie n'est pas valide.");
-                    } else if (err.code === "auth/too-many-requests") {
+                    } else if (err.code === "resource-exhausted" || err.message?.includes("trop")) {
                       setError("Trop de tentatives. Veuillez patienter quelques instants avant de réessayer.");
                     } else {
-                      setError("Impossible d'envoyer l'email de réinitialisation. Veuillez réessayer.");
+                      setError(err.message || "Impossible d'envoyer l'email de réinitialisation. Veuillez réessayer.");
                     }
                   } finally {
                     setResetLoading(false);
