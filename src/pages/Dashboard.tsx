@@ -72,28 +72,59 @@ export default function Dashboard({ user }: { user: any }) {
   }, [pendingAuthRequest?.id, pendingIncomingVerification?.id]);
 
   useEffect(() => {
-    if (!user || !user.phoneNumber) return;
+    if (!user || !user.uid) return;
+
+    const userEmail = (user.email || "").toLowerCase().trim();
 
     // Nettoyer le numéro de téléphone de l'utilisateur pour la recherche
-    const cleanUserPhone = user.phoneNumber?.replace(/\s/g, "").replace(/-/g, "");
+    const cleanUserPhone = (user.phoneNumber || user.phone || "")?.replace(/\s/g, "").replace(/-/g, "");
 
-    // On écoute les demandes de connexion pro ciblées sur l'utilisateur connecté
+    // 1. Écoute des connexions pro (par UID et par email)
     const qConnections = query(
       collection(db, "proClientConnections"),
       where("userId", "==", user.uid)
     );
 
+    let unsubConnectionsEmail: (() => void) | null = null;
+
     const unsubConnections = onSnapshot(qConnections, (snapshot) => {
       const userConns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setConnections(userConns.filter((c: any) => c.status === "pending"));
-      setMyContacts(userConns.filter((c: any) => c.status === "connected"));
+      setConnections(prev => {
+        const other = prev.filter(c => c.userId !== user.uid);
+        const map = new Map();
+        [...other, ...userConns].forEach(c => map.set(c.id, c));
+        return Array.from(map.values()).filter((c: any) => c.status === "pending");
+      });
+      setMyContacts(prev => {
+        const other = prev.filter(c => c.userId !== user.uid);
+        const map = new Map();
+        [...other, ...userConns].forEach(c => map.set(c.id, c));
+        return Array.from(map.values()).filter((c: any) => c.status === "connected");
+      });
       setLoadingConnections(false);
     }, (err) => {
       console.warn("proClientConnections snapshot listener error:", err);
       setLoadingConnections(false);
     });
 
-    // On écoute les demandes d'authentification pro (authRequests) ciblées sur l'utilisateur
+    if (userEmail) {
+      const qConnEmail = query(
+        collection(db, "proClientConnections"),
+        where("clientEmail", "==", userEmail)
+      );
+      unsubConnectionsEmail = onSnapshot(qConnEmail, (snapshot) => {
+        const emailConns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setConnections(prev => {
+          const map = new Map();
+          [...prev, ...emailConns.filter((c: any) => c.status === "pending")].forEach(c => map.set(c.id, c));
+          return Array.from(map.values());
+        });
+      }, (err) => {
+        console.warn("proClientConnections by email listener error:", err);
+      });
+    }
+
+    // 2. Écoute des demandes d'authentification pro (authRequests) ciblées sur l'utilisateur
     const qAuth = query(
       collection(db, "authRequests"),
       where("toUserId", "==", user.uid),
@@ -111,20 +142,45 @@ export default function Dashboard({ user }: { user: any }) {
       }).catch(() => {});
     });
 
-    // On écoute les demandes de contacts personnels
+    // 3. Écoute des demandes de contacts personnels (par toUserId ET par toUserEmail)
     const qPersoReq = query(
       collection(db, "personalContactRequests"),
       where("toUserId", "==", user.uid),
       where("status", "==", "pending")
     );
 
+    let unsubPersoReqEmail: (() => void) | null = null;
+
     const unsubPersoReq = onSnapshot(qPersoReq, (snapshot) => {
-      setPersonalRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const uidReqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPersonalRequests(prev => {
+        const map = new Map();
+        [...prev, ...uidReqs].forEach(r => map.set(r.id, r));
+        return Array.from(map.values()).filter((r: any) => r.status === "pending");
+      });
     }, (err) => {
       console.warn("personalContactRequests snapshot listener error:", err);
     });
 
-    // On écoute les demandes envoyées (où l'utilisateur est le demandeur)
+    if (userEmail) {
+      const qPersoReqEmail = query(
+        collection(db, "personalContactRequests"),
+        where("toUserEmail", "==", userEmail),
+        where("status", "==", "pending")
+      );
+      unsubPersoReqEmail = onSnapshot(qPersoReqEmail, (snapshot) => {
+        const emailReqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPersonalRequests(prev => {
+          const map = new Map();
+          [...prev, ...emailReqs].forEach(r => map.set(r.id, r));
+          return Array.from(map.values()).filter((r: any) => r.status === "pending");
+        });
+      }, (err) => {
+        console.warn("personalContactRequests (email) listener error:", err);
+      });
+    }
+
+    // 4. Écoute des demandes envoyées (où l'utilisateur est le demandeur)
     const qSent = query(
       collection(db, "verification_requests"),
       where("requesterId", "==", user.uid),
@@ -223,8 +279,10 @@ export default function Dashboard({ user }: { user: any }) {
       unsubSent();
       unsubReceived();
       unsubConnections();
+      if (unsubConnectionsEmail) unsubConnectionsEmail();
       unsubAuth();
       unsubPersoReq();
+      if (unsubPersoReqEmail) unsubPersoReqEmail();
       unsubscribeUserConnA();
       unsubscribeUserConnB();
       unsubscribePerso();
@@ -257,19 +315,23 @@ export default function Dashboard({ user }: { user: any }) {
 
   const handleAcceptPersonalRequest = async (request: any) => {
     try {
+      const myName = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+      const myPhone = user.phoneNumber || user.phone || "";
+
       await addDoc(collection(db, "userConnections"), {
         userAId: request.fromUserId,
         userAName: request.fromUserName,
         userAPhone: request.fromUserPhone,
-        userBId: request.toUserId,
-        userBName: request.toUserName,
-        userBPhone: request.toUserPhone,
+        userBId: request.toUserId || user.uid,
+        userBName: request.toUserName || myName,
+        userBPhone: request.toUserPhone || myPhone,
         status: "verified",
         createdAt: serverTimestamp()
       });
 
       await updateDoc(doc(db, "personalContactRequests", request.id), {
         status: "accepted",
+        toUserId: user.uid,
         updatedAt: serverTimestamp()
       });
     } catch (err) {

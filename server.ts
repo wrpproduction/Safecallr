@@ -968,6 +968,26 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         }
       }
 
+      // 3. Recherche dans les professionnels ("pros") si non trouvé dans "users"
+      if (!targetUser && email) {
+        const snapPro = await db.collection("pros").where("email", "==", email).limit(1).get();
+        if (!snapPro.empty) {
+          const docSnap = snapPro.docs[0];
+          targetUser = { id: docSnap.id, ...docSnap.data(), isPro: true };
+        }
+      }
+
+      if (!targetUser && rawPhone) {
+        let snapProPhone = await db.collection("pros").where("phone", "==", rawPhone).limit(1).get();
+        if (snapProPhone.empty) {
+          snapProPhone = await db.collection("pros").where("phoneNumber", "==", rawPhone).limit(1).get();
+        }
+        if (!snapProPhone.empty) {
+          const docSnap = snapProPhone.docs[0];
+          targetUser = { id: docSnap.id, ...docSnap.data(), isPro: true };
+        }
+      }
+
       if (targetUser) {
         // Renvoyer uniquement les données publiques nécessaires (pas de métadonnées sensibles)
         return res.json({

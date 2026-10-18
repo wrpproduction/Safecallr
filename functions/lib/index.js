@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendPasswordReset = exports.submitCompanyContact = exports.verifyCode = exports.sendVerificationCode = void 0;
+exports.searchUser = exports.sendPasswordReset = exports.submitCompanyContact = exports.verifyCode = exports.sendVerificationCode = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
@@ -407,5 +407,74 @@ exports.sendPasswordReset = (0, https_1.onCall)({ region: "europe-west3" }, asyn
         }
     });
     return { ok: true };
+});
+/**
+ * Cloud Function Callable: searchUser
+ * Région: europe-west3
+ * Recherche sécurisée d'un utilisateur par email ou téléphone (anti-scraping, authentifié).
+ * Recherche dans "users" et "pros".
+ */
+exports.searchUser = (0, https_1.onCall)({ region: "europe-west3" }, async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "Vous devez être connecté pour rechercher un contact.");
+    }
+    const email = (request.data?.email || "").trim().toLowerCase();
+    const rawPhone = (request.data?.phone || "").replace(/\s/g, "").replace(/-/g, "");
+    if (!email && !rawPhone) {
+        throw new https_1.HttpsError("invalid-argument", "Email ou numéro de téléphone requis.");
+    }
+    let targetUser = null;
+    // 1. Recherche par email dans "users"
+    if (email) {
+        const snap = await db.collection("users").where("email", "==", email).limit(1).get();
+        if (!snap.empty) {
+            const docSnap = snap.docs[0];
+            targetUser = { id: docSnap.id, ...docSnap.data() };
+        }
+    }
+    // 2. Recherche par téléphone dans "users" si non trouvé
+    if (!targetUser && rawPhone) {
+        let snapPhone = await db.collection("users").where("phoneNumber", "==", rawPhone).limit(1).get();
+        if (snapPhone.empty) {
+            snapPhone = await db.collection("users").where("phone", "==", rawPhone).limit(1).get();
+        }
+        if (!snapPhone.empty) {
+            const docSnap = snapPhone.docs[0];
+            targetUser = { id: docSnap.id, ...docSnap.data() };
+        }
+    }
+    // 3. Recherche dans "pros" si non trouvé dans "users"
+    if (!targetUser && email) {
+        const snapPro = await db.collection("pros").where("email", "==", email).limit(1).get();
+        if (!snapPro.empty) {
+            const docSnap = snapPro.docs[0];
+            targetUser = { id: docSnap.id, ...docSnap.data(), isPro: true };
+        }
+    }
+    if (!targetUser && rawPhone) {
+        let snapProPhone = await db.collection("pros").where("phone", "==", rawPhone).limit(1).get();
+        if (snapProPhone.empty) {
+            snapProPhone = await db.collection("pros").where("phoneNumber", "==", rawPhone).limit(1).get();
+        }
+        if (!snapProPhone.empty) {
+            const docSnap = snapProPhone.docs[0];
+            targetUser = { id: docSnap.id, ...docSnap.data(), isPro: true };
+        }
+    }
+    if (targetUser) {
+        return {
+            found: true,
+            user: {
+                id: targetUser.id,
+                firstName: targetUser.firstName || "",
+                lastName: targetUser.lastName || "",
+                displayName: targetUser.displayName || `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim() || "Utilisateur SafeCallr",
+                email: targetUser.email || "",
+                phoneNumber: targetUser.phoneNumber || targetUser.phone || "",
+                isPro: !!targetUser.isPro
+            }
+        };
+    }
+    return { found: false, user: null };
 });
 //# sourceMappingURL=index.js.map

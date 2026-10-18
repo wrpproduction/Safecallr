@@ -428,3 +428,82 @@ export const sendPasswordReset = onCall({ region: "europe-west3" }, async (reque
   return { ok: true };
 });
 
+/**
+ * Cloud Function Callable: searchUser
+ * Région: europe-west3
+ * Recherche sécurisée d'un utilisateur par email ou téléphone (anti-scraping, authentifié).
+ * Recherche dans "users" et "pros".
+ */
+export const searchUser = onCall({ region: "europe-west3" }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Vous devez être connecté pour rechercher un contact.");
+  }
+
+  const email = (request.data?.email || "").trim().toLowerCase();
+  const rawPhone = (request.data?.phone || "").replace(/\s/g, "").replace(/-/g, "");
+
+  if (!email && !rawPhone) {
+    throw new HttpsError("invalid-argument", "Email ou numéro de téléphone requis.");
+  }
+
+  let targetUser: any = null;
+
+  // 1. Recherche par email dans "users"
+  if (email) {
+    const snap = await db.collection("users").where("email", "==", email).limit(1).get();
+    if (!snap.empty) {
+      const docSnap = snap.docs[0];
+      targetUser = { id: docSnap.id, ...docSnap.data() };
+    }
+  }
+
+  // 2. Recherche par téléphone dans "users" si non trouvé
+  if (!targetUser && rawPhone) {
+    let snapPhone = await db.collection("users").where("phoneNumber", "==", rawPhone).limit(1).get();
+    if (snapPhone.empty) {
+      snapPhone = await db.collection("users").where("phone", "==", rawPhone).limit(1).get();
+    }
+    if (!snapPhone.empty) {
+      const docSnap = snapPhone.docs[0];
+      targetUser = { id: docSnap.id, ...docSnap.data() };
+    }
+  }
+
+  // 3. Recherche dans "pros" si non trouvé dans "users"
+  if (!targetUser && email) {
+    const snapPro = await db.collection("pros").where("email", "==", email).limit(1).get();
+    if (!snapPro.empty) {
+      const docSnap = snapPro.docs[0];
+      targetUser = { id: docSnap.id, ...docSnap.data(), isPro: true };
+    }
+  }
+
+  if (!targetUser && rawPhone) {
+    let snapProPhone = await db.collection("pros").where("phone", "==", rawPhone).limit(1).get();
+    if (snapProPhone.empty) {
+      snapProPhone = await db.collection("pros").where("phoneNumber", "==", rawPhone).limit(1).get();
+    }
+    if (!snapProPhone.empty) {
+      const docSnap = snapProPhone.docs[0];
+      targetUser = { id: docSnap.id, ...docSnap.data(), isPro: true };
+    }
+  }
+
+  if (targetUser) {
+    return {
+      found: true,
+      user: {
+        id: targetUser.id,
+        firstName: targetUser.firstName || "",
+        lastName: targetUser.lastName || "",
+        displayName: targetUser.displayName || `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim() || "Utilisateur SafeCallr",
+        email: targetUser.email || "",
+        phoneNumber: targetUser.phoneNumber || targetUser.phone || "",
+        isPro: !!targetUser.isPro
+      }
+    };
+  }
+
+  return { found: false, user: null };
+});
+

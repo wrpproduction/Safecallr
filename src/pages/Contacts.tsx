@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { db, auth, collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, addDoc, deleteDoc, getDocs } from "../firebase";
+import { db, auth, functions, collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, addDoc, deleteDoc, getDocs } from "../firebase";
+import { httpsCallable } from "firebase/functions";
 import { UserPlus, Check, X, Shield, Building2, Phone, Mail, Clock, Search, User, Plus, Trash2, MapPin, Globe, CheckCircle2, ShieldCheck, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -109,18 +110,44 @@ export default function Contacts({ user }: { user: any }) {
       setLoading(false);
     });
 
-    // Fetch Personal Contact Requests
+    // Fetch Personal Contact Requests (par toUserId et par toUserEmail)
+    const userEmail = (user.email || "").toLowerCase().trim();
     const qPersoReq = query(
       collection(db, "personalContactRequests"),
       where("toUserId", "==", user.uid),
       where("status", "==", "pending")
     );
 
+    let unsubscribePersoReqEmail: (() => void) | null = null;
+
     const unsubscribePersoReq = onSnapshot(qPersoReq, (snapshot) => {
-      setPersonalRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const uidReqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPersonalRequests(prev => {
+        const map = new Map();
+        [...prev, ...uidReqs].forEach(r => map.set(r.id, r));
+        return Array.from(map.values()).filter((r: any) => r.status === "pending");
+      });
     }, (err) => {
       console.warn("personalContactRequests in Contacts error:", err);
     });
+
+    if (userEmail) {
+      const qPersoReqEmail = query(
+        collection(db, "personalContactRequests"),
+        where("toUserEmail", "==", userEmail),
+        where("status", "==", "pending")
+      );
+      unsubscribePersoReqEmail = onSnapshot(qPersoReqEmail, (snapshot) => {
+        const emailReqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPersonalRequests(prev => {
+          const map = new Map();
+          [...prev, ...emailReqs].forEach(r => map.set(r.id, r));
+          return Array.from(map.values()).filter((r: any) => r.status === "pending");
+        });
+      }, (err) => {
+        console.warn("personalContactRequests by email in Contacts error:", err);
+      });
+    }
 
     // Fetch all pros and companies for joining data
     const unsubscribePros = onSnapshot(collection(db, "pros"), (snapshot) => {
@@ -142,6 +169,7 @@ export default function Contacts({ user }: { user: any }) {
       unsubscribeAuth();
       unsubscribePerso();
       unsubscribePersoReq();
+      if (unsubscribePersoReqEmail) unsubscribePersoReqEmail();
       unsubscribePros();
       unsubscribeCompanies();
     };
@@ -171,45 +199,62 @@ export default function Contacts({ user }: { user: any }) {
       const cleanPhone = newContact.phone.replace(/\s/g, "").replace(/-/g, "");
       
       currentStep = "recherche_utilisateur";
-      // Check if user exists in SafeCallr base via secure API (RGPD anti-scraping)
+      // Recherche sécurisée de l'utilisateur (Cloud Function d'abord, puis fallback API)
       let targetUser = null;
+      const cleanEmail = newContact.email.toLowerCase().trim();
+
       try {
-        const idToken = await auth.currentUser?.getIdToken();
-        const searchRes = await fetch(
-          `/api/users/search?email=${encodeURIComponent(newContact.email.toLowerCase().trim())}&phone=${encodeURIComponent(cleanPhone)}`,
-          {
-            headers: idToken ? { Authorization: `Bearer ${idToken}` } : {}
-          }
+        const searchUserFn = httpsCallable<{ email?: string; phone?: string }, { found: boolean; user: any }>(
+          functions,
+          "searchUser"
         );
-        if (searchRes.ok) {
-          const searchData = await searchRes.json();
-          if (searchData.found && searchData.user) {
-            targetUser = searchData.user;
-          }
+        const res = await searchUserFn({
+          email: cleanEmail,
+          phone: cleanPhone
+        });
+        if (res.data?.found && res.data?.user) {
+          targetUser = res.data.user;
         }
-      } catch (searchErr) {
-        console.warn("API search error, falling back:", searchErr);
+      } catch (cfErr) {
+        console.warn("[Contacts] Cloud Function searchUser fallback vers API:", cfErr);
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          const searchRes = await fetch(
+            `/api/users/search?email=${encodeURIComponent(cleanEmail)}&phone=${encodeURIComponent(cleanPhone)}`,
+            {
+              headers: idToken ? { Authorization: `Bearer ${idToken}` } : {}
+            }
+          );
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            if (searchData.found && searchData.user) {
+              targetUser = searchData.user;
+            }
+          }
+        } catch (apiErr) {
+          console.warn("[Contacts] API search error:", apiErr);
+        }
       }
 
       const contactFullName = `${newContact.firstName} ${newContact.name}`;
+      const senderName = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || "Un utilisateur SafeCallr";
+      const senderPhone = user.phoneNumber || user.phone || "";
 
       if (targetUser) {
         currentStep = "ajout_demande_contact_personnel";
-        // Person is in the base, send a validation request
         const target = targetUser as any;
-        const targetName = target.displayName || (target.firstName ? `${target.firstName} ${target.lastName}` : "Utilisateur SafeCallr");
-        const senderName = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || "Un utilisateur SafeCallr";
+        const targetName = target.displayName || (target.firstName ? `${target.firstName} ${target.lastName}` : contactFullName);
         
         const docRef = await addDoc(collection(db, "personalContactRequests"), {
           fromUserId: user.uid || "",
           fromUserName: senderName,
-          fromUserPhone: user.phoneNumber || "",
+          fromUserPhone: senderPhone,
           toUserId: target.id,
           toUserName: targetName,
-          toUserPhone: target.phoneNumber || "",
-          toUserEmail: target.email || "",
+          toUserPhone: target.phoneNumber || cleanPhone,
+          toUserEmail: (target.email || cleanEmail).toLowerCase().trim(),
           status: "pending",
-          description: newContact.description,
+          description: newContact.description || "",
           createdAt: serverTimestamp()
         });
 
@@ -241,16 +286,31 @@ export default function Contacts({ user }: { user: any }) {
         setAddSuccess(t("contacts.successRequest").replace("{name}", contactFullName));
         setTimeout(() => setShowAddModal(false), 2000);
       } else {
-        currentStep = "ajout_contact_local";
-        // Person not in base, add as local contact
+        currentStep = "ajout_contact_et_invitation";
+        // Création de la demande d'invitation réseau ciblée sur l'adresse email
+        await addDoc(collection(db, "personalContactRequests"), {
+          fromUserId: user.uid || "",
+          fromUserName: senderName,
+          fromUserPhone: senderPhone,
+          toUserId: "",
+          toUserName: contactFullName,
+          toUserPhone: cleanPhone,
+          toUserEmail: cleanEmail,
+          status: "pending",
+          description: newContact.description || "",
+          createdAt: serverTimestamp()
+        });
+
+        // Enregistrement également en contact local
         const contactData: any = {
           ownerId: user.uid || "",
           firstName: newContact.firstName,
           name: newContact.name,
           phone: newContact.phone,
-          email: newContact.email,
+          email: cleanEmail,
           description: newContact.description,
           workspaceMode: activeMode,
+          status: "pending",
           createdAt: serverTimestamp()
         };
 
@@ -299,20 +359,25 @@ export default function Contacts({ user }: { user: any }) {
 
   const handleAcceptRequest = async (request: any) => {
     try {
+      const myName = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+      const myPhone = user.phoneNumber || user.phone || "";
+
       // Create connection for both users
       await addDoc(collection(db, "userConnections"), {
         userAId: request.fromUserId,
         userAName: request.fromUserName,
         userAPhone: request.fromUserPhone,
-        userBId: request.toUserId,
-        userBName: request.toUserName,
-        userBPhone: request.toUserPhone,
+        userBId: request.toUserId || user.uid,
+        userBName: request.toUserName || myName,
+        userBPhone: request.toUserPhone || myPhone,
+        status: "verified",
         createdAt: serverTimestamp()
       });
 
       // Update request status
       await updateDoc(doc(db, "personalContactRequests", request.id), {
         status: "accepted",
+        toUserId: user.uid,
         updatedAt: serverTimestamp()
       });
     } catch (err) {
