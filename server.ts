@@ -853,13 +853,46 @@ Renvoyez uniquement l'objet JSON correspondant exactement au schéma demandé.`;
         return res.status(500).json({ error: "Base de données non disponible." });
       }
 
-      // 1. Vérifier si l'utilisateur existe dans Firebase Auth
+      // 1. Rate Limiting : 1 demande toutes les 60 secondes maximum par adresse e-mail
+      const crypto = await import("crypto");
+      const emailHash = crypto.createHash("sha256").update(email).digest("hex");
+      const limitRef = db.collection("password_reset_limits").doc(emailHash);
+      const limitDoc = await limitRef.get();
+
+      if (limitDoc.exists) {
+        const data = limitDoc.data();
+        const lastRequestedAt = data?.lastRequestedAt?.toMillis?.() || 0;
+        const elapsedMs = Date.now() - lastRequestedAt;
+        if (elapsedMs < 60000) {
+          const remainingSecs = Math.ceil((60000 - elapsedMs) / 1000);
+          return res.status(429).json({
+            error: `Veuillez patienter ${remainingSecs} seconde${remainingSecs > 1 ? "s" : ""} avant de refaire une demande.`
+          });
+        }
+      }
+
+      await limitRef.set({
+        lastRequestedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // 2. Vérifier si l'utilisateur existe dans Firebase Auth
+      let userExists = false;
       try {
         await admin.auth().getUserByEmail(email);
+        userExists = true;
       } catch (userErr: any) {
         if (userErr.code === "auth/user-not-found") {
-          return res.status(404).json({ error: "Aucun compte n'est associé à cette adresse email." });
+          userExists = false;
+        } else {
+          console.warn("[PasswordReset] Erreur de vérification utilisateur :", userErr);
+          userExists = false;
         }
+      }
+
+      // Règle de sécurité stricte : Toujours renvoyer { ok: true }, que l'adresse existe ou non
+      if (!userExists) {
+        console.log(`[PasswordReset] Demande pour compte inexistant (${email}) - retour { ok: true } silencieux`);
+        return res.json({ ok: true });
       }
 
       // 2. Générer le lien sécurisé de réinitialisation via le SDK Admin Firebase

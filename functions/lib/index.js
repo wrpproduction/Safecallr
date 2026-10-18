@@ -281,19 +281,50 @@ exports.submitCompanyContact = (0, https_1.onCall)({ region: "europe-west3" }, a
  */
 exports.sendPasswordReset = (0, https_1.onCall)({ region: "europe-west3" }, async (request) => {
     const email = (request.data?.email || "").trim().toLowerCase();
-    if (!email) {
-        throw new https_1.HttpsError("invalid-argument", "L'adresse email est requise.");
+    if (!email || !email.includes("@")) {
+        throw new https_1.HttpsError("invalid-argument", "L'adresse email est requise et doit être valide.");
     }
-    // 1. Vérifier si l'utilisateur existe dans Firebase Auth
+    // 1. Rate Limiting : 1 demande toutes les 60 secondes maximum par adresse e-mail
+    const emailHash = crypto.createHash("sha256").update(email).digest("hex");
+    const limitRef = db.collection("password_reset_limits").doc(emailHash);
+    const limitDoc = await limitRef.get();
+    if (limitDoc.exists) {
+        const data = limitDoc.data();
+        const lastRequestedAt = data?.lastRequestedAt;
+        if (lastRequestedAt) {
+            const elapsedMs = Date.now() - lastRequestedAt.toMillis();
+            if (elapsedMs < 60000) {
+                const remainingSecs = Math.ceil((60000 - elapsedMs) / 1000);
+                throw new https_1.HttpsError("resource-exhausted", `Veuillez patienter ${remainingSecs} seconde${remainingSecs > 1 ? "s" : ""} avant de refaire une demande pour cette adresse.`);
+            }
+        }
+    }
+    // Enregistrer immédiatement l'horodatage de la tentative (empêche les attaques par force brute ou timing)
+    await limitRef.set({
+        lastRequestedAt: firestore_1.FieldValue.serverTimestamp()
+    });
+    // 2. Vérifier si l'utilisateur existe dans Firebase Auth
+    let userExists = false;
     try {
         await authAdmin.getUserByEmail(email);
+        userExists = true;
     }
     catch (err) {
         if (err.code === "auth/user-not-found") {
-            throw new https_1.HttpsError("not-found", "Aucun compte n'est associé à cette adresse email.");
+            userExists = false;
+        }
+        else {
+            console.warn("[sendPasswordReset] Erreur de vérification utilisateur :", err);
+            userExists = false;
         }
     }
-    // 2. Générer le lien sécurisé Firebase et router vers notre page brandée SafeCallr
+    // Règle de sécurité stricte : Toujours renvoyer { ok: true }, que l'adresse existe ou non
+    // Ne jamais révéler publiquement si un compte existe dans la base
+    if (!userExists) {
+        console.log(`[sendPasswordReset] Demande reçue pour adresse non répertoriée (${email}) - retour { ok: true } silencieux`);
+        return { ok: true };
+    }
+    // 3. Générer le lien sécurisé Firebase et router vers notre page brandée SafeCallr
     const firebaseRawLink = await authAdmin.generatePasswordResetLink(email);
     let resetLink = firebaseRawLink;
     try {
@@ -306,7 +337,7 @@ exports.sendPasswordReset = (0, https_1.onCall)({ region: "europe-west3" }, asyn
     catch (parseErr) {
         console.warn("[sendPasswordReset] Impossible de parser l'URL Firebase :", parseErr);
     }
-    // 3. Template HTML officiel SafeCallr (Dark navy #0b0f19 et Vert émeraude #10b981)
+    // 4. Template HTML officiel SafeCallr (Dark navy #0b0f19 et Vert émeraude #10b981)
     const subject = "Réinitialisation de votre mot de passe SafeCallr";
     const html = `<!DOCTYPE html>
 <html>
