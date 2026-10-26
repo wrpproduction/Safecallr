@@ -29,6 +29,7 @@ import { db, collection, getDocs, query, where } from "../firebase";
 import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelector from "../components/LanguageSelector";
 import { DEFAULT_BLOG_ARTICLES } from "../data/defaultArticles";
+import { Capacitor } from "@capacitor/core";
 
 export default function Landing({ persona, legal }: { persona?: string; legal?: string }) {
   const { t, lang } = useLanguage();
@@ -127,6 +128,17 @@ export default function Landing({ persona, legal }: { persona?: string; legal?: 
           }
         }}
       />
+      {/* Metricool Visitor Tracking Pixel - Web Homepage Only (Excluded from Native Apps) */}
+      {!Capacitor.isNativePlatform() && (
+        <img
+          src="https://tracker.metricool.com/c3po.jpg?hash=1c072709ae737a7d90bcd82827adadab"
+          alt=""
+          width="1"
+          height="1"
+          style={{ display: "none" }}
+          aria-hidden="true"
+        />
+      )}
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
